@@ -16,7 +16,7 @@ const Table = forwardRef<HTMLElement, TableProps>((props, ref) => {
         borderlessRow,
         children,
         className,
-        compact = false,
+        compact = true,
         hoverable = true,
         overflow = true,
         ...rest

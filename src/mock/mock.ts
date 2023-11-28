@@ -2,8 +2,20 @@ import { createServer } from 'miragejs'
 import appConfig from '@/configs/app.config'
 
 import { signInUserData } from './data/authData'
+import { eventsData, mailData, crmDashboardData } from './data/crmData'
+import { usersData, userDetailData } from './data/usersData'
+import {
+    // productsData,
+    ordersData,
+    orderDetailsData,
+    salesDashboardData,
+} from './data/salesData'
 
-import { authFakeApi } from './fakeApi'
+import {
+    authFakeApi,
+    salesFakeApi,
+    crmFakeApi
+} from './fakeApi'
 
 const { apiPrefix } = appConfig
 
@@ -13,6 +25,15 @@ export function mockServer({ environment = 'test' }) {
         seeds(server) {
             server.db.loadData({
                 signInUserData,
+                // productsData,
+                salesDashboardData,
+                ordersData,
+                orderDetailsData,
+                crmDashboardData,
+                eventsData,
+                mailData,
+                usersData,
+                userDetailData
             })
         },
         routes() {
@@ -25,6 +46,8 @@ export function mockServer({ environment = 'test' }) {
             this.passthrough()
 
             authFakeApi(this, apiPrefix)
+            salesFakeApi(this, apiPrefix)
+            crmFakeApi(this, apiPrefix)
         },
     })
 }

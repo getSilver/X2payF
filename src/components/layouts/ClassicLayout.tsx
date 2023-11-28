@@ -1,5 +1,6 @@
 import Header from '@/components/template/Header'
 import SideNavToggle from '@/components/template/SideNavToggle'
+import LanguageSelector from '@/components/template/LanguageSelector'
 import SidePanel from '@/components/template/SidePanel'
 import MobileNav from '@/components/template/MobileNav'
 import UserDropdown from '@/components/template/UserDropdown'
@@ -18,6 +19,7 @@ const HeaderActionsStart = () => {
 const HeaderActionsEnd = () => {
     return (
         <>
+	<LanguageSelector />
             <SidePanel />
             <UserDropdown hoverable={false} />
         </>

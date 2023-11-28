@@ -20,12 +20,10 @@ const Cover = ({ children, content, ...rest }: CoverProps) => {
                 <Logo mode="dark" />
                 <div>
                     <h3 className="text-white mb-4">
-                        Jump start your project with Elstar
+                        Jump start your project with X2Pay
                     </h3>
                     <p className="text-lg text-white opacity-80 max-w-[700px]">
-                        Elstar comes with a complete set of UI components
-                        crafted with Tailwind CSS, it fulfilled most of the use
-                        case to create modern and beautiful UI and application
+                        X2Pay欢迎你
                     </p>
                 </div>
                 <span className="text-white">

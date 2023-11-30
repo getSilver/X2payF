@@ -9,7 +9,7 @@ export const SLICE_NAME = 'crmCustomerDetails'
 
 type PersonalInfo = {
     location: string
-    title: string
+    agent: string
     birthday: string
     phoneNumber: string
     facebook: string
@@ -41,6 +41,8 @@ export type Subscription = {
     // billing: string
     // nextPaymentDate: number
     amount: number
+    // funds: number   //账户资金
+    // freeze: number  //冻结资金
 }
 
 export type Customer = {

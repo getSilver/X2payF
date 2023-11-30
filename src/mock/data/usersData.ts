@@ -161,7 +161,7 @@ export const userDetailData = [
         ],
         subscription: [
             {
-                plan: 'ÕýÊ½&²âÊÔ»·¾³ÇÐ»»',
+                plan: 'æ²™ç›’çŽ¯å¢ƒ',
                 status: 'active',
                 billing: 'monthly',
                 nextPaymentDate: 1639132800,
@@ -1239,7 +1239,7 @@ export const userDetailData = [
         ],
         subscription: [
             {
-                plan: 'ÕýÊ½&²âÊÔ»·¾³ÇÐ»»',
+                plan: 'ï¿½ï¿½Ê½&ï¿½ï¿½ï¿½Ô»ï¿½ï¿½ï¿½ï¿½Ð»ï¿½',
                 status: 'active',
                 billing: 'monthly',
                 nextPaymentDate: 1639132800,

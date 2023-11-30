@@ -42,11 +42,11 @@ const PaymentSummary = ({ data }: PaymentSummaryProps) => {
         <Card className="mb-4">
             <h5 className="mb-4">Payment Summary</h5>
             <ul>
-                <PaymentInfo label="subAmount提交金额" value={data?.subAmount} />
-                <PaymentInfo label="fee(6%)手续费" value={data?.Fees} />
-                <PaymentInfo label="Amount实付金额" value={data?.Amount} />
+                <PaymentInfo label="subAmount鎻愪氦閲戦" value={data?.subAmount} />
+                <PaymentInfo label="fee(6%)璐圭敤" value={data?.Fees} />
+                <PaymentInfo label="Amount瀹炴敹" value={data?.Amount} />
                 <hr className="mb-3" />
-                <PaymentInfo isLast label="Total总计" value={data?.total} />
+                <PaymentInfo isLast label="Total鎬昏" value={data?.total} />
             </ul>
         </Card>
     )

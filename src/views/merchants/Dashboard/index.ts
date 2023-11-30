@@ -1,3 +1,3 @@
-import merDashboard from './merDashboard'
+import CrmDashboard from './CrmDashboard'
 
-export default merDashboard
+export default CrmDashboard

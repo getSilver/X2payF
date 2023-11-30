@@ -104,7 +104,7 @@ const appsNavigation: NavigationTree[] = [
                     },
                     {
                         key: 'appsMerchants.merDetails',
-                        path: `${APP_PREFIX_PATH}/merchants/customer-details?id=8`,
+                        path: `${APP_PREFIX_PATH}/merchants/mer-details?id=8`,
                         title: 'Merchants Details',
                         translateKey: 'nav.appsMer.merDetails',
                         icon: '',

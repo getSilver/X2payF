@@ -50,8 +50,8 @@ const CustomerDetail = () => {
                         <div className="w-full">
                             <AdaptableCard>
                                 <CurrentSubscription />
-                                <PaymentHistory />
                                 <PaymentMethods />
+                                <PaymentHistory />
                             </AdaptableCard>
                         </div>
                     </div>

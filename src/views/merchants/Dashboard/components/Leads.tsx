@@ -110,7 +110,7 @@ const Leads = ({ data = [], className }: LeadsProps) => {
     })
 
     const onNavigate = () => {
-        navigate('/app/merchants/customers')
+        navigate('/app/crm/customers')
     }
 
     return (

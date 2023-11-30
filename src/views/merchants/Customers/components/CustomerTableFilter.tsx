@@ -7,7 +7,7 @@ import {
     OptionProps,
     SingleValue,
 } from 'react-select'
-import { HiCheck } from 'react-icons/hi2'
+import { HiCheck } from 'react-icons/hi'
 
 type Option = {
     value: string
@@ -31,10 +31,11 @@ const CustomSelectOption = ({
 }: OptionProps<Option>) => {
     return (
         <div
-            className={`flex items-center justify-between p-2 cursor-pointer ${isSelected
-                ? 'bg-gray-100 dark:bg-gray-500'
-                : 'hover:bg-gray-50 dark:hover:bg-gray-600'
-                }`}
+            className={`flex items-center justify-between p-2 cursor-pointer ${
+                isSelected
+                    ? 'bg-gray-100 dark:bg-gray-500'
+                    : 'hover:bg-gray-50 dark:hover:bg-gray-600'
+            }`}
             {...innerProps}
         >
             <div className="flex items-center gap-2">

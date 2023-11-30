@@ -52,7 +52,7 @@ export type CrmDashboardState = {
 export const SLICE_NAME = 'crmDashboard'
 
 export const getCrmDashboardData = createAsyncThunk(
-    'Dashboard/data/getCrmDashboardData',
+    'crmDashboard/data/getCrmDashboardData',
     async () => {
         const response =
             await apiGetCrmDashboardData<CrmDashboardDataResponse>()

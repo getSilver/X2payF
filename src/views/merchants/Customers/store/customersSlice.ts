@@ -8,7 +8,7 @@ import type { TableQueries } from '@/@types/common'
 
 type PersonalInfo = {
     location: string
-    title: string
+    agent: string
     birthday: string
     phoneNumber: string
     facebook: string
@@ -51,6 +51,7 @@ export type Customer = {
     lastOnline: number
     status: string
     amount: number
+    // agent: string
     personalInfo: PersonalInfo
     orderHistory: OrderHistory[]
     paymentMethod: PaymentMethod[]

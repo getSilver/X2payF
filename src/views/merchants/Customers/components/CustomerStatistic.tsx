@@ -7,9 +7,9 @@ import Loading from '@/components/shared/Loading'
 import { getCustomerStatistic, useAppDispatch, useAppSelector } from '../store'
 import {
     HiOutlineUserGroup,
-    HiOutlineUserPlus,
+    HiOutlineUserAdd,
     HiOutlineUsers,
-} from 'react-icons/hi2'
+} from 'react-icons/hi'
 import { NumericFormat } from 'react-number-format'
 import type { ReactNode } from 'react'
 
@@ -100,7 +100,7 @@ const CustomerStatistic = () => {
                 loading={loading}
             />
             <StatisticCard
-                icon={<HiOutlineUserPlus />}
+                icon={<HiOutlineUserAdd />}
                 avatarClass="!bg-emerald-500"
                 label="New Customers"
                 value={statisticData?.newCustomers?.value}

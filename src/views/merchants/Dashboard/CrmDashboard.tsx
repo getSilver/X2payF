@@ -14,7 +14,7 @@ import Leads from './components/Leads'
 
 injectReducer('crmDashboard', reducer)
 
-const Dashboard = () => {
+const CrmDashboard = () => {
     const dispatch = useAppDispatch()
 
     const { statisticData, leadByRegionData, recentLeadsData, emailSentData } =
@@ -47,4 +47,4 @@ const Dashboard = () => {
     )
 }
 
-export default Dashboard
+export default CrmDashboard

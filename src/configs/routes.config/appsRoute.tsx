@@ -51,7 +51,7 @@ const appsRoute: Routes = [
     },
     {
         key: 'appsMerchants.merDetails',
-        path: `${APP_PREFIX_PATH}/merchants/customer-details`,
+        path: `${APP_PREFIX_PATH}/merchants/mer-details`,
         component: lazy(() => import('@/views/merchants/CustomerDetail')),
         authority: [ADMIN, USER],
         meta: {

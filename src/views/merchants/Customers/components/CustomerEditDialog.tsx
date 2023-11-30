@@ -49,7 +49,7 @@ const CustomerEditDialog = () => {
         <Drawer
             isOpen={drawerOpen}
             closable={false}
-            width={800}
+            width={1000}
             bodyClass="p-0"
             footer={
                 <DrawerFooter

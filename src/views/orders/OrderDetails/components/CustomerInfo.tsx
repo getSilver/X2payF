@@ -29,7 +29,7 @@ type CustomerInfoProps = {
 const CustomerInfo = ({ data }: CustomerInfoProps) => {
     return (
         <Card>
-            <h5 className="mb-4">Æ¾Ö¤</h5>
+            <h5 className="mb-4">å‡­è¯</h5>
             <Link
                 className="group flex items-center justify-between"
                 to="/app/crm/customer-details?id=11"
@@ -61,7 +61,7 @@ const CustomerInfo = ({ data }: CustomerInfoProps) => {
                 <span className="font-semibold">{data?.phone}</span>
             </IconText> */}
             <hr className="my-5" />
-            <h6 className="mb-4">ÊÕ¿îÈË</h6>
+            <h6 className="mb-4">æ”¶æ¬¾äºº</h6>
             <address className="not-italic">
                 <div className="mb-1">{data?.shippingAddress.line1}</div>
                 <div className="mb-1">{data?.shippingAddress.line2}</div>
@@ -69,7 +69,7 @@ const CustomerInfo = ({ data }: CustomerInfoProps) => {
                 <div>{data?.shippingAddress.line4}</div>
             </address>
             <hr className="my-5" />
-            <h6 className="mb-4">¸¶¿îÈË</h6>
+            <h6 className="mb-4">ä»˜æ¬¾äºº</h6>
             <address className="not-italic">
                 <div className="mb-1">{data?.billingAddress.line1}</div>
                 <div className="mb-1">{data?.billingAddress.line2}</div>

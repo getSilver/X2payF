@@ -7,7 +7,7 @@ import {
     HiUserCircle,
     HiEnvelope,
     HiMapPin,
-    HiIdentification,
+    HiPhone,
     HiCake,
     HiOutlineUser,
 } from 'react-icons/hi2'
@@ -16,7 +16,7 @@ import { Field, FieldProps, FormikErrors, FormikTouched } from 'formik'
 type FormFieldsName = {
     upload: string
     name: string
-    title: string
+    agent: string
     email: string
     location: string
     phoneNumber: string
@@ -75,21 +75,7 @@ const PersonalInfoForm = (props: PersonalInfoFormProps) => {
                 </Field>
             </FormItem>
             <FormItem
-                label="ÓÃ»§ID"
-                invalid={errors.phoneNumber && touched.phoneNumber}
-                errorMessage={errors.phoneNumber}
-            >
-                <Field
-                    type="text"
-                    autoComplete="off"
-                    name="phoneNumber"
-                    placeholder="Phone Number"
-                    component={Input}
-                    prefix={<HiIdentification className="text-xl" />}
-                />
-            </FormItem>
-            <FormItem
-                label="Name"
+                label="Nameæ ‡æ³¨äº§å“å"
                 invalid={errors.name && touched.name}
                 errorMessage={errors.name}
             >
@@ -117,7 +103,7 @@ const PersonalInfoForm = (props: PersonalInfoFormProps) => {
                 />
             </FormItem>
             <FormItem
-                label="LocationÊ±ÇøÉèÖÃ"
+                label="Locationè®¾ç½®æ—¶åŒº"
                 invalid={errors.location && touched.location}
                 errorMessage={errors.location}
             >
@@ -130,23 +116,36 @@ const PersonalInfoForm = (props: PersonalInfoFormProps) => {
                     prefix={<HiMapPin className="text-xl" />}
                 />
             </FormItem>
-
             <FormItem
-                label="´úÀí"
-                invalid={errors.title && touched.title}
-                errorMessage={errors.title}
+                label="Phone Number"
+                invalid={errors.phoneNumber && touched.phoneNumber}
+                errorMessage={errors.phoneNumber}
             >
                 <Field
                     type="text"
                     autoComplete="off"
-                    name="title"
-                    placeholder="Title"
+                    name="phoneNumber"
+                    placeholder="Phone Number"
                     component={Input}
-                    prefix={<HiIdentification className="text-xl" />}
+                    prefix={<HiPhone className="text-xl" />}
                 />
             </FormItem>
             <FormItem
-                label="×¢²áÈÕÆÚ"
+                label="Agentä»£ç†"
+                invalid={errors.agent && touched.agent}
+                errorMessage={errors.agent}
+            >
+                <Field
+                    type="text"
+                    autoComplete="off"
+                    name="agent"
+                    placeholder="Agent"
+                    component={Input}
+                    prefix={<HiPhone className="text-xl" />}
+                />
+            </FormItem>
+            <FormItem
+                label="Birthdayæ³¨å†Œæ—¶é—´"
                 invalid={(errors.birthday && touched.birthday) as boolean}
                 errorMessage={errors.birthday as string}
             >

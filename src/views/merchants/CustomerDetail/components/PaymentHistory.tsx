@@ -34,7 +34,7 @@ const columns = [
         },
     }),
     columnHelper.accessor('item', {
-        header: 'Product',
+        header: 'USDT地址',
     }),
     columnHelper.accessor('status', {
         header: 'Status',
@@ -104,7 +104,7 @@ const PaymentHistory = () => {
 
     return (
         <div className="mb-8">
-            <h6 className="mb-4">Payment History���ּ�¼</h6>
+            <h6 className="mb-4">Payment History结算记录</h6>
             <Table>
                 <THead>
                     {table.getHeaderGroups().map((headerGroup) => (

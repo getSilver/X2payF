@@ -25,7 +25,7 @@ const CurrentSubscription = () => {
 
     return (
         <div className="mb-8">
-            <h6 className="mb-4">Sub˵�����˻�ע����ǷǼ���ر�״̬��������������ɳ����ɳ�䣬�����Ӫ������Ӫ���ٵ㼤��ر��˻�</h6>
+            <h6 className="mb-4">Sub说明：账户注册后是非激活关闭状态，点击激活，激活。点击沙箱是沙箱，点击运营进入运营正式环境，再点激活关闭账户</h6>
             {data.map((sub) => (
                 <Card key={sub.plan} bordered className="mb-4">
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -45,14 +45,19 @@ const CurrentSubscription = () => {
                                             {sub.status}
                                         </span>
                                     </Tag>
+                                    <Tag className="bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-100 rounded-md border-0 mx-2">
+                                        <span className="capitalize">
+                                            {sub.status}
+                                        </span>
+                                    </Tag>
                                 </div>
                                 <div>
                                     <span>
-                                        <span className="mx-1"> ������</span><NumericFormat
+                                        <span className="mx-1"> 金额</span><NumericFormat
                                             className="font-semibold text-gray-900 dark:text-gray-100"
                                             displayType="text"
                                             value={(
-                                                Math.round(sub.amount * 100) /
+                                                Math.round(sub.funds * 100) /
                                                 100
                                             ).toFixed(3)}
                                             prefix={'$'}
@@ -60,12 +65,12 @@ const CurrentSubscription = () => {
                                         /></span>
                                     <span> | </span>
                                     <span>
-                                        <span className="mx-1"> ������</span>
+                                        <span className="mx-1"> 冻结</span>
                                         <NumericFormat
                                             className="font-semibold text-gray-900 dark:text-gray-100"
                                             displayType="text"
                                             value={(
-                                                Math.round(sub.amount * 100) /
+                                                Math.round(sub.freeze * 100) /
                                                 100
                                             ).toFixed(3)}
                                             prefix={'$'}
@@ -73,7 +78,7 @@ const CurrentSubscription = () => {
                                         />
                                     </span>
                                     <span>
-                                        <span className="mx-1">���</span>
+                                        <span className="mx-1">可用</span>
                                         <NumericFormat
                                             className="font-semibold text-gray-900 dark:text-gray-100"
                                             displayType="text"
@@ -95,7 +100,7 @@ const CurrentSubscription = () => {
                                     variant="plain"
                                     onClick={unsubscribe}
                                 >
-                                    ɳ��
+                                    沙箱 plan
                                 </Button>
                             )}
                             <Button
@@ -103,7 +108,7 @@ const CurrentSubscription = () => {
                                 className="ml-2 rtl:mr-2"
                                 onClick={subscribe}
                             >
-                                {subscribed ? '����' : '��ʽ����'} Plan
+                                {subscribed ? '激活' : '正式环境'} Plan
                             </Button>
                         </div>
                     </div>

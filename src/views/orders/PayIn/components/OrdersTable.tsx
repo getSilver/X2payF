@@ -221,7 +221,7 @@ const OrdersTable = () => {
                 cell: (props) => {
                     const row = props.row.original
                     return (
-                        <span>{dayjs.unix(row.date).format('DD/MM/YYYYTHH:mm:sssZ')}</span>
+                        <span>{dayjs.unix(row.date).format('DD/MM/YYYYTHH:mm:sssZ[Z]')}</span>
                     )
 
                 },
@@ -240,6 +240,16 @@ const OrdersTable = () => {
                             <Badge
                                 className={orderStatusColor[status].dotClass}
                             />
+                            <span
+                                className={`ml-2 rtl:mr-2 capitalize font-semibold ${orderStatusColor[status].textClass}`}
+                            >
+                                {orderStatusColor[status].label}
+                            </span>
+                            <span
+                                className={`ml-2 rtl:mr-2 capitalize font-semibold ${orderStatusColor[status].textClass}`}
+                            >
+                                {orderStatusColor[status].label}
+                            </span>
                             <span
                                 className={`ml-2 rtl:mr-2 capitalize font-semibold ${orderStatusColor[status].textClass}`}
                             >

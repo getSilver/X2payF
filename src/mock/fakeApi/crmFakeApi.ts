@@ -45,7 +45,7 @@ export default function crmFakeApi(server: Server, apiPrefix: string) {
         return responseData
     })
 
-    server.get(`${apiPrefix}/merchants/customers-statistic`, () => {
+    server.get(`${apiPrefix}/crm/customers-statistic`, () => {
         return {
             totalCustomers: {
                 value: 2420,
@@ -63,7 +63,7 @@ export default function crmFakeApi(server: Server, apiPrefix: string) {
     })
 
     server.get(
-        `${apiPrefix}/merchants/customer-details`,
+        `${apiPrefix}/crm/mer-details`,
         (schema, { queryParams }) => {
             const id = queryParams.id
             const user = schema.db.userDetailData.find(id)
@@ -72,7 +72,7 @@ export default function crmFakeApi(server: Server, apiPrefix: string) {
     )
 
     server.del(
-        `${apiPrefix}/merchants/customer/delete`,
+        `${apiPrefix}/crm/customer/delete`,
         (schema, { requestBody }) => {
             const { id } = JSON.parse(requestBody)
             schema.db.userDetailData.remove({ id })
@@ -80,14 +80,14 @@ export default function crmFakeApi(server: Server, apiPrefix: string) {
         }
     )
 
-    server.put(`${apiPrefix}/merchants/customers`, (schema, { requestBody }) => {
+    server.put(`${apiPrefix}/crm/customers`, (schema, { requestBody }) => {
         const data = JSON.parse(requestBody)
         const { id } = data
         schema.db.userDetailData.update({ id }, data)
         return {}
     })
 
-    server.get(`${apiPrefix}/merchants/mails`, (schema, { queryParams }) => {
+    server.get(`${apiPrefix}/crm/mails`, (schema, { queryParams }) => {
         const { category } = queryParams
         let data = schema.db.mailData
 
@@ -118,7 +118,7 @@ export default function crmFakeApi(server: Server, apiPrefix: string) {
         return data
     })
 
-    server.get(`${apiPrefix}/merchants/mail`, (schema, { queryParams }) => {
+    server.get(`${apiPrefix}/crm/mail`, (schema, { queryParams }) => {
         const id = queryParams.id
         const mail = schema.db.mailData.find(id)
         return mail

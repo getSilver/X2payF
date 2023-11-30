@@ -117,20 +117,20 @@ const CustomerProfile = ({ data = {} }: CustomerProfileProps) => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-y-7 gap-x-4 mt-8">
                     <CustomerInfoField title="Email" value={data.email} />
                     <CustomerInfoField
-                        title="用户ID"
+                        title="鍟嗘埛ID"
                         value={data.personalInfo?.phoneNumber}
                     />
                     <CustomerInfoField
-                        title="Location时区设置"
+                        title="Location鏃跺尯"
                         value={data.personalInfo?.location}
                     />
                     <CustomerInfoField
-                        title="birthday注册时间"
+                        title="birthday娉ㄥ唽鏃堕棿"
                         value={data.personalInfo?.birthday}
                     />
                     <CustomerInfoField
-                        title="title代理"
-                        value={data.personalInfo?.title}
+                        title="agent浠ｇ悊id"
+                        value={data.personalInfo?.agent}
                     />
                     <div className="mb-7">
                         <span>Social</span>

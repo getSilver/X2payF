@@ -81,23 +81,38 @@ type PayementStatus = {
 
 const paymentStatus: Record<number, PayementStatus> = {
     0: {
-        label: 'Paid',
+        label: '支付Paid',
         class: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-100',
     },
     1: {
-        label: 'Unpaid',
+        label: '未支付Unpaid',
         class: 'text-red-500 bg-red-100 dark:text-red-100 dark:bg-red-500/20',
     },
+    // 2: {
+    //     label: '冻结Unpaid',
+    //     class: 'text-red-500 bg-red-100 dark:text-red-100 dark:bg-red-500/20',
+    // },
 
 }
 
-// const progressStatus: Record<number, PayementStatus> = {
+const progressStatus: Record<number, PayementStatus> = {
+    0: {
+        label: '退款Refund',
+        class: 'bg-cyan-100 text-cyan-600 dark:bg-cyan-500/20 dark:text-cyan-100',
+    },
+    1: {
+        label: '退款失败Refund Failed',
+        class: 'text-amber-600 bg-amber-100 dark:text-amber-100 dark:bg-amber-500/20',
+    },
+}
+
+// const notifyStatus: Record<number, PayementStatus> = {
 //     0: {
-//         label: 'Fulfilled',
+//         label: '退款Refund',
 //         class: 'bg-cyan-100 text-cyan-600 dark:bg-cyan-500/20 dark:text-cyan-100',
 //     },
 //     1: {
-//         label: 'Unfulfilled',
+//         label: '退款失败Refund Failed',
 //         class: 'text-amber-600 bg-amber-100 dark:text-amber-100 dark:bg-amber-500/20',
 //     },
 // }
@@ -146,16 +161,16 @@ const OrderDetails = () => {
                                 <Tag
                                     className={classNames(
                                         'border-0 rounded-md ltr:ml-2 rtl:mr-2',
-                                        paymentStatus[data.payementStatus || 0]
+                                        paymentStatus[data.payementStatus || 1]
                                             .class
                                     )}
                                 >
                                     {
-                                        paymentStatus[data.payementStatus || 1]
+                                        paymentStatus[data.payementStatus || 0]
                                             .label
                                     }
                                 </Tag>
-                                {/* <Tag
+                                <Tag
                                     className={classNames(
                                         'border-0 rounded-md ltr:ml-2 rtl:mr-2',
                                         progressStatus[data.progressStatus || 0]
@@ -164,6 +179,18 @@ const OrderDetails = () => {
                                 >
                                     {
                                         progressStatus[data.progressStatus || 1]
+                                            .label
+                                    }
+                                </Tag>
+                                {/* <Tag
+                                    className={classNames(
+                                        'border-0 rounded-md ltr:ml-2 rtl:mr-2',
+                                        notifyStatus[data.progressStatus || 0]
+                                            .class
+                                    )}
+                                >
+                                    {
+                                        notifyStatus[data.progressStatus || 1]
                                             .label
                                     }
                                 </Tag> */}

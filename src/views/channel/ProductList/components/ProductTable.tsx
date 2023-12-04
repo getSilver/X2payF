@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from 'react'
 import Avatar from '@/components/ui/Avatar'
 import Badge from '@/components/ui/Badge'
 import DataTable from '@/components/shared/DataTable'
-import { HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi'
+import { HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi2'
 import { FiPackage } from 'react-icons/fi'
 import {
     getProducts,
@@ -31,6 +31,7 @@ type Product = {
     price: number
     stock: number
     status: number
+    tags: string
 }
 
 const inventoryStatusColor: Record<
@@ -42,20 +43,20 @@ const inventoryStatusColor: Record<
     }
 > = {
     0: {
-        label: 'In Stock',
+        label: '激活',
         dotClass: 'bg-emerald-500',
         textClass: 'text-emerald-500',
     },
     1: {
-        label: 'Limited',
+        label: '停用',
         dotClass: 'bg-amber-500',
         textClass: 'text-amber-500',
     },
-    2: {
-        label: 'Out of Stock',
-        dotClass: 'bg-red-500',
-        textClass: 'text-red-500',
-    },
+    // 2: {
+    //     label: 'Out of Stock',
+    //     dotClass: 'bg-red-500',
+    //     textClass: 'text-red-500',
+    // },
 }
 
 const ActionColumn = ({ row }: { row: Product }) => {
@@ -64,7 +65,7 @@ const ActionColumn = ({ row }: { row: Product }) => {
     const navigate = useNavigate()
 
     const onEdit = () => {
-        navigate(`/sales/product-edit/${row.id}`)
+        navigate(`/app/channel/channel-edit/${row.id}`)
     }
 
     const onDelete = () => {
@@ -149,7 +150,7 @@ const ProductTable = () => {
     const columns: ColumnDef<Product>[] = useMemo(
         () => [
             {
-                header: 'Name',
+                header: 'Name渠道名',
                 accessorKey: 'name',
                 cell: (props) => {
                     const row = props.row.original
@@ -157,7 +158,15 @@ const ProductTable = () => {
                 },
             },
             {
-                header: 'Category',
+                header: '收付类型',
+                accessorKey: 'tags',
+                cell: (props) => {
+                    const { tags } = props.row.original
+                    return <span className="capitalize">{tags}</span>
+                },
+            },
+            {
+                header: 'Category通道类别',
                 accessorKey: 'category',
                 cell: (props) => {
                     const row = props.row.original
@@ -165,12 +174,20 @@ const ProductTable = () => {
                 },
             },
             {
-                header: 'Quantity',
+                header: 'Quantity通道成本',
                 accessorKey: 'stock',
                 sortable: true,
             },
             {
-                header: 'Status',
+                header: 'Price跑量金额',
+                accessorKey: 'price',
+                cell: (props) => {
+                    const { price } = props.row.original
+                    return <span>${price}</span>
+                },
+            },
+            {
+                header: 'Status通道状态',
                 accessorKey: 'status',
                 cell: (props) => {
                     const { status } = props.row.original
@@ -190,14 +207,7 @@ const ProductTable = () => {
                     )
                 },
             },
-            {
-                header: 'Price',
-                accessorKey: 'price',
-                cell: (props) => {
-                    const { price } = props.row.original
-                    return <span>${price}</span>
-                },
-            },
+
             {
                 header: '',
                 id: 'action',

@@ -68,13 +68,30 @@ const appsRoute: Routes = [
         component: lazy(() => import('@/views/channel/Dashboard')),
         authority: [ADMIN, USER],
     },
-    //通道渠道设置
+    //上游通道渠道设置   http://localhost:5173/sales/product-new
     {
-        key: 'appsChannel.channelSet',
-        path: `${APP_PREFIX_PATH}/channel/channel-set`,
-        component: lazy(() => import('@/views/channel/ChannelSet')),
+        key: 'appsChannel.channel',
+        path: `${APP_PREFIX_PATH}/channel/`,
+        component: lazy(() => import('@/views/channel/Productlist')),
+        // component: lazy(() => import('@/views/channel/ChannelSet')),
         authority: [ADMIN, USER],
     },
+
+    {
+        key: 'appsChannel.channelSet',
+        path: `${APP_PREFIX_PATH}/channel/channel-edit/:channelId`,
+        component: lazy(() => import('@/views/channel/ProductEdit')),
+        // component: lazy(() => import('@/views/channel/ChannelSet')),
+        authority: [ADMIN, USER],
+    },
+    {
+        key: 'appsChannel.channelNew',
+        path: `${APP_PREFIX_PATH}/channel/channel-new`,
+        component: lazy(() => import('@/views/channel/ProductNew')),
+        // component: lazy(() => import('@/views/channel/ChannelSet')),
+        authority: [ADMIN, USER],
+    },
+
     //支付产品设置
     {
         key: 'appsChannel.paymentSet',

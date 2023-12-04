@@ -10,7 +10,7 @@ import PricingFields from './PricingFields'
 import OrganizationFields from './OrganizationFields'
 import ProductImages from './ProductImages'
 import cloneDeep from 'lodash/cloneDeep'
-import { HiOutlineTrash } from 'react-icons/hi'
+import { HiOutlineTrash } from 'react-icons/hi2'
 import { AiOutlineSave } from 'react-icons/ai'
 import * as Yup from 'yup'
 
@@ -150,9 +150,9 @@ const ProductForm = forwardRef<FormikRef, ProductForm>((props, ref) => {
                     ...initialData,
                     tags: initialData?.tags
                         ? initialData.tags.map((value) => ({
-                              label: value,
-                              value,
-                          }))
+                            label: value,
+                            value,
+                        }))
                         : [],
                 }}
                 validationSchema={validationSchema}

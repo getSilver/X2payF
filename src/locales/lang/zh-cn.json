@@ -17,7 +17,7 @@
         "appsChannel": {
             "channel": "通道",
             "dashboard": "仪表板",
-            "channelSet": "通道设置",
+            "mgmt": "通道管理",
             "paymentSet": "支付设置"
         },
         "appsCrypto": {

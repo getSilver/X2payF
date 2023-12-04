@@ -82,7 +82,7 @@ const initialState: SalesProductListState = {
     filterData: {
         name: '',
         category: ['bags', 'cloths', 'devices', 'shoes', 'watches'],
-        status: [0, 1, 2],
+        status: [0, 1],
         productStatus: 0,
     },
 }

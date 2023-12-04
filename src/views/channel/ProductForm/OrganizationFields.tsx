@@ -28,16 +28,16 @@ type OrganizationFieldsProps = {
 }
 
 const categories = [
-    { label: 'Bags', value: 'bags' },
-    { label: 'Cloths', value: 'cloths' },
-    { label: 'Devices', value: 'devices' },
-    { label: 'Shoes', value: 'shoes' },
-    { label: 'Watches', value: 'watches' },
+    { label: '巴西', value: 'brl' },
+    { label: '美国', value: 'usd' },
+    { label: '欧洲', value: 'eur' },
+    { label: '印度', value: 'inr' },
+    { label: '墨西哥', value: 'mxn' },
 ]
 
 const tags = [
-    { label: 'trend', value: 'trend' },
-    { label: 'unisex', value: 'unisex' },
+    { label: '代收', value: 'payin' },
+    { label: '代付', value: 'payout' },
 ]
 
 const OrganizationFields = (props: OrganizationFieldsProps) => {
@@ -50,7 +50,7 @@ const OrganizationFields = (props: OrganizationFieldsProps) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="col-span-1">
                     <FormItem
-                        label="Category"
+                        label="Category地区"
                         invalid={
                             (errors.category && touched.category) as boolean
                         }
@@ -106,30 +106,30 @@ const OrganizationFields = (props: OrganizationFieldsProps) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="col-span-1">
                     <FormItem
-                        label="Brand"
+                        label="网关URL"
                         invalid={(errors.brand && touched.brand) as boolean}
                         errorMessage={errors.brand}
                     >
                         <Field
                             type="text"
                             autoComplete="off"
-                            name="brand"
-                            placeholder="Brand"
+                            name="网关URL"
+                            placeholder="网关URL"
                             component={Input}
                         />
                     </FormItem>
                 </div>
                 <div className="col-span-1">
                     <FormItem
-                        label="Vendor"
+                        label="密钥"
                         invalid={(errors.vendor && touched.vendor) as boolean}
                         errorMessage={errors.vendor}
                     >
                         <Field
                             type="text"
                             autoComplete="off"
-                            name="vendor"
-                            placeholder="Vendor"
+                            name="密钥"
+                            placeholder="密钥"
                             component={Input}
                         />
                     </FormItem>

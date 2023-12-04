@@ -5,7 +5,7 @@ import { signInUserData } from './data/authData'
 import { eventsData, mailData, crmDashboardData } from './data/crmData'
 import { usersData, userDetailData } from './data/usersData'
 import {
-    // productsData,
+    productsData,
     ordersData,
     orderDetailsData,
     salesDashboardData,
@@ -25,7 +25,7 @@ export function mockServer({ environment = 'test' }) {
         seeds(server) {
             server.db.loadData({
                 signInUserData,
-                // productsData,
+                productsData,
                 salesDashboardData,
                 ordersData,
                 orderDetailsData,

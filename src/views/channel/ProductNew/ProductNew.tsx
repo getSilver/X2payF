@@ -1,7 +1,7 @@
 import ProductForm, {
     FormModel,
     SetSubmitting,
-} from '@/views/sales/ProductForm'
+} from '@/views/channel/ProductForm'
 import toast from '@/components/ui/toast'
 import Notification from '@/components/ui/Notification'
 import { useNavigate } from 'react-router-dom'
@@ -35,12 +35,12 @@ const ProductNew = () => {
                     placement: 'top-center',
                 }
             )
-            navigate('/sales/product-list')
+            navigate('/channel/product-list')
         }
     }
 
     const handleDiscard = () => {
-        navigate('/sales/product-list')
+        navigate('/channel/product-list')
     }
 
     return (

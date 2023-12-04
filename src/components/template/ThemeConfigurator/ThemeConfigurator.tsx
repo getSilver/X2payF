@@ -20,13 +20,13 @@ const ThemeConfigurator = ({ callBackClose }: ThemeConfiguratorProps) => {
                     </div>
                     <ModeSwitcher />
                 </div>
-                <div className="flex items-center justify-between">
+                {/* <div className="flex items-center justify-between">
                     <div>
                         <h6>Direction</h6>
                         <span>Select a direction</span>
                     </div>
                     <DirectionSwitcher callBackClose={callBackClose} />
-                </div>
+                </div> */}
                 <div>
                     <h6 className="mb-3">Nav Mode</h6>
                     <NavModeSwitcher />

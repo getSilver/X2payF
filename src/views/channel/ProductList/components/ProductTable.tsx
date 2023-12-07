@@ -166,7 +166,7 @@ const ProductTable = () => {
                 },
             },
             {
-                header: 'Category通道类别',
+                header: 'Category地区',
                 accessorKey: 'category',
                 cell: (props) => {
                     const row = props.row.original
@@ -174,7 +174,7 @@ const ProductTable = () => {
                 },
             },
             {
-                header: 'Quantity通道成本',
+                header: 'Quantity支付成本',
                 accessorKey: 'stock',
                 sortable: true,
             },

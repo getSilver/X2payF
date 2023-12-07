@@ -97,7 +97,7 @@ const DeleteProductButton = ({ onDelete }: { onDelete: OnDelete }) => {
             <ConfirmDialog
                 isOpen={dialogOpen}
                 type="danger"
-                title="Delete product"
+                title="Delete Channel"
                 confirmButtonColor="red-600"
                 onClose={onConfirmDialogClose}
                 onRequestClose={onConfirmDialogClose}
@@ -105,9 +105,7 @@ const DeleteProductButton = ({ onDelete }: { onDelete: OnDelete }) => {
                 onConfirm={handleConfirm}
             >
                 <p>
-                    Are you sure you want to delete this product? All record
-                    related to this product will be deleted as well. This action
-                    cannot be undone.
+                    想人家的时候叫人家小甜甜，现在叫人家牛夫人，无情的还要删除拉黑！你想清楚再点红色按钮删除拉黑！！！
                 </p>
             </ConfirmDialog>
         </>

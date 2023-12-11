@@ -135,6 +135,16 @@ const appsNavigation: NavigationTree[] = [
                         subMenu: [],
                     },
                     {
+                        key: 'appsChannel.payment',
+                        path: `${APP_PREFIX_PATH}/channel/payment`,
+                        title: 'Payment Set',
+                        translateKey: 'nav.appsChannel.paymentSet',
+                        icon: '',
+                        type: NAV_ITEM_TYPE_ITEM,
+                        authority: [ADMIN, USER],
+                        subMenu: [],
+                    },
+                    {
                         key: 'appsChannel.channel',
                         path: `${APP_PREFIX_PATH}/channel/`,
                         title: 'Channel',
@@ -144,16 +154,7 @@ const appsNavigation: NavigationTree[] = [
                         authority: [ADMIN, USER],
                         subMenu: [],
                     },
-                    {
-                        key: 'appsChannel.paymentSet',
-                        path: `${APP_PREFIX_PATH}/channel/payment-set`,
-                        title: 'Channel Set',
-                        translateKey: 'nav.appsChannel.paymentSet',
-                        icon: '',
-                        type: NAV_ITEM_TYPE_ITEM,
-                        authority: [ADMIN, USER],
-                        subMenu: [],
-                    },
+
                 ],
             },
             // 财务导航

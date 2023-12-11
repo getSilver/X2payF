@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from 'react'
 import Avatar from '@/components/ui/Avatar'
 import Badge from '@/components/ui/Badge'
 import DataTable from '@/components/shared/DataTable'
-import { HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi2'
+import { HiOutlinePencil, HiOutlineTrash, HiSun } from 'react-icons/hi2'
 import { FiPackage } from 'react-icons/fi'
 import {
     getProducts,
@@ -63,6 +63,10 @@ const ActionColumn = ({ row }: { row: Product }) => {
     const dispatch = useAppDispatch()
     const { textTheme } = useThemeClass()
     const navigate = useNavigate()
+    //这是我自己弄在这里的主要是用来显示激活用的按钮没有实际左右
+    const status = () => {
+        dispatch(setSelectedProduct(row.id))
+    }
 
     const onEdit = () => {
         navigate(`/app/channel/channel-edit/${row.id}`)
@@ -75,6 +79,12 @@ const ActionColumn = ({ row }: { row: Product }) => {
 
     return (
         <div className="flex justify-end text-lg">
+            <span
+                className={`cursor-pointer p-2 hover:${textTheme}`}
+                onClick={status}
+            >
+                <HiSun />
+            </span>
             <span
                 className={`cursor-pointer p-2 hover:${textTheme}`}
                 onClick={onEdit}

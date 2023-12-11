@@ -68,35 +68,44 @@ const appsRoute: Routes = [
         component: lazy(() => import('@/views/channel/Dashboard')),
         authority: [ADMIN, USER],
     },
-    //上游通道渠道设置   http://localhost:5173/sales/product-new
+    //渠道设置
     {
         key: 'appsChannel.channel',
         path: `${APP_PREFIX_PATH}/channel/`,
-        component: lazy(() => import('@/views/channel/Productlist')),
-        // component: lazy(() => import('@/views/channel/ChannelSet')),
+        component: lazy(() => import('@/views/channel/Channellist')),
         authority: [ADMIN, USER],
     },
 
     {
         key: 'appsChannel.channelSet',
         path: `${APP_PREFIX_PATH}/channel/channel-edit/:channelId`,
-        component: lazy(() => import('@/views/channel/ProductEdit')),
-        // component: lazy(() => import('@/views/channel/ChannelSet')),
+        component: lazy(() => import('@/views/channel/ChannelEdit')),
         authority: [ADMIN, USER],
     },
     {
         key: 'appsChannel.channelNew',
         path: `${APP_PREFIX_PATH}/channel/channel-new`,
-        component: lazy(() => import('@/views/channel/ProductNew')),
-        // component: lazy(() => import('@/views/channel/ChannelSet')),
+        component: lazy(() => import('@/views/channel/ChannelNew')),
         authority: [ADMIN, USER],
     },
 
-    //支付产品设置
+    //支付设置
+    {
+        key: 'appsChannel.payment',
+        path: `${APP_PREFIX_PATH}/channel/payment`,
+        component: lazy(() => import('@/views/channel/Paymentlist')),
+        authority: [ADMIN, USER],
+    },
     {
         key: 'appsChannel.paymentSet',
-        path: `${APP_PREFIX_PATH}/channel/payment-set`,
-        component: lazy(() => import('@/views/order/PaymentSet')),
+        path: `${APP_PREFIX_PATH}/channel/payment-edit/:paymentId`,
+        component: lazy(() => import('@/views/channel/PaymentEdit')),
+        authority: [ADMIN, USER],
+    },
+    {
+        key: 'appsChannel.paymentNew',
+        path: `${APP_PREFIX_PATH}/channel/Payment-new`,
+        component: lazy(() => import('@/views/channel/PaymentNew')),
         authority: [ADMIN, USER],
     },
     //财务面板路由

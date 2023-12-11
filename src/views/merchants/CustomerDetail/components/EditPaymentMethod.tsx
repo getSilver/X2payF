@@ -107,7 +107,7 @@ const EditPaymentMethod = () => {
             onClose={onDialogClose}
             onRequestClose={onDialogClose}
         >
-            <h4>Edit Credit Card</h4>
+            <h4>编辑通道信息</h4>
             <div className="mt-6">
                 <Formik
                     initialValues={{
@@ -127,7 +127,7 @@ const EditPaymentMethod = () => {
                         <Form>
                             <FormContainer>
                                 <FormItem
-                                    label="Card holder name"
+                                    label="通道名"
                                     invalid={
                                         errors.cardHolderName &&
                                         touched.cardHolderName
@@ -142,7 +142,7 @@ const EditPaymentMethod = () => {
                                     />
                                 </FormItem>
                                 <FormItem
-                                    label="Credit Card Number"
+                                    label="通道id"
                                     invalid={
                                         errors.ccNumber && touched.ccNumber
                                     }
@@ -154,8 +154,8 @@ const EditPaymentMethod = () => {
                                                 <FormPatternInput
                                                     form={form}
                                                     field={field}
-                                                    placeholder="•••• •••• •••• ••••"
-                                                    format="#### #### #### ####"
+                                                    placeholder="通道ID"
+                                                    format=" "
                                                     onValueChange={(e) => {
                                                         form.setFieldValue(
                                                             field.name,
@@ -169,7 +169,7 @@ const EditPaymentMethod = () => {
                                 </FormItem>
                                 <div className="grid grid-cols-2 gap-4">
                                     <FormItem
-                                        label="Expiration date"
+                                        label="费率%"
                                         invalid={
                                             errors.cardExpiry &&
                                             touched.cardExpiry
@@ -182,7 +182,7 @@ const EditPaymentMethod = () => {
                                                     <FormCustomFormatInput
                                                         form={form}
                                                         field={field}
-                                                        placeholder="••/••"
+                                                        placeholder="10%"
                                                         format={
                                                             cardExpiryFormat
                                                         }
@@ -202,7 +202,7 @@ const EditPaymentMethod = () => {
                                         </Field>
                                     </FormItem>
                                     <FormItem
-                                        label="CVV"
+                                        label="固定费率"
                                         invalid={errors.code && touched.code}
                                         errorMessage={errors.code}
                                     >
@@ -212,7 +212,7 @@ const EditPaymentMethod = () => {
                                                     <FormPatternInput
                                                         form={form}
                                                         field={field}
-                                                        placeholder="•••"
+                                                        placeholder="00.00"
                                                         format="###"
                                                         onValueChange={(e) => {
                                                             form.setFieldValue(

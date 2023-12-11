@@ -17,7 +17,7 @@ import ProductForm, {
     FormModel,
     SetSubmitting,
     OnDeleteCallback,
-} from '@/views/channel/ProductForm'
+} from '@/views/channel/ChannelForm'
 import isEmpty from 'lodash/isEmpty'
 
 injectReducer('salesProductEdit', reducer)
@@ -52,7 +52,7 @@ const ProductEdit = () => {
     }
 
     const handleDiscard = () => {
-        navigate('/channel/product-list')
+        navigate('/app/channel')
     }
 
     const handleDelete = async (setDialogOpen: OnDeleteCallback) => {
@@ -76,7 +76,7 @@ const ProductEdit = () => {
                 placement: 'top-center',
             }
         )
-        navigate('/channel/product-list')
+        navigate('/app/channel')
     }
 
     useEffect(() => {

@@ -14,21 +14,6 @@ import isLastChild from '@/utils/isLastChild'
 import classNames from 'classnames'
 import { HiPencilSquare } from 'react-icons/hi2'
 
-const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-]
-
 const PaymentMethods = () => {
     const dispatch = useAppDispatch()
 
@@ -49,7 +34,7 @@ const PaymentMethods = () => {
     return (
         <>
             {data.length > 0 && (
-                <div>
+                <div className="mb-8">
                     <h6 className="mb-4">Payment Methods通道配置</h6>
                     <div className="rounded-lg border border-gray-200 dark:border-gray-600">
                         {data.map((card, index) => (
@@ -90,15 +75,11 @@ const PaymentMethods = () => {
                                             )}
                                         </div>
                                         <span>
-                                            比例手续费Fee%:{'6 '}
-                                            {
-                                                months[
-                                                parseInt(card.expMonth) - 1
-                                                ]
-                                            }{' '}
+                                            比例手续费Fee%:{'6'}
+                                            {' '}
                                             固定费率:
                                             {"12"}
-                                            {card.expYear}。之前的动态引用数据我就不删了方便你改动
+                                            。之前的动态引用数据我就不删了方便你改动
                                         </span>
                                     </div>
                                 </div>

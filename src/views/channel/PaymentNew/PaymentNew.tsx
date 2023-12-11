@@ -1,7 +1,7 @@
 import ProductForm, {
     FormModel,
     SetSubmitting,
-} from '@/views/channel/ProductForm'
+} from '@/views/channel/PaymentForm'
 import toast from '@/components/ui/toast'
 import Notification from '@/components/ui/Notification'
 import { useNavigate } from 'react-router-dom'

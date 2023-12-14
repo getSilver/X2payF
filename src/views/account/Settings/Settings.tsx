@@ -22,28 +22,26 @@ type AccountSetting = {
         time: number
         location: string
     }[]
-    notification: {
-        news: string[]
-        accountActivity: string[]
-        signIn: string[]
-        reminders: string[]
-        mentioned: string[]
-        replies: string[]
-        taskUpdate: string[]
-        assigned: string[]
-        newProduct: string[]
-        newOrder: string[]
-    }
+    // notification: {
+    //     news: string[]
+    //     accountActivity: string[]
+    //     signIn: string[]
+    //     reminders: string[]
+    //     mentioned: string[]
+    //     replies: string[]
+    //     taskUpdate: string[]
+    //     assigned: string[]
+    //     newProduct: string[]
+    //     newOrder: string[]
+    // }
 }
 
 type GetAccountSettingData = AccountSetting
 
 const Profile = lazy(() => import('./components/Profile'))
 const Password = lazy(() => import('./components/Password'))
-const NotificationSetting = lazy(
-    () => import('./components/NotificationSetting')
-)
-const Integration = lazy(() => import('./components/Integration'))
+// const NotificationSetting = lazy(() => import('./components/NotificationSetting'))
+// const Integration = lazy(() => import('./components/Integration'))
 const Billing = lazy(() => import('./components/Billing'))
 
 const { TabNav, TabList } = Tabs
@@ -57,8 +55,8 @@ const settingsMenu: Record<
 > = {
     profile: { label: 'Profile', path: 'profile' },
     password: { label: 'Password', path: 'password' },
-    notification: { label: 'Notification', path: 'notification' },
-    integration: { label: 'Integration', path: 'integration' },
+    // notification: { label: 'Notification', path: 'notification' },
+    // integration: { label: 'Integration', path: 'integration' },
     billing: { label: 'Billing', path: 'billing' },
 }
 
@@ -106,17 +104,17 @@ const Settings = () => {
                 </Tabs>
                 <div className="px-4 py-6">
                     <Suspense fallback={<></>}>
-                        {currentTab === 'profile' && (
+                        {currentTab === 'profile商户设置' && (
                             <Profile data={data.profile} />
                         )}
-                        {currentTab === 'password' && (
+                        {currentTab === 'password密码修改' && (
                             <Password data={data.loginHistory} />
                         )}
-                        {currentTab === 'notification' && (
+                        {/* {currentTab === 'notification' && (
                             <NotificationSetting data={data.notification} />
-                        )}
-                        {currentTab === 'integration' && <Integration />}
-                        {currentTab === 'billing' && <Billing />}
+                        )} */}
+                        {/* {currentTab === 'integration' && <Integration />} */}
+                        {currentTab === 'billing通道账单' && <Billing />}
                     </Suspense>
                 </div>
             </AdaptableCard>

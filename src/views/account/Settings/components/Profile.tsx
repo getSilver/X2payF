@@ -61,8 +61,7 @@ const validationSchema = Yup.object().shape({
 const langOptions: LanguageOption[] = [
     { value: 'en', label: 'English (US)', imgPath: '/img/countries/us.png' },
     { value: 'ch', label: '中文', imgPath: '/img/countries/cn.png' },
-    { value: 'jp', label: '日本语', imgPath: '/img/countries/jp.png' },
-    { value: 'fr', label: 'French', imgPath: '/img/countries/fr.png' },
+
 ]
 
 const CustomSelectOption = ({
@@ -73,11 +72,10 @@ const CustomSelectOption = ({
 }: OptionProps<LanguageOption>) => {
     return (
         <div
-            className={`flex items-center justify-between p-2 ${
-                isSelected
+            className={`flex items-center justify-between p-2 ${isSelected
                     ? 'bg-gray-100 dark:bg-gray-500'
                     : 'hover:bg-gray-50 dark:hover:bg-gray-600'
-            }`}
+                }`}
             {...innerProps}
         >
             <div className="flex items-center">

@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react'
 import classNames from 'classnames'
 import Tag from '@/components/ui/Tag'
 import Button from '@/components/ui/Button'
-import Notification from '@/components/ui/Notification'
-import toast from '@/components/ui/toast'
+// import Notification from '@/components/ui/Notification'
+// import toast from '@/components/ui/toast'
 import { FormContainer } from '@/components/ui/Form'
 import Dialog from '@/components/ui/Dialog'
 import FormDesription from './FormDesription'
@@ -83,21 +83,21 @@ const Billing = () => {
         setData(response.data)
     }
 
-    const onFormSubmit = (
-        _: BillingFormModel,
-        setSubmitting: (isSubmitting: boolean) => void
-    ) => {
-        toast.push(
-            <Notification
-                title={'Billing information updated'}
-                type="success"
-            />,
-            {
-                placement: 'top-center',
-            }
-        )
-        setSubmitting(false)
-    }
+    // const onFormSubmit = (
+    //     _: BillingFormModel,
+    //     setSubmitting: (isSubmitting: boolean) => void
+    // ) => {
+    //     toast.push(
+    //         <Notification
+    //             title={'Billing information updated'}
+    //             type="success"
+    //         />,
+    //         {
+    //             placement: 'top-center',
+    //         }
+    //     )
+    //     setSubmitting(false)
+    // }
 
     const onCreditCardDialogClose = () => {
         setCcDialogType('')
@@ -174,7 +174,7 @@ const Billing = () => {
             onSubmit={(values, { setSubmitting }) => {
                 setSubmitting(true)
                 setTimeout(() => {
-                    onFormSubmit(values, setSubmitting)
+                    // onFormSubmit(values, setSubmitting)
                 }, 1000)
             }}
         >
@@ -184,13 +184,13 @@ const Billing = () => {
                     <Form>
                         <FormContainer>
                             <FormDesription
-                                title="Payment Method"
+                                title="Payment Method通道信息"
                                 desc="You can update your cards information here"
                             />
                             <FormRow
                                 name="paymentMethods"
                                 alignCenter={false}
-                                label="Credit Cards"
+                                label="Credit Cards通道"
                                 {...validatorProps}
                             >
                                 <div className="rounded-lg border border-gray-200 dark:border-gray-600">
@@ -204,24 +204,24 @@ const Billing = () => {
                                                         values.paymentMethods,
                                                         index
                                                     ) &&
-                                                        'border-b border-gray-200 dark:border-gray-600'
+                                                    'border-b border-gray-200 dark:border-gray-600'
                                                 )}
                                             >
                                                 <div className="flex items-center">
                                                     {card.cardType ===
                                                         'VISA' && (
-                                                        <img
-                                                            src="/img/others/img-8.png"
-                                                            alt="visa"
-                                                        />
-                                                    )}
+                                                            <img
+                                                                src="/img/others/img-8.png"
+                                                                alt="visa"
+                                                            />
+                                                        )}
                                                     {card.cardType ===
                                                         'MASTER' && (
-                                                        <img
-                                                            src="/img/others/img-9.png"
-                                                            alt="master"
-                                                        />
-                                                    )}
+                                                            <img
+                                                                src="/img/others/img-9.png"
+                                                                alt="master"
+                                                            />
+                                                        )}
                                                     <div className="ml-3 rtl:mr-3">
                                                         <div className="flex items-center">
                                                             <div className="text-gray-900 dark:text-gray-100 font-semibold">
@@ -246,9 +246,9 @@ const Billing = () => {
                                                             Expired{' '}
                                                             {
                                                                 months[
-                                                                    parseInt(
-                                                                        card.expMonth
-                                                                    ) - 1
+                                                                parseInt(
+                                                                    card.expMonth
+                                                                ) - 1
                                                                 ]
                                                             }{' '}
                                                             20
@@ -274,27 +274,13 @@ const Billing = () => {
                                         )
                                     )}
                                 </div>
-                                <div className="mt-2">
-                                    <Button
-                                        type="button"
-                                        variant="plain"
-                                        size="sm"
-                                        icon={<HiPlus className="text-lg" />}
-                                        onClick={() =>
-                                            onEditCreditCard({}, 'NEW')
-                                        }
-                                    >
-                                        <span className="font-semibold">
-                                            Add new card
-                                        </span>
-                                    </Button>
-                                </div>
+
                             </FormRow>
                             <FormRow
                                 border={false}
                                 name="otherMethod"
                                 alignCenter={false}
-                                label="Other payment methods"
+                                label="Other payment methodsUSDT地址"
                                 {...validatorProps}
                             >
                                 <div className="rounded-lg border border-gray-200 dark:border-gray-600">
@@ -308,17 +294,17 @@ const Billing = () => {
                                                         values.otherMethod,
                                                         index
                                                     ) &&
-                                                        'border-b border-gray-200 dark:border-gray-600'
+                                                    'border-b border-gray-200 dark:border-gray-600'
                                                 )}
                                             >
                                                 <div className="flex items-center">
                                                     {method.type ===
                                                         'PAYPAL' && (
-                                                        <img
-                                                            src="/img/others/img-10.png"
-                                                            alt="visa"
-                                                        />
-                                                    )}
+                                                            <img
+                                                                src="/img/others/img-10.png"
+                                                                alt="visa"
+                                                            />
+                                                        )}
                                                     <div className="ml-3 rtl:mr-3 font-semibold">
                                                         {method.identifier}
                                                     </div>
@@ -339,6 +325,21 @@ const Billing = () => {
                                             </div>
                                         )
                                     )}
+                                </div>
+                                <div className="mt-2">
+                                    <Button
+                                        type="button"
+                                        variant="plain"
+                                        size="sm"
+                                        icon={<HiPlus className="text-lg" />}
+                                        onClick={() =>
+                                            onEditCreditCard({}, 'NEW')
+                                        }
+                                    >
+                                        <span className="font-semibold">
+                                            Add new USDT
+                                        </span>
+                                    </Button>
                                 </div>
                             </FormRow>
                             <Dialog
@@ -391,7 +392,7 @@ const Billing = () => {
                             </div>
                             <FormDesription
                                 className="mt-6"
-                                title="Billing History"
+                                title="Billing History提现记录"
                                 desc="View your previos billing"
                             />
                             <BillingHistory

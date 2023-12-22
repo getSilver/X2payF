@@ -5,8 +5,7 @@
             "orders": "订单",
             "dashboard": "仪表板",
             "payIn": "代收",
-            "payOut": "代付",
-            "orderFlow": "订单流"
+            "payOut": "代付"
         },
         "appsMer": {
             "merchants": "商户",
@@ -44,6 +43,7 @@
         "appsFinances": {
             "finances": "财务",
             "dashboard": "仪表板",
+            "financialFlow": "资金流",
             "withdraw": "提款管理"
         },
         "uiComponentsFeeback": {

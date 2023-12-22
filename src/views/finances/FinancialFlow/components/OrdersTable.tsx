@@ -26,15 +26,12 @@ import type {
     Row,
 } from '@/components/shared/DataTable'
 
-
 type Order = {
     id: string      //交易ID
-    mid: string     //商户ID
-    cid: string     //渠道ID
+    // mid: string     //商户ID
+    // cid: string     //渠道ID
     date: number    //创建时间
     sdate: number    //成功时间Successful time
-    subdate: number    //提交时间Sub time
-    customer: string
     status: number
     paymentMehod: string
     paymentIdendifier: string
@@ -43,6 +40,8 @@ type Order = {
     fee: number         //手续费
     amount: number    //实际收金额
     channel: string     //通道名
+    customer: string
+    note: string
 }
 
 const orderStatusColor: Record<
@@ -64,15 +63,15 @@ const orderStatusColor: Record<
         textClass: 'text-amber-500',
     },
     2: {
-        label: 'Unpaid',
-        dotClass: 'bg-green-500',
-        textClass: 'text-green-500'
+        label: 'Failed',
+        dotClass: 'bg-red-500',
+        textClass: 'text-red-500'
     },
     //退款
     3: {
         label: 'Refund',
-        dotClass: 'bg-red-500',
-        textClass: 'text-red-500'
+        dotClass: 'bg-stone-500',
+        textClass: 'text-stone-500'
     },
 }
 
@@ -213,16 +212,12 @@ const OrdersTable = () => {
                 cell: (props) => <OrderColumn row={props.row.original} />,
             },
             {
-                header: 'Channel渠道ID',
-                accessorKey: 'cid',
-            },
-            {
-                header: 'Date创建时间',
+                header: 'Date业务时间',
                 accessorKey: 'date',
                 cell: (props) => {
                     const row = props.row.original
                     return (
-                        <span>{dayjs.unix(row.date).format('DD/MM/YYYYTHH:mm:sssZ[Z]')}</span>
+                        <span>{dayjs.unix(row.date).format('DD/MM/YYYYTHH:mm:sssZ')}</span>
                     )
 
                 },
@@ -232,7 +227,7 @@ const OrdersTable = () => {
                 accessorKey: 'customer',
             },
             {
-                header: 'Status状态',
+                header: 'Status״̬',
                 accessorKey: 'status',
                 cell: (props) => {
                     const { status } = props.row.original
@@ -246,41 +241,46 @@ const OrdersTable = () => {
                             >
                                 {orderStatusColor[status].label}
                             </span>
-                            <span
-                                className={`ml-2 rtl:mr-2 capitalize font-semibold ${orderStatusColor[status].textClass}`}
-                            >
-                                {orderStatusColor[status].label}
-                            </span>
-                            <span
-                                className={`ml-2 rtl:mr-2 capitalize font-semibold ${orderStatusColor[status].textClass}`}
-                            >
-                                {orderStatusColor[status].label}
-                            </span>
                         </div>
                     )
                 },
             },
             {
-                header: 'Payment Method',
-                accessorKey: 'paymentMehod',
+                header: 'Amount原金额',
+                accessorKey: 'amount',
                 cell: (props) => {
-                    const { paymentMehod, paymentIdendifier } =
-                        props.row.original
+                    const { amount } = props.row.original
                     return (
-                        <span className="flex items-center">
-                            <PaymentMethodImage
-                                className="max-h-[20px]"
-                                paymentMehod={paymentMehod}
-                            />
-                            <span className="ltr:ml-2 rtl:mr-2">
-                                {paymentIdendifier}
-                            </span>
-                        </span>
+                        <NumericFormat
+                            displayType="text"
+                            value={(
+                                Math.round(amount * 100) / 100
+                            ).toFixed(3)}
+                            prefix={'$'}
+                            thousandSeparator={true}
+                        />
                     )
                 },
             },
             {
-                header: 'Amount',
+                header: 'Fee',
+                accessorKey: 'fee',
+                cell: (props) => {
+                    const { fee } = props.row.original
+                    return (
+                        <NumericFormat
+                            displayType="text"
+                            value={(
+                                Math.round(fee * 100) / 100
+                            ).toFixed(3)}
+                            prefix={'$'}
+                            thousandSeparator={true}
+                        />
+                    )
+                },
+            },
+            {
+                header: 'totalAmount结算金额',
                 accessorKey: 'totalAmount',
                 cell: (props) => {
                     const { totalAmount } = props.row.original
@@ -294,6 +294,14 @@ const OrdersTable = () => {
                             thousandSeparator={true}
                         />
                     )
+                },
+            },
+            {
+                header: 'Note备注',
+                accessorKey: 'note',
+                cell: (props) => {
+                    const { note } = props.row.original
+
                 },
             },
             {

@@ -53,11 +53,11 @@ const settingsMenu: Record<
         path: string
     }
 > = {
-    profile: { label: 'Profile', path: 'profile' },
-    password: { label: 'Password', path: 'password' },
+    profile: { label: 'Profile商户信息', path: 'profile' },
+    password: { label: 'Password密码', path: 'password' },
     // notification: { label: 'Notification', path: 'notification' },
     // integration: { label: 'Integration', path: 'integration' },
-    billing: { label: 'Billing', path: 'billing' },
+    billing: { label: 'Billing通道信息', path: 'billing' },
 }
 
 const Settings = () => {
@@ -104,17 +104,17 @@ const Settings = () => {
                 </Tabs>
                 <div className="px-4 py-6">
                     <Suspense fallback={<></>}>
-                        {currentTab === 'profile商户设置' && (
+                        {currentTab === 'profile' && (
                             <Profile data={data.profile} />
                         )}
-                        {currentTab === 'password密码修改' && (
+                        {currentTab === 'password' && (
                             <Password data={data.loginHistory} />
                         )}
                         {/* {currentTab === 'notification' && (
-                            <NotificationSetting data={data.notification} />
-                        )} */}
+                            <NotificationSetting data={data.notification} /> */}
+                        {/* )} */}
                         {/* {currentTab === 'integration' && <Integration />} */}
-                        {currentTab === 'billing通道账单' && <Billing />}
+                        {currentTab === 'billing' && <Billing />}
                     </Suspense>
                 </div>
             </AdaptableCard>

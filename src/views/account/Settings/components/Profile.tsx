@@ -73,8 +73,8 @@ const CustomSelectOption = ({
     return (
         <div
             className={`flex items-center justify-between p-2 ${isSelected
-                    ? 'bg-gray-100 dark:bg-gray-500'
-                    : 'hover:bg-gray-50 dark:hover:bg-gray-600'
+                ? 'bg-gray-100 dark:bg-gray-500'
+                : 'hover:bg-gray-50 dark:hover:bg-gray-600'
                 }`}
             {...innerProps}
         >
@@ -232,7 +232,7 @@ const Profile = ({
                                     }}
                                 </Field>
                             </FormRow>
-                            <FormRow
+                            {/* <FormRow
                                 name="title"
                                 label="Title"
                                 {...validatorProps}
@@ -248,7 +248,7 @@ const Profile = ({
                                         <HiOutlineBriefcase className="text-xl" />
                                     }
                                 />
-                            </FormRow>
+                            </FormRow> */}
                             <FormDesription
                                 className="mt-8"
                                 title="Preferences"

@@ -80,6 +80,7 @@ export const salesDashboardData = {
             paymentMehod: 'visa',
             paymentIdendifier: '•••• 6165',
             totalAmount: 168,
+
         },
         {
             id: '95423',
@@ -89,6 +90,7 @@ export const salesDashboardData = {
             paymentMehod: 'visa',
             paymentIdendifier: '•••• 7128',
             totalAmount: 523,
+
         },
         {
             id: '92903',
@@ -98,6 +100,7 @@ export const salesDashboardData = {
             paymentMehod: 'paypal',
             paymentIdendifier: '••••@gmail.com',
             totalAmount: 81,
+
         },
         {
             id: '92627',
@@ -107,6 +110,7 @@ export const salesDashboardData = {
             paymentMehod: 'master',
             paymentIdendifier: '•••• 0921',
             totalAmount: 279,
+
         },
         {
             id: '89332',
@@ -115,7 +119,8 @@ export const salesDashboardData = {
             status: 0,
             paymentMehod: 'paypal',
             paymentIdendifier: '••••@gmail.com',
-            totalAmount: 597,
+            totalAmount: 279,
+
         },
         {
             id: '86497',
@@ -124,7 +129,8 @@ export const salesDashboardData = {
             status: 2,
             paymentMehod: 'visa',
             paymentIdendifier: '•••• 0443',
-            totalAmount: 189,
+            totalAmount: 81,
+
         },
         {
             id: '86212',
@@ -133,7 +139,8 @@ export const salesDashboardData = {
             status: 0,
             paymentMehod: 'paypal',
             paymentIdendifier: '••••@gmail.com',
-            totalAmount: 672,
+            totalAmount: 81,
+
         },
     ],
     salesByCategoriesData: {
@@ -455,6 +462,8 @@ export const ordersData = [
         paymentMehod: 'visa',
         paymentIdendifier: '•••• 6165',
         totalAmount: 168,
+        fee: 2,
+        amount: 166,
     },
     {
         id: '20234824900304345',
@@ -465,6 +474,9 @@ export const ordersData = [
         paymentMehod: 'visa',
         paymentIdendifier: '•••• 7128',
         totalAmount: 523,
+        fee: 3,
+        amount: 520,
+
     },
     {
         id: '92903',
@@ -475,6 +487,8 @@ export const ordersData = [
         paymentMehod: 'paypal',
         paymentIdendifier: '••••@gmail.com',
         totalAmount: 81,
+        fee: 1,
+        amount: 80,
     },
     {
         id: '92627',
@@ -484,7 +498,9 @@ export const ordersData = [
         status: 3,
         paymentMehod: 'master',
         paymentIdendifier: '•••• 0921',
-        totalAmount: 279,
+        totalAmount: 79,
+        fee: 200,
+        amount: 279,
     },
     {
         id: '92509',
@@ -495,6 +511,8 @@ export const ordersData = [
         paymentMehod: 'visa',
         paymentIdendifier: '•••• 1232',
         totalAmount: 831,
+        fee: 31,
+        amount: 800,
     },
     {
         id: '91631',
@@ -505,6 +523,8 @@ export const ordersData = [
         paymentMehod: 'visa',
         paymentIdendifier: '•••• 4597',
         totalAmount: 142,
+        fee: 2,
+        amount: 140,
     },
     {
         id: '90963',
@@ -515,6 +535,8 @@ export const ordersData = [
         paymentMehod: 'master',
         paymentIdendifier: '•••• 3881',
         totalAmount: 232,
+        fee: 2,
+        amount: 234,
     },
     {
         id: '89332',

@@ -89,7 +89,92 @@ const Password = ({ data }: { data?: LoginHistory[] }) => {
                         <Form>
                             <FormContainer>
                                 <FormDesription
-                                    title="Password"
+                                    title="登入密码Password"
+                                    desc="Enter your current & new password to reset your password"
+                                />
+                                <FormRow
+                                    name="password"
+                                    label="Current Password"
+                                    {...validatorProps}
+                                >
+                                    <Field
+                                        type="password"
+                                        autoComplete="off"
+                                        name="password"
+                                        placeholder="Current Password"
+                                        component={Input}
+                                    />
+                                </FormRow>
+                                <FormRow
+                                    name="newPassword"
+                                    label="New Password"
+                                    {...validatorProps}
+                                >
+                                    <Field
+                                        type="password"
+                                        autoComplete="off"
+                                        name="newPassword"
+                                        placeholder="New Password"
+                                        component={Input}
+                                    />
+                                </FormRow>
+                                <FormRow
+                                    name="confirmNewPassword"
+                                    label="Confirm Password"
+                                    {...validatorProps}
+                                >
+                                    <Field
+                                        type="password"
+                                        autoComplete="off"
+                                        name="confirmNewPassword"
+                                        placeholder="Confirm Password"
+                                        component={Input}
+                                    />
+                                </FormRow>
+                                <div className="mt-4 ltr:text-right">
+                                    <Button
+                                        className="ltr:mr-2 rtl:ml-2"
+                                        type="button"
+                                        onClick={() => resetForm()}
+                                    >
+                                        Reset
+                                    </Button>
+                                    <Button
+                                        variant="solid"
+                                        loading={isSubmitting}
+                                        type="submit"
+                                    >
+                                        {isSubmitting
+                                            ? 'Updating'
+                                            : 'Update Password'}
+                                    </Button>
+                                </div>
+                            </FormContainer>
+                        </Form>
+                    )
+                }}
+            </Formik>
+            <Formik
+                initialValues={{
+                    password: '',
+                    newPassword: '',
+                    confirmNewPassword: '',
+                }}
+                validationSchema={validationSchema}
+                onSubmit={(values, { setSubmitting }) => {
+                    setSubmitting(true)
+                    setTimeout(() => {
+                        onFormSubmit(values, setSubmitting)
+                    }, 1000)
+                }}
+            >
+                {({ touched, errors, isSubmitting, resetForm }) => {
+                    const validatorProps = { touched, errors }
+                    return (
+                        <Form>
+                            <FormContainer>
+                                <FormDesription
+                                    title="支付密码Password"
                                     desc="Enter your current & new password to reset your password"
                                 />
                                 <FormRow
@@ -167,7 +252,7 @@ const Password = ({ data }: { data?: LoginHistory[] }) => {
                                 className={classNames(
                                     'flex items-center px-4 py-6',
                                     !isLastChild(data, index) &&
-                                        'border-b border-gray-200 dark:border-gray-600'
+                                    'border-b border-gray-200 dark:border-gray-600'
                                 )}
                             >
                                 <div className="flex items-center">

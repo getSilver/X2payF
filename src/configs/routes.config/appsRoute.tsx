@@ -25,12 +25,6 @@ const appsRoute: Routes = [
 
     },
     {
-        key: 'appsOrders.orderFlow',
-        path: `${APP_PREFIX_PATH}/orders/order-flow`,
-        component: lazy(() => import('@/views/orders/OrderFlow')),
-        authority: [ADMIN, USER],
-    },
-    {
         key: 'appsOrders.orderDetails',
         path: `${APP_PREFIX_PATH}/orders/order-details/:orderId`,
         component: lazy(() => import('@/views/orders/OrderDetails')),
@@ -60,7 +54,6 @@ const appsRoute: Routes = [
         },
     },
 
-
     //通道管理面板路由
     {
         key: 'appsChannel.dashboard',
@@ -75,7 +68,6 @@ const appsRoute: Routes = [
         component: lazy(() => import('@/views/channel/Channellist')),
         authority: [ADMIN, USER],
     },
-
     {
         key: 'appsChannel.channelSet',
         path: `${APP_PREFIX_PATH}/channel/channel-edit/:channelId`,
@@ -121,7 +113,12 @@ const appsRoute: Routes = [
         component: lazy(() => import('@/views/finances/Withdraw')),
         authority: [ADMIN, USER],
     },
-
+    {
+        key: 'appsFinances.financialFlow',
+        path: `${APP_PREFIX_PATH}/finances/financial-flow`,
+        component: lazy(() => import('@/views/finances/FinancialFlow')),
+        authority: [ADMIN, USER],
+    },
 
     {
         key: 'appsAccount.settings',

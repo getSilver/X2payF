@@ -58,7 +58,7 @@ const ActionColumn = ({ row }: { row: Product }) => {
     const dispatch = useAppDispatch()
     const { textTheme } = useThemeClass()
     const navigate = useNavigate()
-    //这是我自己弄在这里的主要是用来显示激活用的按钮没有实际左右
+    //这是我写在这里的主要是用来显示激活用的按钮没有实际左右
     const status = () => {
         dispatch(setSelectedProduct(row.id))
     }
@@ -169,7 +169,16 @@ const ProductTable = () => {
 
             },
             {
-                header: '收付类型',
+                header: '渠道名',
+                accessorKey: 'name',
+                cell: (props) => {
+                    const row = props.row.original
+                    return <ProductColumn row={row} />
+                },
+
+            },
+            {
+                header: '渠道的收付类型',
                 accessorKey: 'tags',
                 cell: (props) => {
                     const { tags } = props.row.original
@@ -177,7 +186,7 @@ const ProductTable = () => {
                 },
             },
             {
-                header: 'Category地区',
+                header: 'Category渠道的地区',
                 accessorKey: 'category',
                 cell: (props) => {
                     const row = props.row.original

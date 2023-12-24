@@ -127,7 +127,7 @@ const PricingFields = (props: PricingFieldsProps) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="col-span-1">
                     <FormItem
-                        label="Price风控最小金额"
+                        label="Price单笔多少金额拦截报警"
                         invalid={(errors.price && touched.price) as boolean}
                         errorMessage={errors.price}
                     >

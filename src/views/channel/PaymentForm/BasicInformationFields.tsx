@@ -23,7 +23,7 @@ const BasicInformationFields = (props: BasicInformationFields) => {
             <h5>Basic Information通道信息</h5>
             <p className="mb-6">Section to config basic product information</p>
             <FormItem
-                label="Product Name通道名"
+                label="支付通道名"
                 invalid={(errors.name && touched.name) as boolean}
                 errorMessage={errors.name}
             >
@@ -36,7 +36,7 @@ const BasicInformationFields = (props: BasicInformationFields) => {
                 />
             </FormItem>
             <FormItem
-                label="Code通道代码"
+                label="渠道名"
                 invalid={(errors.productCode && touched.productCode) as boolean}
                 errorMessage={errors.productCode}
             >

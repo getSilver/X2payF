@@ -65,7 +65,7 @@ const PricingFields = (props: PricingFieldsProps) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="col-span-1">
                     <FormItem
-                        label="Tax Rate(%)代收比例成本"
+                        label="Tax Rate(%)比例成本"
                         invalid={(errors.taxRate && touched.taxRate) as boolean}
                         errorMessage={errors.taxRate}
                     >
@@ -96,7 +96,7 @@ const PricingFields = (props: PricingFieldsProps) => {
                 </div>
                 <div className="col-span-1">
                     <FormItem
-                        label="Price代收固定成本"
+                        label="Price固定成本"
                         invalid={(errors.price && touched.price) as boolean}
                         errorMessage={errors.price}
                     >

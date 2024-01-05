@@ -10,11 +10,19 @@ import {
     orderDetailsData,
     salesDashboardData,
 } from './data/salesData'
+import {
+    portfolioData,
+    walletsData,
+    marketData,
+    transactionHistoryData,
+    cryptoDashboardData,
+} from './data/cryptoData'
 
 import {
     authFakeApi,
     salesFakeApi,
-    crmFakeApi
+    crmFakeApi,
+    cryptoFakeApi,
 } from './fakeApi'
 
 const { apiPrefix } = appConfig
@@ -33,7 +41,12 @@ export function mockServer({ environment = 'test' }) {
                 eventsData,
                 mailData,
                 usersData,
-                userDetailData
+                userDetailData,
+                portfolioData,
+                walletsData,
+                marketData,
+                transactionHistoryData,
+                cryptoDashboardData,
             })
         },
         routes() {
@@ -48,6 +61,7 @@ export function mockServer({ environment = 'test' }) {
             authFakeApi(this, apiPrefix)
             salesFakeApi(this, apiPrefix)
             crmFakeApi(this, apiPrefix)
+            cryptoFakeApi(this, apiPrefix)
         },
     })
 }

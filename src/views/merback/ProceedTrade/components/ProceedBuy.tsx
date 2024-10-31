@@ -1,5 +1,5 @@
 import Button from '@/components/ui/Button'
-import { paymentList } from '@/views/crypto/TradeForm/options.data'
+import { paymentList } from '@/views/merback/TradeForm/options.data'
 import { NumericFormat } from 'react-number-format'
 import Success from './Success'
 import Failed from './Failed'

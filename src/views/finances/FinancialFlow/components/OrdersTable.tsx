@@ -33,7 +33,7 @@ type Order = {
     date: number    //创建时间
     sdate: number    //成功时间Successful time
     status: number
-    paymentMehod: string
+    paymentMetthod: string
     paymentIdendifier: string
     totalAmount: number           //结算金额
     subAmount: number      //提交金额
@@ -76,13 +76,13 @@ const orderStatusColor: Record<
 }
 
 const PaymentMethodImage = ({
-    paymentMehod,
+    paymentMethod,
     className,
 }: {
-    paymentMehod: string
+    paymentMethod: string
     className: string
 }) => {
-    switch (paymentMehod) {
+    switch (paymentMethod) {
         case 'visa':
             return (
                 <img
@@ -117,7 +117,7 @@ const OrderColumn = ({ row }: { row: Order }) => {
     const navigate = useNavigate()
 
     const onView = useCallback(() => {
-        navigate(`/app/orders/order-details/${row.id}`)
+        navigate(`/app/payment/order-details/${row.id}`)
     }, [navigate, row])
 
     return (
@@ -141,7 +141,7 @@ const ActionColumn = ({ row }: { row: Order }) => {
     // }
 
     const onView = useCallback(() => {
-        navigate(`/app/orders/order-details/${row.id}`)
+        navigate(`/app/payment/order-details/${row.id}`)
     }, [navigate, row])
 
     return (

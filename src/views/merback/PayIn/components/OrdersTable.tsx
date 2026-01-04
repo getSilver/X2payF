@@ -2,18 +2,20 @@ import { useEffect, useCallback, useMemo, useRef } from 'react'
 import Badge from '@/components/ui/Badge'
 import Tooltip from '@/components/ui/Tooltip'
 import DataTable from '@/components/shared/DataTable'
-import { HiOutlineEye, HiOutlineTrash } from 'react-icons/hi'
+import Avatar from '@/components/ui/Avatar'
+import {    HiOutlineArrowsRightLeft,
+    HiOutlineArrowUp,
+    HiOutlineArrowDown,
+    HiOutlineEye,
+    HiOutlineNoSymbol } from 'react-icons/hi2'
 import { NumericFormat } from 'react-number-format'
 import {
     setSelectedRows,
-    addRowItem,
-    removeRowItem,
-    setDeleteMode,
-    setSelectedRow,
     getOrders,
     setTableData,
     useAppDispatch,
     useAppSelector,
+    Order,
 } from '../store'
 import useThemeClass from '@/utils/hooks/useThemeClass'
 import { useNavigate } from 'react-router-dom'
@@ -23,17 +25,48 @@ import type {
     DataTableResetHandle,
     OnSortParam,
     ColumnDef,
-    Row,
+    
 } from '@/components/shared/DataTable'
 
-type Order = {
-    id: string
-    date: number
-    customer: string
-    status: number
-    paymentMehod: string
-    paymentIdendifier: string
-    totalAmount: number
+
+
+const ActionIcon = ({ type }: { type: number }) => {
+    switch (type) {
+        case 0:
+            return (
+                <Avatar
+                    size="sm"
+                    className="bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-100"
+                    icon={
+                        <HiOutlineArrowDown
+                            style={{ transform: 'rotate(45deg)' }}
+                        />
+                    }
+                />
+            )
+        case 1:
+            return (
+                <Avatar
+                    size="sm"
+                    className="bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-100"
+                    icon={
+                        <HiOutlineArrowUp
+                            style={{ transform: 'rotate(45deg)' }}
+                        />
+                    }
+                />
+            )
+        case 2:
+            return (
+                <Avatar
+                    size="sm"
+                    className="bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-100"
+                    icon={<HiOutlineNoSymbol />}
+                />
+            )
+        default:
+            return <Avatar />
+    }
 }
 
 const orderStatusColor: Record<
@@ -54,39 +87,57 @@ const orderStatusColor: Record<
         dotClass: 'bg-amber-500',
         textClass: 'text-amber-500',
     },
-    2: { label: 'Failed', dotClass: 'bg-red-500', textClass: 'text-red-500' },
+    2: {
+        label: 'Unpaid',
+        dotClass: 'bg-green-500',
+        textClass: 'text-green-500'
+    },
+    //退款
+    3: {
+        label: 'Refund',
+        dotClass: 'bg-red-500',
+        textClass: 'text-red-500'
+    },
 }
 
 const PaymentMethodImage = ({
-    paymentMehod,
+    paymentMethod,
     className,
 }: {
-    paymentMehod: string
+    paymentMethod: string
     className: string
 }) => {
-    switch (paymentMehod) {
+    switch (paymentMethod) {
         case 'visa':
             return (
                 <img
                     className={className}
-                    src="/img/others/img-8.png"
-                    alt={paymentMehod}
+                src="/img/others/img-8.png"
+                alt={paymentMethod}
                 />
             )
         case 'master':
             return (
                 <img
                     className={className}
-                    src="/img/others/img-9.png"
-                    alt={paymentMehod}
+                src="/img/others/img-9.png"
+                alt={paymentMethod}
                 />
             )
         case 'paypal':
             return (
                 <img
                     className={className}
-                    src="/img/others/img-10.png"
-                    alt={paymentMehod}
+                src="/img/others/img-10.png"
+                alt={paymentMethod}
+                />
+            )
+        case 'pix':
+            return (
+                <img
+                    className={className}
+                src="/img/others/img-12.png"
+                alt={paymentMethod}
                 />
             )
         default:
@@ -99,7 +150,7 @@ const OrderColumn = ({ row }: { row: Order }) => {
     const navigate = useNavigate()
 
     const onView = useCallback(() => {
-        navigate(`/sales/order-details/${row.id}`)
+        navigate(`/mer/merback/payment-details/${row.id}`)
     }, [navigate, row])
 
     return (
@@ -113,17 +164,11 @@ const OrderColumn = ({ row }: { row: Order }) => {
 }
 
 const ActionColumn = ({ row }: { row: Order }) => {
-    const dispatch = useAppDispatch()
     const { textTheme } = useThemeClass()
     const navigate = useNavigate()
-
-    const onDelete = () => {
-        dispatch(setDeleteMode('single'))
-        dispatch(setSelectedRow([row.id]))
-    }
-
+   
     const onView = useCallback(() => {
-        navigate(`/sales/order-details/${row.id}`)
+        navigate(`/mer/merback/payment-details/${row.id}`)
     }, [navigate, row])
 
     return (
@@ -134,14 +179,6 @@ const ActionColumn = ({ row }: { row: Order }) => {
                     onClick={onView}
                 >
                     <HiOutlineEye />
-                </span>
-            </Tooltip>
-            <Tooltip title="Delete">
-                <span
-                    className="cursor-pointer p-2 hover:text-red-500"
-                    onClick={onDelete}
-                >
-                    <HiOutlineTrash />
                 </span>
             </Tooltip>
         </div>
@@ -189,26 +226,45 @@ const OrdersTable = () => {
     const columns: ColumnDef<Order>[] = useMemo(
         () => [
             {
-                header: 'Order',
-                accessorKey: 'id',
-                cell: (props) => <OrderColumn row={props.row.original} />,
-            },
-            {
-                header: 'Date',
-                accessorKey: 'date',
+                header: 'Action',
+                accessorKey: 'action',
                 cell: (props) => {
                     const row = props.row.original
                     return (
-                        <span>{dayjs.unix(row.date).format('DD/MM/YYYY')}</span>
+                        <div className="flex items-center gap-2">
+                            <div>
+                                <ActionIcon type={row.actionType} />
+                            </div>
+                            <span className="font-semibold heading-text whitespace-nowrap">
+                                {row.action}
+                            </span>
+                        </div>
                     )
                 },
             },
             {
-                header: 'Customer',
+                header: 'PaymentID',
+                accessorKey: 'id',
+                cell: (props) => <OrderColumn row={props.row.original} />,
+            },
+
+            {
+                header: 'Date创建时间',
+                accessorKey: 'date',
+                cell: (props) => {
+                    const row = props.row.original
+                    return (
+                        <span>{dayjs.unix(row.date).format('DD/MM/YYYY THH:mm:sssZ[Z]')}</span>
+                    )
+
+                },
+            },
+            {
+                header: 'Customer商户',
                 accessorKey: 'customer',
             },
             {
-                header: 'Status',
+                header: 'Status状态',
                 accessorKey: 'status',
                 cell: (props) => {
                     const { status } = props.row.original
@@ -228,33 +284,33 @@ const OrdersTable = () => {
             },
             {
                 header: 'Payment Method',
-                accessorKey: 'paymentMehod',
+                accessorKey: 'paymentMethod',
                 cell: (props) => {
-                    const { paymentMehod, paymentIdendifier } =
+                    const { paymentMethod, paymentIdentifier } =
                         props.row.original
                     return (
                         <span className="flex items-center">
                             <PaymentMethodImage
                                 className="max-h-[20px]"
-                                paymentMehod={paymentMehod}
+                                paymentMethod={paymentMethod}
                             />
                             <span className="ltr:ml-2 rtl:mr-2">
-                                {paymentIdendifier}
+                                {paymentIdentifier}
                             </span>
                         </span>
                     )
                 },
             },
             {
-                header: 'Total',
-                accessorKey: 'totalAmount',
+                header: 'Amount',
+                accessorKey: 'Amount',
                 cell: (props) => {
-                    const { totalAmount } = props.row.original
+                    const { amount } = props.row.original
                     return (
                         <NumericFormat
                             displayType="text"
                             value={(
-                                Math.round(totalAmount * 100) / 100
+                                Math.round(amount * 100) / 100
                             ).toFixed(2)}
                             prefix={'$'}
                             thousandSeparator={true}
@@ -290,34 +346,11 @@ const OrdersTable = () => {
         dispatch(setTableData(newTableData))
     }
 
-    const onRowSelect = (checked: boolean, row: Order) => {
-        if (checked) {
-            dispatch(addRowItem([row.id]))
-        } else {
-            dispatch(removeRowItem(row.id))
-        }
-    }
 
-    const onAllRowSelect = useCallback(
-        (checked: boolean, rows: Row<Order>[]) => {
-            if (checked) {
-                const originalRows = rows.map((row) => row.original)
-                const selectedIds: string[] = []
-                originalRows.forEach((row) => {
-                    selectedIds.push(row.id)
-                })
-                dispatch(setSelectedRows(selectedIds))
-            } else {
-                dispatch(setSelectedRows([]))
-            }
-        },
-        [dispatch]
-    )
 
     return (
         <DataTable
             ref={tableRef}
-            selectable
             columns={columns}
             data={data}
             loading={loading}
@@ -329,8 +362,7 @@ const OrdersTable = () => {
             onPaginationChange={onPaginationChange}
             onSelectChange={onSelectChange}
             onSort={onSort}
-            // onCheckBoxChange={onRowSelect}
-            onIndeterminateCheckBoxChange={onAllRowSelect}
+          
         />
     )
 }

@@ -4,8 +4,7 @@
         "appsOrders": {
             "orders": "订单",
             "dashboard": "仪表板",
-            "payIn": "代收",
-            "payOut": "代付"
+            "payIn": "支付"
         },
         "appsMer": {
             "merchants": "商户",
@@ -40,11 +39,21 @@
             "activityLog": "活动日志",
             "kycForm": "了解客户表格"
         },
+        "appsPlatform": {
+            "platform": "平台",
+            "settings": "设置",
+            "invoice": "发票",
+            "activityLog": "活动日志",
+            "kycForm": "了解客户表格"
+        },
         "appsFinances": {
             "finances": "财务",
             "dashboard": "仪表板",
             "financialFlow": "资金流",
             "withdraw": "提款管理"
+        },
+        "appsDemo": {
+            "demo": "演示卡片"
         },
         "uiComponentsFeeback": {
             "feedback": "反馈",

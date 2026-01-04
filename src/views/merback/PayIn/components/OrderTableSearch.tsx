@@ -48,9 +48,9 @@ const OrderTableSearch = () => {
     return (
         <Input
             ref={searchInput}
-            className="lg:w-52"
+            className="lg:w-60"
             size="sm"
-            placeholder="Search"
+            placeholder="交易ID&渠道ID"
             prefix={<HiOutlineSearch className="text-lg" />}
             onChange={onEdit}
         />

@@ -10,9 +10,11 @@ export default function crmFakeApi(server: Server, apiPrefix: string) {
 
     server.get(`${apiPrefix}/crm/calendar`, (schema) => schema.db.eventsData)
 
-    server.post(`${apiPrefix}/crm/customers`, (schema, { requestBody }) => {
-        const body = JSON.parse(requestBody)
-        const { pageIndex, pageSize, sort, query } = body
+    server.get(`${apiPrefix}/crm/customers`, (schema, { queryParams }) => {
+        const pageIndex = parseInt(queryParams.pageIndex as string) || 1
+        const pageSize = parseInt(queryParams.pageSize as string) || 10
+        const sort = queryParams.sort ? JSON.parse(queryParams.sort as string) : { order: '', key: '' }
+        const query = queryParams.query as string || ''
         const { order, key } = sort
         const users = schema.db.userDetailData
         const sanitizeUsers = users.filter((elm) => typeof elm !== 'function')
@@ -79,6 +81,36 @@ export default function crmFakeApi(server: Server, apiPrefix: string) {
             return {}
         }
     )
+
+    server.post(`${apiPrefix}/crm/customers`, (schema, { requestBody }) => {
+        const data = JSON.parse(requestBody)
+        const newId = Math.max(...schema.db.userDetailData.map((user: any) => user.id)) + 1
+        const newCustomer = {
+            id: newId,
+            name: data.name,
+            email: data.email,
+            img: '',
+            role: 'customer',
+            lastOnline: Date.now(),
+            status: 'active',
+            amount: 0,
+            personalInfo: {
+                location: data.location || '',
+                agent: data.agent || '',
+                birthday: data.birthday || '',
+                phoneNumber: data.phoneNumber || '',
+                facebook: '',
+                twitter: '',
+                pinterest: '',
+                linkedIn: '',
+            },
+            orderHistory: [],
+            paymentMethod: [],
+            subscription: [],
+        }
+        schema.db.userDetailData.insert(newCustomer)
+        return newCustomer
+    })
 
     server.put(`${apiPrefix}/crm/customers`, (schema, { requestBody }) => {
         const data = JSON.parse(requestBody)

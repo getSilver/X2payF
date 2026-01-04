@@ -1,4 +1,4 @@
-import ProductForm from './ProductForm'
+import ChannelForm from './ChannelForm'
 
-export * from './ProductForm'
-export default ProductForm
+export * from './ChannelForm'
+export default ChannelForm

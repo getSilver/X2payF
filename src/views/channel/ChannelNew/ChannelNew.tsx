@@ -5,7 +5,7 @@ import ProductForm, {
 import toast from '@/components/ui/toast'
 import Notification from '@/components/ui/Notification'
 import { useNavigate } from 'react-router-dom'
-import { apiCreateSalesProduct } from '@/services/SalesService'
+import { apiCreateSalesProduct } from '@/services/PaymentService'
 
 const ProductNew = () => {
     const navigate = useNavigate()

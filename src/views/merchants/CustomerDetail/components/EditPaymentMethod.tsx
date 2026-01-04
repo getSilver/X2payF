@@ -1,6 +1,7 @@
 import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
 import Dialog from '@/components/ui/Dialog'
+import Checkbox from '@/components/ui/Checkbox'
 import { FormItem, FormContainer } from '@/components/ui/Form'
 import { Field, Form, Formik, FieldProps } from 'formik'
 import {
@@ -19,22 +20,15 @@ type FormModel = {
     ccNumber: string
     cardExpiry: string
     code: string
+    primary: boolean
 }
 
 const validationSchema = Yup.object().shape({
     cardHolderName: Yup.string().required('Card holder name required'),
-    ccNumber: Yup.string()
-        .required('Credit card number required')
-        .matches(
-            /^(?:4[0-9]{12}(?:[0-9]{3})?|[25][1-7][0-9]{14}|6(?:011|5[0-9][0-9])[0-9]{12}|3[47][0-9]{13}|3(?:0[0-5]|[68][0-9])[0-9]{11}|(?:2131|1800|35\d{3})\d{11})$/,
-            'Invalid credit card number'
-        ),
+    ccNumber: Yup.string().required('Credit card number required'),
     cardExpiry: Yup.string()
         .required('Card holder name required')
         .matches(/^(0[1-9]|1[0-2])\/?([0-9]{4}|[0-9]{2})$/, 'Invalid Date'),
-    code: Yup.string()
-        .required()
-        .matches(/^[0-9]{3}$/, 'Invalid CVV'),
 })
 
 function limit(val: string, max: string) {
@@ -78,21 +72,46 @@ const EditPaymentMethod = () => {
 
     const onUpdateCreditCard = (values: FormModel) => {
         let newData = cloneDeep(data) || []
-        const { cardHolderName, ccNumber, cardExpiry } = values
+        const { cardHolderName, ccNumber, cardExpiry, primary } = values
+
+        const isNewCard = !selectedCard.last4Number
 
         const updatedCard = {
             cardHolderName,
-            last4Number: ccNumber.substr(ccNumber.length - 4),
-            expYear: cardExpiry.substr(cardExpiry.length - 2),
-            expMonth: cardExpiry.substring(0, 2),
+            last4Number: ccNumber.length >= 4 ? ccNumber.slice(-4) : ccNumber,
+            expYear: cardExpiry.length >= 2 ? cardExpiry.slice(-2) : cardExpiry,
+            expMonth: cardExpiry.length >= 2 ? cardExpiry.substring(0, 2) : cardExpiry,
+            cardType: selectedCard.cardType || 'VISA',
+            primary: primary || false,
         }
 
-        newData = newData.map((payment) => {
-            if (payment.last4Number === selectedCard.last4Number) {
-                payment = { ...payment, ...updatedCard }
+        if (isNewCard) {
+            // 添加新卡
+            if (primary) {
+                // 如果设置为 primary，先将所有其他卡设为非 primary
+                newData = newData.map((payment) => ({
+                    ...payment,
+                    primary: false,
+                }))
             }
-            return payment
-        })
+            newData.push(updatedCard)
+        } else {
+            // 编辑现有卡
+            if (primary) {
+                // 如果设置为 primary，先将所有其他卡设为非 primary
+                newData = newData.map((payment) => ({
+                    ...payment,
+                    primary: false,
+                }))
+            }
+
+            newData = newData.map((payment) => {
+                if (payment.last4Number === selectedCard.last4Number) {
+                    return { ...payment, ...updatedCard }
+                }
+                return payment
+            })
+        }
 
         onDialogClose()
         dispatch(updatePaymentMethodData(newData))
@@ -116,6 +135,7 @@ const EditPaymentMethod = () => {
                         cardExpiry:
                             (card?.expMonth as string) + card.expYear || '',
                         code: '',
+                        primary: card.primary || false,
                     }}
                     validationSchema={validationSchema}
                     onSubmit={(values, { setSubmitting }) => {
@@ -148,24 +168,13 @@ const EditPaymentMethod = () => {
                                     }
                                     errorMessage={errors.ccNumber}
                                 >
-                                    <Field name="ccNumber">
-                                        {({ field, form }: FieldProps) => {
-                                            return (
-                                                <FormPatternInput
-                                                    form={form}
-                                                    field={field}
-                                                    placeholder="通道ID"
-                                                    format=" "
-                                                    onValueChange={(e) => {
-                                                        form.setFieldValue(
-                                                            field.name,
-                                                            e.value
-                                                        )
-                                                    }}
-                                                />
-                                            )
-                                        }}
-                                    </Field>
+                                    <Field
+                                        type="text"
+                                        autoComplete="off"
+                                        name="ccNumber"
+                                        component={Input}
+                                        placeholder="通道ID"
+                                    />
                                 </FormItem>
                                 <div className="grid grid-cols-2 gap-4">
                                     <FormItem
@@ -226,6 +235,11 @@ const EditPaymentMethod = () => {
                                         </Field>
                                     </FormItem>
                                 </div>
+                                <FormItem>
+                                    <Field name="primary" component={Checkbox}>
+                                    Set this card as primary
+                                    </Field>
+                                </FormItem>
                                 <FormItem className="mb-0 text-right">
                                     <Button block variant="solid" type="submit">
                                         Update

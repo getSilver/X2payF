@@ -4,7 +4,7 @@ import Avatar from '@/components/ui/Avatar'
 import Button from '@/components/ui/Button'
 import Tag from '@/components/ui/Tag'
 import { HiFire } from 'react-icons/hi2'
-import { NumericFormat } from 'react-number-format'
+
 import { useAppSelector } from '../store'
 // import dayjs from 'dayjs'
 
@@ -12,7 +12,7 @@ const CurrentSubscription = () => {
     const [subscribed, setSubscribed] = useState(true)
 
     const data = useAppSelector(
-        (state) => state.crmCustomerDetails.data.subscriptionData
+        (state) => state.crmCustomerDetails.data.subscriptionData || []
     )
 
     const unsubscribe = useCallback(() => {
@@ -45,52 +45,8 @@ const CurrentSubscription = () => {
                                             {sub.status}
                                         </span>
                                     </Tag>
-                                    <Tag className="bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-100 rounded-md border-0 mx-2">
-                                        <span className="capitalize">
-                                            {sub.status}
-                                        </span>
-                                    </Tag>
                                 </div>
-                                <div>
-                                    <span>
-                                        <span className="mx-1"> 金额</span><NumericFormat
-                                            className="font-semibold text-gray-900 dark:text-gray-100"
-                                            displayType="text"
-                                            value={(
-                                                Math.round(sub.funds * 100) /
-                                                100
-                                            ).toFixed(3)}
-                                            prefix={'$'}
-                                            thousandSeparator={true}
-                                        /></span>
-                                    <span> | </span>
-                                    <span>
-                                        <span className="mx-1"> 冻结</span>
-                                        <NumericFormat
-                                            className="font-semibold text-gray-900 dark:text-gray-100"
-                                            displayType="text"
-                                            value={(
-                                                Math.round(sub.freeze * 100) /
-                                                100
-                                            ).toFixed(3)}
-                                            prefix={'$'}
-                                            thousandSeparator={true}
-                                        />
-                                    </span>
-                                    <span>
-                                        <span className="mx-1">可用</span>
-                                        <NumericFormat
-                                            className="font-semibold text-gray-900 dark:text-gray-100"
-                                            displayType="text"
-                                            value={(
-                                                Math.round(sub.amount * 100) /
-                                                100
-                                            ).toFixed(3)}
-                                            prefix={'$'}
-                                            thousandSeparator={true}
-                                        />
-                                    </span>
-                                </div>
+                                
                             </div>
                         </div>
                         <div className="flex">

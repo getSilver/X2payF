@@ -14,10 +14,11 @@ export async function apiGetPortfolioData<T>() {
     })
 }
 
-export async function apiGetWalletData<T>() {
+export async function apiGetWalletData<T>(params?: { startDate?: number; endDate?: number }) {
     return ApiService.fetchData<T>({
         url: '/crypto/wallets',
         method: 'get',
+        params,
     })
 }
 
@@ -27,8 +28,8 @@ export async function apiGetTransctionHistoryData<
 >(data: U) {
     return ApiService.fetchData<T>({
         url: '/crypto/wallets/history',
-        method: 'post',
-        data,
+        method: 'get',
+        params: data,
     })
 }
 

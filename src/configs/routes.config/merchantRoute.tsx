@@ -17,28 +17,9 @@ const merchantRoute: Routes = [
         authority: [],
     },
     {
-        key: 'merOrders.payOut',
-        path: `${MER_PREFIX_PATH}/pay-out`,
-        component: lazy(() => import('@/views/merback/PayOut')),
-        authority: [],
-    },
-    //商户财务路由
-    {
-        key: 'merfinances.dashboard',
-        path: `${MER_PREFIX_PATH}/dashboard`,
-        component: lazy(() => import('@/views/merback/Dashboard')),
-        authority: [],
-    },
-    {
-        key: 'merfinances.finFlow',
-        path: `${MER_PREFIX_PATH}/fin-flow`,
-        component: lazy(() => import('@/views/merback/FinFlow')),
-        authority: [],
-    },
-    {
-        key: 'merfinances.withdraw',
-        path: `${MER_PREFIX_PATH}/withdraw`,
-        component: lazy(() => import('@/views/merback/Withdraw')),
+        key: 'merPayment.paymentDetails',
+        path: `${MER_PREFIX_PATH}/merback/payment-details/:orderId`,
+        component: lazy(() => import('@/views/merback/PaymentDetails')),
         authority: [],
     },
 ]

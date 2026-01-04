@@ -22,10 +22,21 @@ type FormFieldsName = {
     phoneNumber: string
     birthday: Date
 }
+export type FormModel = Omit<FormFieldsName, 'tags'> & {
+    tags: { label: string; value: string }[] | string[]
+}
 
 type PersonalInfoFormProps = {
     touched: FormikTouched<FormFieldsName>
     errors: FormikErrors<FormFieldsName>
+}
+export type SetSubmitting = (isSubmitting: boolean) => void
+
+type CustomerForm = {
+    initialData?: FormFieldsName
+    type: 'edit' | 'new'
+    onDiscard?: () => void
+    onFormSubmit: (formData: FormModel, setSubmitting: SetSubmitting) => void
 }
 
 const PersonalInfoForm = (props: PersonalInfoFormProps) => {

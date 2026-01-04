@@ -3,7 +3,7 @@ import {
     apiGetSalesProduct,
     apiPutSalesProduct,
     apiDeleteSalesProducts,
-} from '@/services/SalesService'
+} from '@/services/PaymentService'
 
 type ProductData = {
     id?: string

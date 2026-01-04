@@ -1,12 +1,12 @@
 import { combineReducers } from '@reduxjs/toolkit'
-import reducers, { SLICE_NAME, CryptoWalletsState } from './walletsSlice'
+import walletsReducers, { SLICE_NAME, CryptoWalletsState } from './walletsSlice'
 import { useSelector } from 'react-redux'
 
 import type { TypedUseSelectorHook } from 'react-redux'
 import type { RootState } from '@/store'
 
 const reducer = combineReducers({
-    data: reducers,
+    data: walletsReducers,
 })
 
 export const useAppSelector: TypedUseSelectorHook<

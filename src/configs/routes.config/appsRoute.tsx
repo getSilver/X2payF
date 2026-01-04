@@ -7,27 +7,20 @@ const appsRoute: Routes = [
     //订单管理面板路由
     {
         key: 'appsOrders.dashboard',
-        path: `${APP_PREFIX_PATH}/orders/dashboard`,
-        component: lazy(() => import('@/views/orders/Dashboard')),
+        path: `${APP_PREFIX_PATH}/payment/dashboard`,
+        component: lazy(() => import('@/views/payment/Dashboard')),
         authority: [ADMIN, USER],
     },
     {
         key: 'appsOrders.payIn',
-        path: `${APP_PREFIX_PATH}/orders/pay-in`,
-        component: lazy(() => import('@/views/orders/PayIn')),
+        path: `${APP_PREFIX_PATH}/payment/pay-in`,
+        component: lazy(() => import('@/views/payment/PayIn')),
         authority: [ADMIN, USER],
-    },
-    {
-        key: 'appsOrders.payOut',
-        path: `${APP_PREFIX_PATH}/orders/pay-out`,
-        component: lazy(() => import('@/views/orders/PayOut')),
-        authority: [ADMIN, USER],
-
     },
     {
         key: 'appsOrders.orderDetails',
-        path: `${APP_PREFIX_PATH}/orders/order-details/:orderId`,
-        component: lazy(() => import('@/views/orders/OrderDetails')),
+        path: `${APP_PREFIX_PATH}/payment/order-details/:orderId`,
+        component: lazy(() => import('@/views/payment/PaymentDetails')),
         authority: [ADMIN, USER],
     },
     //商户管理面板路由
@@ -50,6 +43,16 @@ const appsRoute: Routes = [
         authority: [ADMIN, USER],
         meta: {
             header: 'Customer Details',
+            headerContainer: true,
+        },
+    },
+    {
+        key: 'appsMerchants.new',
+        path: `${APP_PREFIX_PATH}/merchants/new`,
+        component: lazy(() => import('@/views/merchants/CustomerNew')),
+        authority: [ADMIN, USER],
+        meta: {
+            header: 'New Customer',
             headerContainer: true,
         },
     },
@@ -101,19 +104,19 @@ const appsRoute: Routes = [
         authority: [ADMIN, USER],
     },
     //财务面板路由
-    {
-        key: 'appsFinances.dashboard',
-        path: `${APP_PREFIX_PATH}/finances/dashboard`,
-        component: lazy(() => import('@/views/finances/Dashboard')),
-        authority: [ADMIN, USER],
-    },
-    {
-        key: 'appsFinances.withdraw',
-        path: `${APP_PREFIX_PATH}/finances/withdraw`,
-        component: lazy(() => import('@/views/finances/Withdraw')),
-        authority: [ADMIN, USER],
-    },
-    {
+    // {
+    //     key: 'appsFinances.dashboard',
+    //     path: `${APP_PREFIX_PATH}/finances/dashboard`,
+    //     component: lazy(() => import('@/views/finances/Dashboard')),
+    //     authority: [ADMIN, USER],
+    // },
+    // {
+    //     key: 'appsFinances.withdraw',
+    //     path: `${APP_PREFIX_PATH}/finances/withdraw`,
+    //     component: lazy(() => import('@/views/finances/Withdraw')),
+    //     authority: [ADMIN, USER],
+    // },
+     {
         key: 'appsFinances.financialFlow',
         path: `${APP_PREFIX_PATH}/finances/financial-flow`,
         component: lazy(() => import('@/views/finances/FinancialFlow')),
@@ -130,6 +133,8 @@ const appsRoute: Routes = [
             headerContainer: true,
         },
     },
+    
+
 
 ]
 

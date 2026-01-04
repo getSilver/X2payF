@@ -81,7 +81,7 @@ const columns = [
 
 const PaymentHistory = () => {
     const data = useAppSelector(
-        (state) => state.crmCustomerDetails.data.paymentHistoryData
+        (state) => state.crmCustomerDetails.data.paymentHistoryData || []
     )
 
     const [sorting, setSorting] = useState<

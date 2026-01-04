@@ -1,4 +1,4 @@
-import ProductForm from './ProductForm'
+import PaymentForm from './PaymentForm'
 
-export * from './ProductForm'
-export default ProductForm
+export * from './PaymentForm'
+export default PaymentForm

@@ -7,7 +7,7 @@ import {
 import {
     apiGetSalesOrders,
     apiDeleteSalesOrders,
-} from '@/services/SalesService'
+} from '@/services/PaymentService'
 import type { TableQueries } from '@/@types/common'
 
 type Order = {
@@ -18,7 +18,7 @@ type Order = {
     succDate: number    //成功时间Successful time
     customer: string
     status: number
-    paymentMehod: string
+    paymentMetthod: string
     paymentIdendifier: string
     totalAmount: number     //结算金额
     subAmount: number      //提交金额

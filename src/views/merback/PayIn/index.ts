@@ -1,3 +1,3 @@
-import OrderList from './OrderList'
+import PayIn from './PayIn'
 
-export default OrderList
+export default PayIn

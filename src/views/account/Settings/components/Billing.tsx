@@ -2,27 +2,28 @@ import { useState, useEffect } from 'react'
 import classNames from 'classnames'
 import Tag from '@/components/ui/Tag'
 import Button from '@/components/ui/Button'
-// import Notification from '@/components/ui/Notification'
-// import toast from '@/components/ui/toast'
+import Input from '@/components/ui/Input'
+import Notification from '@/components/ui/Notification'
+import toast from '@/components/ui/toast'
 import { FormContainer } from '@/components/ui/Form'
-import Dialog from '@/components/ui/Dialog'
 import FormDesription from './FormDesription'
 import FormRow from './FormRow'
-import CreditCardForm, { CreditCardInfo } from './CreditCardForm'
+
 import BillingHistory from './BillingHistory'
-import { Field, Form, Formik } from 'formik'
-import { HiPlus } from 'react-icons/hi'
+import { Form, Formik } from 'formik'
+
 import isLastChild from '@/utils/isLastChild'
 import { apiGetAccountSettingBillingData } from '@/services/AccountServices'
-import type { FieldProps, FieldInputProps, FormikProps } from 'formik'
+
 
 type CreditCard = {
     cardId: string
-    cardHolderName: string
-    cardType: string
-    expMonth: string
-    expYear: string
-    last4Number: string
+    channelName: string
+    paymentMethod: string
+    in: string
+    out: string
+    singleIn: string
+    singleOut: string
     primary: boolean
 }
 
@@ -51,20 +52,6 @@ type BillingFormModel = BillingData
 
 type GetAccountSettingBillingDataResponse = BillingData
 
-const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-]
 
 const Billing = () => {
     const [data, setData] = useState<BillingData>({
@@ -72,94 +59,28 @@ const Billing = () => {
         otherMethod: [],
         billingHistory: [],
     })
-    const [selectedCard, setSelectedCard] = useState<Partial<CreditCardInfo>>(
-        {}
-    )
-    const [ccDialogType, setCcDialogType] = useState<'NEW' | 'EDIT' | ''>('')
-
+    
     const fetchData = async () => {
         const response =
             await apiGetAccountSettingBillingData<GetAccountSettingBillingDataResponse>()
         setData(response.data)
     }
 
-    // const onFormSubmit = (
-    //     _: BillingFormModel,
-    //     setSubmitting: (isSubmitting: boolean) => void
-    // ) => {
-    //     toast.push(
-    //         <Notification
-    //             title={'Billing information updated'}
-    //             type="success"
-    //         />,
-    //         {
-    //             placement: 'top-center',
-    //         }
-    //     )
-    //     setSubmitting(false)
-    // }
 
-    const onCreditCardDialogClose = () => {
-        setCcDialogType('')
-        setSelectedCard({})
-    }
-
-    const onEditCreditCard = (
-        card: Partial<CreditCard>,
-        type: 'EDIT' | 'NEW'
+    const onFormSubmit = (
+        _: BillingFormModel,
+        setSubmitting: (isSubmitting: boolean) => void
     ) => {
-        setCcDialogType(type)
-        setSelectedCard(card)
-    }
-
-    const onCardUpdate = (
-        cardValue: CreditCardInfo,
-        form: FormikProps<BillingData>,
-        field: FieldInputProps<BillingData>
-    ) => {
-        let paymentMethodsValue = form.values[
-            field.name as keyof BillingData
-        ] as CreditCard[]
-
-        if (cardValue.primary) {
-            paymentMethodsValue.forEach((card) => {
-                card.primary = false
-            })
-        }
-
-        if (
-            !paymentMethodsValue.some(
-                (card) => card.cardId === cardValue.cardId
-            )
-        ) {
-            paymentMethodsValue.push(cardValue)
-        }
-
-        paymentMethodsValue = paymentMethodsValue.map((card) => {
-            if (card.cardId === cardValue.cardId) {
-                card = { ...card, ...cardValue }
+        toast.push(
+            <Notification
+                title={'Billing information updated'}
+                type="success"
+            />,
+            {
+                placement: 'top-center',
             }
-            return card
-        })
-
-        let cardTemp = {}
-        paymentMethodsValue = paymentMethodsValue.filter((card) => {
-            if (card.primary) {
-                cardTemp = card
-            }
-            return !card.primary
-        })
-        paymentMethodsValue = [
-            ...[cardTemp as CreditCard],
-            ...paymentMethodsValue,
-        ]
-        form.setFieldValue(field.name, paymentMethodsValue)
-        onCreditCardDialogClose()
-    }
-
-    const onRedirect = (url: string) => {
-        const win = window.open(url, '_blank')
-        win?.focus()
+        )
+        setSubmitting(false)
     }
 
     useEffect(() => {
@@ -174,7 +95,7 @@ const Billing = () => {
             onSubmit={(values, { setSubmitting }) => {
                 setSubmitting(true)
                 setTimeout(() => {
-                    // onFormSubmit(values, setSubmitting)
+                    onFormSubmit(values, setSubmitting)
                 }, 1000)
             }}
         >
@@ -184,13 +105,13 @@ const Billing = () => {
                     <Form>
                         <FormContainer>
                             <FormDesription
-                                title="Payment Method通道信息"
-                                desc="You can update your cards information here"
+                                title="Payment Method"
+                                desc="Payment apps displayed by region"
                             />
                             <FormRow
                                 name="paymentMethods"
                                 alignCenter={false}
-                                label="Credit Cards通道"
+                                label="Credit Cards"
                                 {...validatorProps}
                             >
                                 <div className="rounded-lg border border-gray-200 dark:border-gray-600">
@@ -204,34 +125,28 @@ const Billing = () => {
                                                         values.paymentMethods,
                                                         index
                                                     ) &&
-                                                    'border-b border-gray-200 dark:border-gray-600'
+                                                        'border-b border-gray-200 dark:border-gray-600'
                                                 )}
                                             >
                                                 <div className="flex items-center">
-                                                    {card.cardType ===
+                                                    {card.paymentMethod ===
                                                         'VISA' && (
-                                                            <img
-                                                                src="/img/others/img-8.png"
-                                                                alt="visa"
-                                                            />
-                                                        )}
-                                                    {card.cardType ===
+                                                        <img
+                                                            src="/img/others/img-8.png"
+                                                            alt="visa"
+                                                        />
+                                                    )}
+                                                    {card.paymentMethod ===
                                                         'MASTER' && (
-                                                            <img
-                                                                src="/img/others/img-9.png"
-                                                                alt="master"
-                                                            />
-                                                        )}
+                                                        <img
+                                                            src="/img/others/img-9.png"
+                                                            alt="master"
+                                                        />
+                                                    )}
                                                     <div className="ml-3 rtl:mr-3">
                                                         <div className="flex items-center">
                                                             <div className="text-gray-900 dark:text-gray-100 font-semibold">
-                                                                {
-                                                                    card.cardHolderName
-                                                                }{' '}
-                                                                ••••{' '}
-                                                                {
-                                                                    card.last4Number
-                                                                }
+                                                                {card.channelName}{' '}@{' '}{card.paymentMethod}
                                                             </div>
                                                             {card.primary && (
                                                                 <Tag className="bg-sky-100 text-sky-600 dark:bg-sky-500/20 dark:text-sky-100 rounded-md border-0 mx-2">
@@ -243,91 +158,20 @@ const Billing = () => {
                                                             )}
                                                         </div>
                                                         <span>
-                                                            Expired{' '}
-                                                            {
-                                                                months[
-                                                                parseInt(
-                                                                    card.expMonth
-                                                                ) - 1
-                                                                ]
-                                                            }{' '}
-                                                            20
-                                                            {card.expYear}
+                                                            PayIn{' '}{card.in }{'%'} / PayOut{' '}{card.out}{'%'}
+                                                             
+                                                            {' '}{card.singleIn} / {card.singleOut}
+                                                             
                                                         </span>
                                                     </div>
                                                 </div>
-                                                <div className="flex">
-                                                    <Button
-                                                        size="sm"
-                                                        type="button"
-                                                        onClick={() =>
-                                                            onEditCreditCard(
-                                                                card,
-                                                                'EDIT'
-                                                            )
-                                                        }
-                                                    >
-                                                        Edit
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        )
-                                    )}
-                                </div>
-
-                            </FormRow>
-                            <FormRow
-                                border={false}
-                                name="otherMethod"
-                                alignCenter={false}
-                                label="Other payment methodsUSDT地址"
-                                {...validatorProps}
-                            >
-                                <div className="rounded-lg border border-gray-200 dark:border-gray-600">
-                                    {values?.otherMethod?.map(
-                                        (method, index) => (
-                                            <div
-                                                key={method.id}
-                                                className={classNames(
-                                                    'flex items-center justify-between p-4',
-                                                    !isLastChild(
-                                                        values.otherMethod,
-                                                        index
-                                                    ) &&
-                                                    'border-b border-gray-200 dark:border-gray-600'
-                                                )}
-                                            >
-                                                <div className="flex items-center">
-                                                    {method.type ===
-                                                        'PAYPAL' && (
-                                                            <img
-                                                                src="/img/others/img-10.png"
-                                                                alt="visa"
-                                                            />
-                                                        )}
-                                                    <div className="ml-3 rtl:mr-3 font-semibold">
-                                                        {method.identifier}
-                                                    </div>
-                                                </div>
-                                                <div className="flex">
-                                                    <Button
-                                                        size="sm"
-                                                        type="button"
-                                                        onClick={() =>
-                                                            onRedirect(
-                                                                method.redirect
-                                                            )
-                                                        }
-                                                    >
-                                                        Edit
-                                                    </Button>
-                                                </div>
+                                                
                                             </div>
                                         )
                                     )}
                                 </div>
                                 <div className="mt-2">
-                                    <Button
+                                    {/* <Button
                                         type="button"
                                         variant="plain"
                                         size="sm"
@@ -337,43 +181,45 @@ const Billing = () => {
                                         }
                                     >
                                         <span className="font-semibold">
-                                            Add new USDT
+                                            Add new card
                                         </span>
-                                    </Button>
+                                    </Button> */}
                                 </div>
                             </FormRow>
-                            <Dialog
-                                isOpen={
-                                    ccDialogType === 'NEW' ||
-                                    ccDialogType === 'EDIT'
-                                }
-                                onClose={onCreditCardDialogClose}
-                                onRequestClose={onCreditCardDialogClose}
+                            <FormRow
+                                border={false}
+                                name="otherMethod"
+                                alignCenter={false}
+                                label="ADD.USDT address"
+                                {...validatorProps}
                             >
-                                <h5 className="mb-4">Edit Credit Card</h5>
-                                <Field name="paymentMethods">
-                                    {({
-                                        field,
-                                        form,
-                                    }: FieldProps<BillingFormModel>) => {
-                                        return (
-                                            <CreditCardForm
-                                                type={ccDialogType}
-                                                card={
-                                                    selectedCard as CreditCardInfo
-                                                }
-                                                onUpdate={(cardValue) =>
-                                                    onCardUpdate(
-                                                        cardValue,
-                                                        form,
-                                                        field
-                                                    )
-                                                }
+                                <div className="rounded-lg border border-gray-200 dark:border-gray-600">
+                                    <div className="flex items-center justify-between p-4">
+                                        <div className="flex items-center flex-1 mr-3">
+                                            <img
+                                                src="/img/thumbs/tether-us.png"
+                                                alt="USDT"
+                                                className="w-8 h-8 mr-3"
                                             />
-                                        )
-                                    }}
-                                </Field>
-                            </Dialog>
+                                            <Input
+                                                placeholder="Enter USDT address for TRC-20 protocol"
+                                                className="w-full"
+                                            />
+                                        </div>
+                                        <div className="flex">
+                                            <Button
+                                                size="sm"
+                                                type="button"
+                                                onClick={() => {
+                                                    // Handle add USDT logic here
+                                                }}
+                                            >
+                                                addUSDT
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </FormRow>
                             <div className="mt-4 ltr:text-right">
                                 <Button
                                     className="ltr:mr-2 rtl:ml-2"
@@ -392,7 +238,7 @@ const Billing = () => {
                             </div>
                             <FormDesription
                                 className="mt-6"
-                                title="Billing History提现记录"
+                                title="Billing History"
                                 desc="View your previos billing"
                             />
                             <BillingHistory

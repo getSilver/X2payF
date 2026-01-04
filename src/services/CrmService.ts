@@ -14,13 +14,23 @@ export async function apiGetCrmCalendar<T>() {
     })
 }
 
-export async function apiGetCrmCustomers<T, U extends Record<string, unknown>>(
+export async function apiCreateCrmCustomer<T, U extends Record<string, unknown>>(
     data: U
 ) {
     return ApiService.fetchData<T>({
         url: '/crm/customers',
         method: 'post',
         data,
+    })
+}
+
+export async function apiGetCrmCustomers<T, U extends Record<string, unknown>>(
+    data: U
+) {
+    return ApiService.fetchData<T>({
+        url: '/crm/customers',
+        method: 'get',
+        params: data,
     })
 }
 

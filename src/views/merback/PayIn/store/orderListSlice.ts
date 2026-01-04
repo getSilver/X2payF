@@ -7,17 +7,27 @@ import {
 import {
     apiGetSalesOrders,
     apiDeleteSalesOrders,
-} from '@/services/SalesService'
+} from '@/services/PaymentService'
 import type { TableQueries } from '@/@types/common'
 
-type Order = {
-    id: string
-    date: number
-    customer: string
-    status: number
-    paymentMehod: string
-    paymentIdendifier: string
-    totalAmount: number
+export type Order = {
+    id: string          // 交易ID
+    cid: string         // 渠道ID
+    mid: string         // 商户ID
+    date: number        // 创建时间/提交时间
+    succDate: number    // 成功时间
+    sdate: number       // 成功时间 (兼容组件)
+    customer: string    // 客户信息
+    status: number      // 订单状态
+    paymentMethod: string    // 支付方式
+    paymentIdentifier: string // 支付标识符
+    totalAmount: number // 总金额
+    subAmount: number   // 提交金额
+    amount: number      // 实际金额
+    fee: number         // 手续费
+    channel: string     // 通道名
+    actionType: number  // 交易方向
+    action: string      // 交易动作
 }
 
 type Orders = Order[]
@@ -27,6 +37,13 @@ type GetSalesOrdersResponse = {
     total: number
 }
 
+type FilterQueries = {
+    name: string
+    category: string[]
+    status: number[]
+    productStatus: number
+}
+
 export type SalesOrderListState = {
     loading: boolean
     orderList: Orders
@@ -34,6 +51,7 @@ export type SalesOrderListState = {
     deleteMode: 'single' | 'batch' | ''
     selectedRows: string[]
     selectedRow: string
+    filterData: FilterQueries
 }
 
 export const SLICE_NAME = 'salesOrderList'
@@ -57,18 +75,26 @@ export const deleteOrders = async (data: { id: string | string[] }) => {
     return response.data
 }
 
+export const initialTableData: TableQueries = {
+    total: 0,
+    pageIndex: 1,
+    pageSize: 25, // 默认每页显示25条记录
+    query: '',
+    sort: {
+        order: '',
+        key: '',
+    },
+}
+
 const initialState: SalesOrderListState = {
     loading: false,
     orderList: [],
-    tableData: {
-        total: 0,
-        pageIndex: 1,
-        pageSize: 10,
-        query: '',
-        sort: {
-            order: '',
-            key: '',
-        },
+    tableData: initialTableData,
+    filterData: {
+        name: '',
+        category: ['bags', 'cloths', 'devices', 'shoes', 'watches'],
+        status: [0, 1, 2],
+        productStatus: 0,
     },
     selectedRows: [],
     selectedRow: '',
@@ -84,6 +110,9 @@ const orderListSlice = createSlice({
         },
         setTableData: (state, action) => {
             state.tableData = action.payload
+        },
+        setFilterData: (state, action) => {
+            state.filterData = action.payload
         },
         setSelectedRows: (state, action) => {
             state.selectedRows = action.payload
@@ -125,6 +154,7 @@ const orderListSlice = createSlice({
 export const {
     setOrderList,
     setTableData,
+    setFilterData,
     setSelectedRows,
     setSelectedRow,
     addRowItem,

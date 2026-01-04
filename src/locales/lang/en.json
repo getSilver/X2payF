@@ -1,29 +1,23 @@
 {
-    "nav": {
+    "nav":  {
         "apps": "Apps",
-        "appsProject": {
-            "project": "Project",
+        "appsOrders": {
+            "orders": "Orders",
             "dashboard": "Dashboard",
-            "projectList": "Project List",
-            "scrumBoard": "Scrum Board",
-            "issue": "Issue"
+            "payIn": "PayIn",
+            "payOut": "PayOut"
         },
-        "appsCrm": {
-            "crm": "CRM",
+        "appsMer": {
+            "merchants": "Merchants",
             "dashboard": "Dashboard",
-            "calendar": "Calendar",
-            "customers": "Customers",
-            "customerDetails": "Customer Details",
-            "mail": "Mail"
+            "mgmt": "Dashboard",
+            "merDetails": "商户信息"
         },
-        "appsSales": {
-            "sales": "Sales",
+        "appsChannel": {
+            "channel": "Channels",
             "dashboard": "Dashboard",
-            "productList": "Product List",
-            "productEdit": "Product Edit",
-            "productNew": "New Product",
-            "orderList": "Order List",
-            "orderDetails": "Order Details"
+            "paymentSet": "支付设置",
+            "mgmt": "渠道管理"
         },
         "appsCrypto": {
             "crypto": "Crypto",
@@ -45,6 +39,9 @@
             "invoice": "Invoice",
             "activityLog": "Activity Log",
             "kycForm": "KYC Form"
+        },
+        "appsDemo": {
+            "demo": "Demo Card"
         },
         "uiComponents": "UI Components",
         "uiComponentsCommon": {

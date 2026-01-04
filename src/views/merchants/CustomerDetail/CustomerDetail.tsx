@@ -27,6 +27,7 @@ const CustomerDetail = () => {
         (state) => state.crmCustomerDetails.data.loading
     )
 
+
     useEffect(() => {
         fetchData()
         // eslint-disable-next-line react-hooks/exhaustive-deps

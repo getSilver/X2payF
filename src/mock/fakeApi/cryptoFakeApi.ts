@@ -16,40 +16,58 @@ export default function cryptoFakeApi(server: Server, apiPrefix: string) {
         return schema.db.walletsData
     })
 
-    server.post(
-        `${apiPrefix}/crypto/wallets/history`,
-        (schema, { requestBody }) => {
-            const { tab, pageIndex, pageSize, sort } = JSON.parse(requestBody)
+    server.post(`${apiPrefix}/crypto/wallets/history`, (schema, { requestBody }) => {
+        const { tab, pageIndex, pageSize, sort } = JSON.parse(requestBody)
 
-            let data = schema.db.transactionHistoryData[0][tab]
-            const total = data.length
-            const { order, key } = sort
+        // Map tab names to data keys
+        const tabKeyMap: Record<string, string> = {
+            deposit: 'deposit',
+            trade: 'trade',
+            withdrawal: 'withdraw'
+        }
 
-            if (key && order) {
-                if (key !== 'action') {
-                    data.sort(sortBy(key, order === 'desc', parseInt as Primer))
-                } else {
-                    data.sort(
-                        sortBy(key, order === 'desc', (a) =>
-                            (a as string).toUpperCase()
-                        )
+        const dataKey = tabKeyMap[tab] || tab
+        let data = schema.db.transactionHistoryData[0][dataKey]
+
+        if (!data) {
+            console.error(`No data found for tab: ${tab}, dataKey: ${dataKey}`)
+            data = []
+        }
+
+        const total = data.length
+        const { order, key } = sort
+
+        if (key && order) {
+            if (key !== 'action') {
+                data.sort(sortBy(key, order === 'desc', parseInt as Primer))
+            } else {
+                data.sort(
+                    sortBy(key, order === 'desc', (a) =>
+                        (a as string).toUpperCase()
                     )
-                }
-            }
-            data = paginate(data, pageSize, pageIndex)
-
-            return {
-                data,
-                total,
+                )
             }
         }
+        data = paginate(data, pageSize, pageIndex)
+
+        return {
+            data,
+            total,
+        }
+    }
     )
 
     server.post(`${apiPrefix}/crypto/market`, (schema, { requestBody }) => {
         const { tab, pageIndex, pageSize, sort, query } =
             JSON.parse(requestBody)
 
-        let data = schema.db.marketData[0][tab]
+        let data = schema.db.marketData[tab]
+
+        if (!data) {
+            console.error(`No market data found for tab: ${tab}`)
+            data = []
+        }
+
         let total = data.length
         const { order, key } = sort
 

@@ -1,12 +1,12 @@
 import reducer from './store'
 import { injectReducer } from '@/store'
 import AdaptableCard from '@/components/shared/AdaptableCard'
-import ProductTable from './components/ProductTable'
-import ProductTableTools from './components/ProductTableTools'
+import ProductTable from './components/ChannelTable'
+import ProductTableTools from './components/ChannelTableTools'
 
 injectReducer('salesProductList', reducer)
 
-const ProductList = () => {
+const ChannelList = () => {
     return (
         <AdaptableCard className="h-full" bodyClass="h-full">
             <div className="lg:flex items-center justify-between mb-4">
@@ -18,4 +18,4 @@ const ProductList = () => {
     )
 }
 
-export default ProductList
+export default ChannelList

@@ -174,7 +174,7 @@ export const searchQueryPoolData = [
     },
     {
         title: 'Order Details',
-        url: '/app/orders/order-details/95954',
+        url: '/app/payment/order-details/95954',
         icon: 'sales',
         category: 'Sales',
         categoryTitle: 'Apps',

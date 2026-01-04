@@ -41,8 +41,8 @@ export type Subscription = {
     // billing: string
     // nextPaymentDate: number
     amount: number
-    // funds: number   //账户资金
-    // freeze: number  //冻结资金
+    funds: number   //账户资金
+    freeze: number  //冻结资金
 }
 
 export type Customer = {

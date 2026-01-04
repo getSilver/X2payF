@@ -22,26 +22,28 @@ type AccountSetting = {
         time: number
         location: string
     }[]
-    // notification: {
-    //     news: string[]
-    //     accountActivity: string[]
-    //     signIn: string[]
-    //     reminders: string[]
-    //     mentioned: string[]
-    //     replies: string[]
-    //     taskUpdate: string[]
-    //     assigned: string[]
-    //     newProduct: string[]
-    //     newOrder: string[]
-    // }
+    notification: {
+        news: string[]
+        accountActivity: string[]
+        signIn: string[]
+        reminders: string[]
+        mentioned: string[]
+        replies: string[]
+        taskUpdate: string[]
+        assigned: string[]
+        newProduct: string[]
+        newOrder: string[]
+    }
 }
 
 type GetAccountSettingData = AccountSetting
 
 const Profile = lazy(() => import('./components/Profile'))
 const Password = lazy(() => import('./components/Password'))
-// const NotificationSetting = lazy(() => import('./components/NotificationSetting'))
-// const Integration = lazy(() => import('./components/Integration'))
+const NotificationSetting = lazy(
+    () => import('./components/NotificationSetting')
+)
+const Integration = lazy(() => import('./components/Integration'))
 const Billing = lazy(() => import('./components/Billing'))
 
 const { TabNav, TabList } = Tabs
@@ -53,11 +55,11 @@ const settingsMenu: Record<
         path: string
     }
 > = {
-    profile: { label: 'Profile商户信息', path: 'profile' },
-    password: { label: 'Password密码', path: 'password' },
-    // notification: { label: 'Notification', path: 'notification' },
-    // integration: { label: 'Integration', path: 'integration' },
-    billing: { label: 'Billing通道信息', path: 'billing' },
+    profile: { label: 'Profile', path: 'profile' },
+    password: { label: 'Password', path: 'password' },
+    notification: { label: 'Notification', path: 'notification' },
+    integration: { label: 'Integration', path: 'integration' },
+    billing: { label: 'Billing', path: 'billing' },
 }
 
 const Settings = () => {
@@ -110,10 +112,10 @@ const Settings = () => {
                         {currentTab === 'password' && (
                             <Password data={data.loginHistory} />
                         )}
-                        {/* {currentTab === 'notification' && (
-                            <NotificationSetting data={data.notification} /> */}
-                        {/* )} */}
-                        {/* {currentTab === 'integration' && <Integration />} */}
+                        {currentTab === 'notification' && (
+                            <NotificationSetting data={data.notification} />
+                        )}
+                        {currentTab === 'integration' && <Integration />}
                         {currentTab === 'billing' && <Billing />}
                     </Suspense>
                 </div>

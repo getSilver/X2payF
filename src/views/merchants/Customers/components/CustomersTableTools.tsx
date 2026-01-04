@@ -1,4 +1,5 @@
 import { useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Button from '@/components/ui/Button'
 import {
     getCustomers,
@@ -14,6 +15,7 @@ import type { TableQueries } from '@/@types/common'
 
 const CustomersTableTools = () => {
     const dispatch = useAppDispatch()
+    const navigate = useNavigate()
 
     const inputRef = useRef<HTMLInputElement>(null)
 
@@ -49,6 +51,10 @@ const CustomersTableTools = () => {
         fetchData(newTableData)
     }
 
+    const addUser = () => {
+        navigate('/app/merchants/new')
+    }
+
     return (
         <div className="md:flex items-center justify-between">
             <div className="md:flex items-center gap-4">
@@ -58,8 +64,11 @@ const CustomersTableTools = () => {
                 />
                 <CustomerTableFilter />
             </div>
-            <div className="mb-4">
-                <Button size="sm" onClick={onClearAll}>
+            <div className="flex items-center gap-3 mb-4">
+                <Button size="sm" onClick={addUser}>
+                    Add User
+                </Button>
+                <Button size="sm" variant="solid" onClick={onClearAll} className="ml-auto">
                     Clear All
                 </Button>
             </div>

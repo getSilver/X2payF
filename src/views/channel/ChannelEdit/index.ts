@@ -1,3 +1,3 @@
-import ProductEdit from './ProductEdit'
+import ChannelEdit from './ChannelEdit'
 
-export default ProductEdit
+export default ChannelEdit

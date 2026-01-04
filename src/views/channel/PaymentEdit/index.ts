@@ -1,3 +1,3 @@
-import ProductEdit from './ProductEdit'
+import PaymentEdit from './PaymentEdit'
 
-export default ProductEdit
+export default PaymentEdit

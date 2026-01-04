@@ -127,6 +127,7 @@ export const transactionHistoryData = [
         trade: [
             {
                 actionType: 0,
+                id: '1r4t4LPT89',
                 status: 1,
                 action: '代收',
                 date: 1660132800,
@@ -136,6 +137,7 @@ export const transactionHistoryData = [
             },
             {
                 actionType: 0,
+                id: '1r4t4LPT89',
                 status: 1,
                 action: '代收',
                 date: 1659132800,
@@ -143,7 +145,7 @@ export const transactionHistoryData = [
                 price: 7324.94,
                 amount: 0.256578,
             },
-            {
+            {id: '1r4t4LPT89',
                 actionType: 1,
                 status: 0,
                 action: '代付',
@@ -152,7 +154,7 @@ export const transactionHistoryData = [
                 price: 16834.42,
                 amount: 9.346292,
             },
-            {
+            {id: '1r4t4LPT89',
                 actionType: 2,
                 status: 2,
                 action: '退款',
@@ -161,7 +163,7 @@ export const transactionHistoryData = [
                 price: 4000.0,
                 amount: 2.220581,
             },
-            {
+            {id: '1r4t4LPT89',
                 actionType: 0,
                 status: 0,
                 action: '代收',
@@ -170,7 +172,7 @@ export const transactionHistoryData = [
                 price: 6372.57,
                 amount: 163.3846,
             },
-            {
+            {id: '1r4t4LPT89',
                 actionType: 0,
                 status: 0,
                 action: '代收',
@@ -179,7 +181,7 @@ export const transactionHistoryData = [
                 price: 5288.36,
                 amount: 0.185462,
             },
-            {
+            {id: '1r4t4LPT89',
                 actionType: 0,
                 status: 0,
                 action: '代收',
@@ -188,7 +190,7 @@ export const transactionHistoryData = [
                 price: 1376.76,
                 amount: 0.762942,
             },
-            {
+            {id: '1r4t4LPT89',
                 actionType: 1,
                 status: 0,
                 action: 'Sell BTC',
@@ -197,7 +199,7 @@ export const transactionHistoryData = [
                 price: 9345.74,
                 amount: 0.315731,
             },
-            {
+            {id: '1r4t4LPT89',
                 actionType: 2,
                 status: 2,
                 action: 'Swap BTC to ETH',
@@ -206,7 +208,7 @@ export const transactionHistoryData = [
                 price: 6540.21,
                 amount: 0.227392,
             },
-            {
+            {id: '1r4t4LPT89',
                 actionType: 0,
                 status: 2,
                 action: 'Buy ETH',
@@ -215,7 +217,7 @@ export const transactionHistoryData = [
                 price: 3832.55,
                 amount: 2.131846,
             },
-            {
+            {id: '1r4t4LPT89',
                 actionType: 2,
                 status: 2,
                 action: 'Swap BTC to ETH',
@@ -224,7 +226,7 @@ export const transactionHistoryData = [
                 price: 6540.21,
                 amount: 0.227392,
             },
-            {
+            {id: '1r4t4LPT89',
                 actionType: 0,
                 status: 2,
                 action: 'Buy ETH',
@@ -402,7 +404,7 @@ export const transactionHistoryData = [
                 amount: 9858.17,
                 status: 0,
             },
-        ],
+        ]
     },
 ]
 

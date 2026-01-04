@@ -92,7 +92,7 @@ export default function salesFakeApi(server: Server, apiPrefix: string) {
             if (
                 (key === 'date' ||
                     key === 'status' ||
-                    key === 'paymentMehod') &&
+                    key === 'paymentMethod') &&
                 order
             ) {
                 data.sort(sortBy(key, order === 'desc', parseInt as Primer))

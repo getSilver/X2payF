@@ -8,8 +8,8 @@ import {
     setSelectedRows,
     addRowItem,
     removeRowItem,
-    // setDeleteMode,
-    // setSelectedRow,
+    setDeleteMode,
+    setSelectedRow,
     getOrders,
     setTableData,
     useAppDispatch,
@@ -33,7 +33,7 @@ type Order = {
     cid: string     //渠道ID
     date: number    //创建时间
     sdate: number    //成功时间Successful time
-    subdate: number    //提交时间Sub time
+    // subdate: number    //提交时间Sub time
     customer: string
     status: number
     paymentMehod: string
@@ -132,14 +132,14 @@ const OrderColumn = ({ row }: { row: Order }) => {
 }
 
 const ActionColumn = ({ row }: { row: Order }) => {
-    // const dispatch = useAppDispatch()
+    const dispatch = useAppDispatch()
     const { textTheme } = useThemeClass()
     const navigate = useNavigate()
 
-    // const onDelete = () => {
-    //     dispatch(setDeleteMode('single'))
-    //     dispatch(setSelectedRow([row.id]))
-    // }
+    const onDelete = () => {
+        dispatch(setDeleteMode('single'))
+        dispatch(setSelectedRow([row.id]))
+    }
 
     const onView = useCallback(() => {
         navigate(`/app/orders/order-details/${row.id}`)
@@ -155,14 +155,14 @@ const ActionColumn = ({ row }: { row: Order }) => {
                     <HiOutlineEye />
                 </span>
             </Tooltip>
-            {/* <Tooltip title="Delete">
+            <Tooltip title="Delete">
                 <span
                     className="cursor-pointer p-2 hover:text-red-500"
                     onClick={onDelete}
                 >
-                    <HiOutlineTrash />
+                    {/* <HiOutlineTrash /> */}
                 </span>
-            </Tooltip> */}
+            </Tooltip>
         </div>
     )
 }
@@ -251,11 +251,6 @@ const OrdersTable = () => {
                             >
                                 {orderStatusColor[status].label}
                             </span>
-                            <span
-                                className={`ml-2 rtl:mr-2 capitalize font-semibold ${orderStatusColor[status].textClass}`}
-                            >
-                                {orderStatusColor[status].label}
-                            </span>
                         </div>
                     )
                 },
@@ -311,12 +306,12 @@ const OrdersTable = () => {
         dispatch(setTableData(newTableData))
     }
 
-    // const onSelectChange = (value: number) => {
-    //     const newTableData = cloneDeep(tableData)
-    //     newTableData.pageSize = Number(value)
-    //     newTableData.pageIndex = 1
-    //     dispatch(setTableData(newTableData))
-    // }
+    const onSelectChange = (value: number) => {
+        const newTableData = cloneDeep(tableData)
+        newTableData.pageSize = Number(value)
+        newTableData.pageIndex = 1
+        dispatch(setTableData(newTableData))
+    }
 
     const onSort = (sort: OnSortParam) => {
         const newTableData = cloneDeep(tableData)
@@ -351,7 +346,7 @@ const OrdersTable = () => {
     return (
         <DataTable
             ref={tableRef}
-            // selectable
+            selectable
             columns={columns}
             data={data}
             loading={loading}
@@ -361,7 +356,7 @@ const OrdersTable = () => {
                 pageSize: tableData.pageSize as number,
             }}
             onPaginationChange={onPaginationChange}
-            // onSelectChange={onSelectChange}
+            onSelectChange={onSelectChange}
             onSort={onSort}
             onCheckBoxChange={onRowSelect}
             onIndeterminateCheckBoxChange={onAllRowSelect}

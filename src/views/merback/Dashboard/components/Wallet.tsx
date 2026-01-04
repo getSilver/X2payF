@@ -1,34 +1,34 @@
 import { useEffect } from 'react'
-// import classNames from 'classnames'
+import classNames from 'classnames'
 import Card from '@/components/ui/Card'
 import Avatar from '@/components/ui/Avatar'
-// import Input from '@/components/ui/Input'
-// import Tooltip from '@/components/ui/Tooltip'
-// import Notification from '@/components/ui/Notification'
-// import toast from '@/components/ui/toast'
-// import Skeleton from '@/components/ui/Skeleton'
-// import Loading from '@/components/shared/Loading'
+import Input from '@/components/ui/Input'
+import Tooltip from '@/components/ui/Tooltip'
+import Notification from '@/components/ui/Notification'
+import toast from '@/components/ui/toast'
+import Skeleton from '@/components/ui/Skeleton'
+import Loading from '@/components/shared/Loading'
 import Button from '@/components/ui/Button'
 import ActionColumn from './ActionColumn'
 import GrowShrinkTag from '@/components/shared/GrowShrinkTag'
 import { getWalletData, useAppSelector, useAppDispatch } from '../store'
-// import useThemeClass from '@/utils/hooks/useThemeClass'
-// import { HiOutlineDuplicate, HiOutlinePlus } from 'react-icons/hi'
+import useThemeClass from '@/utils/hooks/useThemeClass'
+import { HiOutlineDuplicate, HiOutlinePlus } from 'react-icons/hi'
 import { NumericFormat } from 'react-number-format'
 import type { Wallet } from '../store'
 
 const WalletCard = ({ data = {} }: { data: Partial<Wallet> }) => {
-    // const { textTheme } = useThemeClass()
+    const { textTheme } = useThemeClass()
 
-    // const handleCopyClick = (address = '') => {
-    //     navigator.clipboard.writeText(address)
-    //     toast.push(
-    //         <Notification title="Copied" type="success" duration={1000} />,
-    //         {
-    //             placement: 'top-center',
-    //         }
-    //     )
-    // }
+    const handleCopyClick = (address = '') => {
+        navigator.clipboard.writeText(address)
+        toast.push(
+            <Notification title="Copied" type="success" duration={1000} />,
+            {
+                placement: 'top-center',
+            }
+        )
+    }
 
     return (
         <Card>
@@ -46,7 +46,7 @@ const WalletCard = ({ data = {} }: { data: Partial<Wallet> }) => {
                         <NumericFormat
                             displayType="text"
                             value={data.fiatValue}
-                            // suffix={data.symbol}
+                            suffix={data.symbol}
                             thousandSeparator={true}
                         />
                     </h5>

@@ -6,6 +6,7 @@ import {
 import type { TableQueries } from '@/@types/common'
 
 export type Trade = {
+    id: string
     actionType: number
     status: number
     action: string

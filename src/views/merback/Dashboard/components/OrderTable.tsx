@@ -82,6 +82,14 @@ const OrderTable = ({ data, loading, tableData }: OrderTableProps) => {
                 },
             },
             {
+                header: 'Transaction Id',
+                accessorKey: 'id',
+                cell: (props) => {
+                    const row = props.row.original
+                    return <span>TxID-{row.id}</span>
+                },
+            },
+            {
                 header: 'Date',
                 accessorKey: 'date',
                 cell: (props) => {

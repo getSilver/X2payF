@@ -58,16 +58,16 @@ const TransactionHistory = () => {
                     <TabNav value="withdrawal">Withdraw提款记录</TabNav>
                 </TabList>
                 <div className="mt-4">
-                    <TabContent value="trade">
-                        <OrderTable
-                            data={data as Trade[]}
+                    <TabContent value="deposit">
+                        <DepositWithdrawalTable
+                            data={data as TransactionDetails[]}
                             loading={loading}
                             tableData={tableData}
                         />
                     </TabContent>
-                    <TabContent value="deposit">
-                        <DepositWithdrawalTable
-                            data={data as TransactionDetails[]}
+                    <TabContent value="trade">
+                        <OrderTable
+                            data={data as Trade[]}
                             loading={loading}
                             tableData={tableData}
                         />

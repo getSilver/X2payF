@@ -6,7 +6,7 @@ import {
 } from '@reduxjs/toolkit'
 import {
     apiGetSalesOrders,
-    // apiDeleteSalesOrders,
+    apiDeleteSalesOrders,
 } from '@/services/SalesService'
 import type { TableQueries } from '@/@types/common'
 
@@ -45,7 +45,7 @@ export type SalesOrderListState = {
     loading: boolean
     orderList: Orders
     tableData: TableQueries
-    // deleteMode: 'single' | 'batch' | ''
+    deleteMode: 'single' | 'batch' | ''
     selectedRows: string[]
     selectedRow: string
     filterData: FilterQueries
@@ -64,13 +64,13 @@ export const getOrders = createAsyncThunk(
     }
 )
 
-// export const deleteOrders = async (data: { id: string | string[] }) => {
-//     const response = await apiDeleteSalesOrders<
-//         boolean,
-//         { id: string | string[] }
-//     >(data)
-//     return response.data
-// }
+export const deleteOrders = async (data: { id: string | string[] }) => {
+    const response = await apiDeleteSalesOrders<
+        boolean,
+        { id: string | string[] }
+    >(data)
+    return response.data
+}
 
 export const initialTableData: TableQueries = {
     total: 0,
@@ -95,7 +95,7 @@ const initialState: SalesOrderListState = {
     },
     selectedRows: [],
     selectedRow: '',
-    // deleteMode: '',
+    deleteMode: '',
 }
 
 const orderListSlice = createSlice({
@@ -131,9 +131,9 @@ const orderListSlice = createSlice({
                 )
             }
         },
-        // setDeleteMode: (state, action) => {
-        //     state.deleteMode = action.payload
-        // },
+        setDeleteMode: (state, action) => {
+            state.deleteMode = action.payload
+        },
     },
     extraReducers: (builder) => {
         builder
@@ -156,7 +156,7 @@ export const {
     setSelectedRow,
     addRowItem,
     removeRowItem,
-    // setDeleteMode,
+    setDeleteMode,
 } = orderListSlice.actions
 
 export default orderListSlice.reducer

@@ -402,7 +402,7 @@ export const transactionHistoryData = [
                 amount: 9858.17,
                 status: 0,
             },
-        ],
+        ]
     },
 ]
 

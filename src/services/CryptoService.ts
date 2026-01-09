@@ -16,7 +16,7 @@ export async function apiGetPortfolioData<T>() {
 
 export async function apiGetWalletData<T>() {
     return ApiService.fetchData<T>({
-        url: '/api/crypto/wallets',
+        url: '/crypto/wallets',
         method: 'get',
     })
 }
@@ -26,7 +26,7 @@ export async function apiGetTransctionHistoryData<
     U extends Record<string, unknown>
 >(data: U) {
     return ApiService.fetchData<T>({
-        url: '/api/crypto/wallets/history',
+        url: '/crypto/wallets/history',
         method: 'post',
         data,
     })

@@ -1,5 +1,5 @@
-import DatePicker from '@/components/ui/DatePicker'
 import Input from '@/components/ui/Input'
+import Select from '@/components/ui/Select'
 import Avatar from '@/components/ui/Avatar'
 import Upload from '@/components/ui/Upload'
 import { FormItem } from '@/components/ui/Form'
@@ -7,11 +7,18 @@ import {
     HiUserCircle,
     HiEnvelope,
     HiMapPin,
-    HiPhone,
     HiCake,
     HiOutlineUser,
 } from 'react-icons/hi2'
 import { Field, FieldProps, FormikErrors, FormikTouched } from 'formik'
+import type { SingleValue } from 'react-select'
+
+const formatRegisterTime = (value: Date) => {
+    if (!(value instanceof Date) || Number.isNaN(value.getTime())) {
+        return ''
+    }
+    return value.toISOString().replace('T', ' ').replace('Z', '')
+}
 
 type FormFieldsName = {
     upload: string
@@ -19,7 +26,6 @@ type FormFieldsName = {
     agent: string
     email: string
     location: string
-    phoneNumber: string
     birthday: Date
 }
 export type FormModel = Omit<FormFieldsName, 'tags'> & {
@@ -29,8 +35,14 @@ export type FormModel = Omit<FormFieldsName, 'tags'> & {
 type PersonalInfoFormProps = {
     touched: FormikTouched<FormFieldsName>
     errors: FormikErrors<FormFieldsName>
+    locationOptions?: LocationOption[]
 }
 export type SetSubmitting = (isSubmitting: boolean) => void
+
+export type LocationOption = {
+    value: string
+    label: string
+}
 
 type CustomerForm = {
     initialData?: FormFieldsName
@@ -40,7 +52,7 @@ type CustomerForm = {
 }
 
 const PersonalInfoForm = (props: PersonalInfoFormProps) => {
-    const { touched, errors } = props
+    const { touched, errors, locationOptions } = props
 
     return (
         <>
@@ -118,28 +130,39 @@ const PersonalInfoForm = (props: PersonalInfoFormProps) => {
                 invalid={errors.location && touched.location}
                 errorMessage={errors.location}
             >
-                <Field
-                    type="text"
-                    autoComplete="off"
-                    name="location"
-                    placeholder="Location"
-                    component={Input}
-                    prefix={<HiMapPin className="text-xl" />}
-                />
-            </FormItem>
-            <FormItem
-                label="Phone Number"
-                invalid={errors.phoneNumber && touched.phoneNumber}
-                errorMessage={errors.phoneNumber}
-            >
-                <Field
-                    type="text"
-                    autoComplete="off"
-                    name="phoneNumber"
-                    placeholder="Phone Number"
-                    component={Input}
-                    prefix={<HiPhone className="text-xl" />}
-                />
+                {locationOptions ? (
+                    <Field name="location">
+                        {({ field, form }: FieldProps) => (
+                            <Select<LocationOption>
+                                options={locationOptions}
+                                placeholder="Select Timezone"
+                                value={
+                                    locationOptions.find(
+                                        (option) => option.value === field.value
+                                    ) || null
+                                }
+                                onChange={(
+                                    option: SingleValue<LocationOption>
+                                ) => {
+                                    form.setFieldValue(
+                                        field.name,
+                                        option?.value || ''
+                                    )
+                                }}
+                                className="w-full"
+                            />
+                        )}
+                    </Field>
+                ) : (
+                    <Field
+                        type="text"
+                        autoComplete="off"
+                        name="location"
+                        placeholder="Location"
+                        component={Input}
+                        prefix={<HiMapPin className="text-xl" />}
+                    />
+                )}
             </FormItem>
             <FormItem
                 label="Agent代理"
@@ -152,7 +175,7 @@ const PersonalInfoForm = (props: PersonalInfoFormProps) => {
                     name="agent"
                     placeholder="Agent"
                     component={Input}
-                    prefix={<HiPhone className="text-xl" />}
+                    prefix={<HiUserCircle className="text-xl" />}
                 />
             </FormItem>
             <FormItem
@@ -160,16 +183,13 @@ const PersonalInfoForm = (props: PersonalInfoFormProps) => {
                 invalid={(errors.birthday && touched.birthday) as boolean}
                 errorMessage={errors.birthday as string}
             >
-                <Field name="birthday" placeholder="Date">
-                    {({ field, form }: FieldProps) => (
-                        <DatePicker
-                            field={field}
-                            form={form}
-                            value={field.value}
+                <Field name="birthday">
+                    {({ field }: FieldProps) => (
+                        <Input
+                            value={formatRegisterTime(field.value)}
                             inputPrefix={<HiCake className="text-xl" />}
-                            onChange={(date) => {
-                                form.setFieldValue(field.name, date)
-                            }}
+                            readOnly
+                            disabled
                         />
                     )}
                 </Field>

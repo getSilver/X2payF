@@ -65,10 +65,10 @@ const CustomersTableTools = () => {
                 <CustomerTableFilter />
             </div>
             <div className="flex items-center gap-3 mb-4">
-                <Button size="sm" onClick={addUser}>
+                <Button size="sm" variant="solid" onClick={addUser}>
                     Add User
                 </Button>
-                <Button size="sm" variant="solid" onClick={onClearAll} className="ml-auto">
+                <Button size="sm" onClick={onClearAll} className="ml-auto">
                     Clear All
                 </Button>
             </div>

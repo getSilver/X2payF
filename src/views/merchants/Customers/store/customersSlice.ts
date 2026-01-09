@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import {
     apiGetCrmCustomers,
-    apPutCrmCustomer,
+    apiPutCrmCustomer,
     apiGetCrmCustomersStatistic,
 } from '@/services/CrmService'
 import type { TableQueries } from '@/@types/common'
@@ -116,7 +116,7 @@ export const getCustomers = createAsyncThunk(
 export const putCustomer = createAsyncThunk(
     'crmCustomers/data/putCustomer',
     async (data: Customer) => {
-        const response = await apPutCrmCustomer(data)
+        const response = await apiPutCrmCustomer(data)
         return response.data
     }
 )

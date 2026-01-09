@@ -24,6 +24,16 @@ export async function apiGetCrmCustomers<T, U extends Record<string, unknown>>(
     })
 }
 
+export async function apiCreateCrmCustomer<T, U extends Record<string, unknown>>(
+    data: U
+) {
+    return ApiService.fetchData<T>({
+        url: '/v1/crm/customers',
+        method: 'post',
+        data,
+    })
+}
+
 export async function apiGetCrmCustomersStatistic<T>() {
     return ApiService.fetchData<T>({
         url: '/v1/crm/customers-statistic',
@@ -31,7 +41,7 @@ export async function apiGetCrmCustomersStatistic<T>() {
     })
 }
 
-export async function apPutCrmCustomer<T, U extends Record<string, unknown>>(
+export async function apiPutCrmCustomer<T, U extends Record<string, unknown>>(
     data: U
 ) {
     return ApiService.fetchData<T>({

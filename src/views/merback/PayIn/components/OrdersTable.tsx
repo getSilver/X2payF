@@ -226,7 +226,7 @@ const OrdersTable = () => {
     const columns: ColumnDef<Order>[] = useMemo(
         () => [
             {
-                header: 'Action',
+                header: 'Action info',
                 accessorKey: 'action',
                 cell: (props) => {
                     const row = props.row.original
@@ -320,7 +320,7 @@ const OrdersTable = () => {
             },
             {
                 header: '',
-                id: 'action',
+                id: 'actionMenu',
                 cell: (props) => <ActionColumn row={props.row.original} />,
             },
         ],

@@ -16,14 +16,14 @@ import type {
 } from '@/@types/account'
 
 const ACCOUNT_API = {
-    ACCOUNTS: '/api/v1/accounts',
-    ACCOUNT_DETAIL: (id: string) => `/api/v1/accounts/${id}`,
-    ACCOUNT_STATUS: (id: string) => `/api/v1/accounts/${id}/status`,
-    MERCHANTS: '/api/v1/accounts/merchants',
-    MERCHANT_DETAIL: (id: string) => `/api/v1/merchants/${id}/details`,
-    AGENTS: '/api/v1/accounts/agents',
-    AGENT_MERCHANTS: (id: string) => `/api/v1/agents/${id}/merchants`,
-    CHANNEL_PARTNERS: '/api/v1/accounts/channel-partners',
+    ACCOUNTS: '/v1/accounts',
+    ACCOUNT_DETAIL: (id: string) => `/v1/accounts/${id}`,
+    ACCOUNT_STATUS: (id: string) => `/v1/accounts/${id}/status`,
+    MERCHANTS: '/v1/accounts/merchants',
+    MERCHANT_DETAIL: (id: string) => `/v1/merchants/${id}/details`,
+    AGENTS: '/v1/accounts/agents',
+    AGENT_MERCHANTS: (id: string) => `/v1/agents/${id}/merchants`,
+    CHANNEL_PARTNERS: '/v1/accounts/channel-partners',
 }
 
 export async function apiGetAccount(accountId: string) {

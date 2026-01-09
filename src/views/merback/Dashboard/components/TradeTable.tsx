@@ -46,7 +46,7 @@ const TradeTable = ({ data, loading, tableData }: TradeTableProps) => {
     const columns: ColumnDef<Trade>[] = useMemo(
         () => [
             {
-                header: 'Action',
+                header: 'Action info',
                 accessorKey: 'action',
                 cell: (props) => {
                     const row = props.row.original
@@ -83,7 +83,7 @@ const TradeTable = ({ data, loading, tableData }: TradeTableProps) => {
                 },
             },
             {
-                header: 'Amount原金额',
+                header: 'Amount',
                 accessorKey: 'amount',
                 cell: (props) => {
                     const row = props.row.original
@@ -104,7 +104,7 @@ const TradeTable = ({ data, loading, tableData }: TradeTableProps) => {
             },
             {
                 header: 'Amount结算金额',
-                accessorKey: 'amount',
+                accessorKey: 'amountSettlement',
                 cell: (props) => {
                     const row = props.row.original
                     return (
@@ -131,7 +131,7 @@ const TradeTable = ({ data, loading, tableData }: TradeTableProps) => {
             },
             {
                 header: '',
-                id: 'action',
+                id: 'actionMenu',
                 cell: (props) => <ActionColumn row={props.row.original} />,
             },
         ],

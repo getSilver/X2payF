@@ -2,7 +2,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import {
     apiGetCrmCustomerDetails,
     apiDeleteCrmCustomer,
-    apPutCrmCustomer,
+    apiPutCrmCustomer,
 } from '@/services/CrmService'
 
 export const SLICE_NAME = 'crmCustomerDetails'
@@ -106,7 +106,7 @@ export const deleteCustomer = createAsyncThunk(
 export const putCustomer = createAsyncThunk(
     SLICE_NAME + '/putCustomer',
     async (data: Customer) => {
-        const response = await apPutCrmCustomer(data)
+        const response = await apiPutCrmCustomer(data)
         return response.data
     }
 )

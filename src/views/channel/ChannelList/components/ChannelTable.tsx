@@ -7,7 +7,8 @@ import { FiPackage } from 'react-icons/fi'
 import {
     getProducts,
     setTableData,
-    setSelectedProduct,
+    setSelectedChannel,
+    toggleChannelStatus,
     toggleDeleteConfirmation,
     useAppDispatch,
     useAppSelector,
@@ -43,12 +44,12 @@ const inventoryStatusColor: Record<
     }
 > = {
     0: {
-        label: '激活',
+        label: 'Active',
         dotClass: 'bg-emerald-500',
         textClass: 'text-emerald-500',
     },
     1: {
-        label: '停用',
+        label: 'Disabled',
         dotClass: 'bg-amber-500',
         textClass: 'text-amber-500',
     },
@@ -63,9 +64,10 @@ const ActionColumn = ({ row }: { row: Channel }) => {
     const dispatch = useAppDispatch()
     const { textTheme } = useThemeClass()
     const navigate = useNavigate()
-    //这是我自己弄在这里的主要是用来显示激活用的按钮没有实际左右
+    
     const status = () => {
-        dispatch(setSelectedProduct(row.id))
+        dispatch(toggleChannelStatus({ id: row.id, status: row.status }))
+        dispatch(setSelectedChannel(row.id))
     }
 
     const onEdit = () => {
@@ -74,7 +76,7 @@ const ActionColumn = ({ row }: { row: Channel }) => {
 
     const onDelete = () => {
         dispatch(toggleDeleteConfirmation(true))
-        dispatch(setSelectedProduct(row.id))
+        dispatch(setSelectedChannel(row.id))
     }
 
     return (
@@ -122,19 +124,19 @@ const ChannelTable = () => {
     const dispatch = useAppDispatch()
 
     const { pageIndex, pageSize, sort, query, total } = useAppSelector(
-        (state) => state.salesProductList.data.tableData
+        (state) => state.salesChannelList.data.tableData
     )
 
     const filterData = useAppSelector(
-        (state) => state.salesProductList.data.filterData
+        (state) => state.salesChannelList.data.filterData
     )
 
     const loading = useAppSelector(
-        (state) => state.salesProductList.data.loading
+        (state) => state.salesChannelList.data.loading
     )
 
     const data = useAppSelector(
-        (state) => state.salesProductList.data.productList
+        (state) => state.salesChannelList.data.channelList
     )
 
     useEffect(() => {
@@ -160,7 +162,7 @@ const ChannelTable = () => {
     const columns: ColumnDef<Channel>[] = useMemo(
         () => [
             {
-                header: 'Name渠道名',
+                header: 'Name通道',
                 accessorKey: 'name',
                 cell: (props) => {
                     const row = props.row.original
@@ -168,7 +170,7 @@ const ChannelTable = () => {
                 },
             },
             {
-                header: '收付类型',
+                header: '代收付',
                 accessorKey: 'tags',
                 cell: (props) => {
                     const { tags } = props.row.original
@@ -184,12 +186,11 @@ const ChannelTable = () => {
                 },
             },
             {
-                header: 'Quantity支付成本',
+                header: 'Quantit量',
                 accessorKey: 'stock',
-                sortable: true,
             },
             {
-                header: 'Price跑量金额',
+                header: 'Price金额',
                 accessorKey: 'price',
                 cell: (props) => {
                     const { price } = props.row.original
@@ -197,8 +198,9 @@ const ChannelTable = () => {
                 },
             },
             {
-                header: 'Status通道状态',
+                header: 'Status',
                 accessorKey: 'status',
+                sortable: true,
                 cell: (props) => {
                     const { status } = props.row.original
                     return (
@@ -270,3 +272,5 @@ const ChannelTable = () => {
 }
 
 export default ChannelTable
+
+

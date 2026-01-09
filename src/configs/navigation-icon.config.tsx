@@ -61,6 +61,7 @@ const navigationIcon: NavigationIcons = {
     // changeLog: <HiOutlineCode />,
     wallet: <HiOutlineWallet />,
     channel: <HiOutlineArrowsRightLeft />,
+    risk: <HiOutlineShieldCheck />,
 }
 
 export default navigationIcon

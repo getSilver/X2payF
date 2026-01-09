@@ -6,7 +6,7 @@ import { Field, FormikErrors, FormikTouched, FieldProps } from 'formik'
 
 type FormFieldsName = {
     name: string
-    productCode: string
+    channelCode: string
     description: string
 }
 
@@ -21,9 +21,9 @@ const BasicInformationFields = (props: BasicInformationFields) => {
     return (
         <AdaptableCard divider className="mb-4">
             <h5>Basic Information支付渠道信息</h5>
-            <p className="mb-6">Section to config basic product information</p>
+            <p className="mb-6">Section to config basic channel information</p>
             <FormItem
-                label="Product Name渠道名"
+                label="channel Name 渠道名"
                 invalid={(errors.name && touched.name) as boolean}
                 errorMessage={errors.name}
             >
@@ -36,14 +36,14 @@ const BasicInformationFields = (props: BasicInformationFields) => {
                 />
             </FormItem>
             <FormItem
-                label="Code代码接口名称"
-                invalid={(errors.productCode && touched.productCode) as boolean}
-                errorMessage={errors.productCode}
+                label="channel Code 渠道代码"
+                invalid={(errors.channelCode && touched.channelCode) as boolean}
+                errorMessage={errors.channelCode}
             >
                 <Field
                     type="text"
                     autoComplete="off"
-                    name="productCode"
+                    name="channelCode"
                     placeholder="Code"
                     component={Input}
                 />

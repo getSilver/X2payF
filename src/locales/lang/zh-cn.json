@@ -46,6 +46,10 @@
             "activityLog": "活动日志",
             "kycForm": "了解客户表格"
         },
+        "appsRisk": {
+            "risk": "风控",
+            "rules": "规则"
+        },
         "appsFinances": {
             "finances": "财务",
             "dashboard": "仪表板",
@@ -133,6 +137,13 @@
             "sharedComponentDoc": "共享组件",
             "utilsDoc": "工具",
             "changeLog": "更新日志"
+        }
+    },
+    "paymentDetails": {
+        "customerInfo": {
+            "title": "凭证",
+            "payment": "支付",
+            "receipt": "收据"
         }
     }
 }

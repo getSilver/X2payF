@@ -108,9 +108,9 @@ const ChannelEdit = () => {
                     <DoubleSidedImage
                         src="/img/others/img-2.png"
                         darkModeSrc="/img/others/img-2-dark.png"
-                        alt="No product found!"
+                        alt="No channel found!"
                     />
-                    <h3 className="mt-8">No product found!</h3>
+                    <h3 className="mt-8">No channel found!</h3>
                 </div>
             )}
         </>

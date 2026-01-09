@@ -3,6 +3,7 @@ import Avatar from '@/components/ui/Avatar'
 import IconText from '@/components/shared/IconText'
 import { HiMail, HiPhone, HiExternalLink } from 'react-icons/hi'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 type CustomerInfoProps = {
     data?: {
@@ -11,13 +12,13 @@ type CustomerInfoProps = {
         // phone: string
         img: string
         // previousOrder: number
-        shippingAddress: {
+        paymentInfo: {
             line1: string
             line2: string
             line3: string
             line4: string
         }
-        billingAddress: {
+        receiptInfo: {
             line1: string
             line2: string
             line3: string
@@ -27,9 +28,13 @@ type CustomerInfoProps = {
 }
 
 const CustomerInfo = ({ data }: CustomerInfoProps) => {
+    const { t } = useTranslation()
+
     return (
         <Card>
-            <h5 className="mb-4">凭证</h5>
+            <h5 className="mb-4">
+                {t('paymentDetails.customerInfo.title')}
+            </h5>
             <Link
                 className="group flex items-center justify-between"
                 to="/app/crm/customer-details?id=11"
@@ -61,20 +66,20 @@ const CustomerInfo = ({ data }: CustomerInfoProps) => {
                 <span className="font-semibold">{data?.phone}</span>
             </IconText> */}
             <hr className="my-5" />
-            <h6 className="mb-4">收款人</h6>
+            <h6 className="mb-4">{t('paymentDetails.customerInfo.payment')}</h6>
             <address className="not-italic">
-                <div className="mb-1">{data?.shippingAddress.line1}</div>
-                <div className="mb-1">{data?.shippingAddress.line2}</div>
-                <div className="mb-1">{data?.shippingAddress.line3}</div>
-                <div>{data?.shippingAddress.line4}</div>
+                <div className="mb-1">{data?.paymentInfo?.line1}</div>
+                <div className="mb-1">{data?.paymentInfo?.line2}</div>
+                <div className="mb-1">{data?.paymentInfo?.line3}</div>
+                <div>{data?.paymentInfo?.line4}</div>
             </address>
             <hr className="my-5" />
-            <h6 className="mb-4">付款人</h6>
+            <h6 className="mb-4">{t('paymentDetails.customerInfo.receipt')}</h6>
             <address className="not-italic">
-                <div className="mb-1">{data?.billingAddress.line1}</div>
-                <div className="mb-1">{data?.billingAddress.line2}</div>
-                <div className="mb-1">{data?.billingAddress.line3}</div>
-                <div>{data?.billingAddress.line4}</div>
+                <div className="mb-1">{data?.receiptInfo?.line1}</div>
+                <div className="mb-1">{data?.receiptInfo?.line2}</div>
+                <div className="mb-1">{data?.receiptInfo?.line3}</div>
+                <div>{data?.receiptInfo?.line4}</div>
             </address>
         </Card>
     )

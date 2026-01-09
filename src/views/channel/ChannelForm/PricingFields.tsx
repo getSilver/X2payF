@@ -13,26 +13,21 @@ import type { ComponentType } from 'react'
 import type { InputProps } from '@/components/ui/Input'
 
 type FormFieldsName = {
-    stock: number
-    price: number
-    bulkDiscountPrice: number
-    taxRate: number
+    fixed: number
+    amount: number
+    rates: number
 }
 
-type PricingFieldsProps = {
+type ChannelFieldsProps = {
     touched: FormikTouched<FormFieldsName>
     errors: FormikErrors<FormFieldsName>
 }
 
-const PriceInput = (props: InputProps) => {
+const FixedInput = (props: InputProps) => {
     return <Input {...props} value={props.field.value} prefix="$" />
 }
 
-const NumberInput = (props: InputProps) => {
-    return <Input {...props} value={props.field.value} />
-}
-
-const TaxRateInput = (props: InputProps) => {
+const RatesInput = (props: InputProps) => {
     return <Input {...props} value={props.field.value} />
 }
 
@@ -55,29 +50,29 @@ const NumericFormatInput = ({
     )
 }
 
-const PricingFields = (props: PricingFieldsProps) => {
+const PricingFields = (props: ChannelFieldsProps) => {
     const { touched, errors } = props
 
     return (
         <AdaptableCard divider className="mb-4">
             <h5>配置信息</h5>
-            <p className="mb-6">Section to config product sales information</p>
+            <p className="mb-6">Section to config channel information</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="col-span-1">
                     <FormItem
-                        label="Tax Rate(%)比例成本"
-                        invalid={(errors.taxRate && touched.taxRate) as boolean}
-                        errorMessage={errors.taxRate}
+                        label="Rates(%) 比例成本"
+                        invalid={(errors.rates && touched.rates) as boolean}
+                        errorMessage={errors.rates}
                     >
-                        <Field name="taxRate">
+                        <Field name="rates">
                             {({ field, form }: FieldProps) => {
                                 return (
                                     <NumericFormatInput
                                         form={form}
                                         field={field}
-                                        placeholder="Tax Rate"
+                                        placeholder="Rates"
                                         customInput={
-                                            TaxRateInput as ComponentType
+                                            RatesInput as ComponentType
                                         }
                                         isAllowed={({ floatValue }) =>
                                             (floatValue as number) <= 100
@@ -96,19 +91,19 @@ const PricingFields = (props: PricingFieldsProps) => {
                 </div>
                 <div className="col-span-1">
                     <FormItem
-                        label="Price固定成本"
-                        invalid={(errors.price && touched.price) as boolean}
-                        errorMessage={errors.price}
+                        label="Fixed costs 固定成本"
+                        invalid={(errors.fixed && touched.fixed) as boolean}
+                        errorMessage={errors.fixed}
                     >
-                        <Field name="price">
+                        <Field name="fixed">
                             {({ field, form }: FieldProps) => {
                                 return (
                                     <NumericFormatInput
                                         form={form}
                                         field={field}
-                                        placeholder="Price"
+                                        placeholder="Fixed"
                                         customInput={
-                                            PriceInput as ComponentType
+                                            FixedInput as ComponentType
                                         }
                                         onValueChange={(e) => {
                                             form.setFieldValue(
@@ -126,19 +121,19 @@ const PricingFields = (props: PricingFieldsProps) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="col-span-1">
                     <FormItem
-                        label="Price风控最小金额"
-                        invalid={(errors.price && touched.price) as boolean}
-                        errorMessage={errors.price}
+                        label="Min limit 最小限额"
+                        invalid={(errors.amount && touched.amount) as boolean}
+                        errorMessage={errors.amount}
                     >
-                        <Field name="price">
+                        <Field name="minAmount">
                             {({ field, form }: FieldProps) => {
                                 return (
                                     <NumericFormatInput
                                         form={form}
                                         field={field}
-                                        placeholder="Price"
+                                        placeholder="Amount"
                                         customInput={
-                                            PriceInput as ComponentType
+                                            FixedInput as ComponentType
                                         }
                                         onValueChange={(e) => {
                                             form.setFieldValue(
@@ -154,19 +149,19 @@ const PricingFields = (props: PricingFieldsProps) => {
                 </div>
                 <div className="col-span-1">
                     <FormItem
-                        label="Price风控最大金额"
-                        invalid={(errors.price && touched.price) as boolean}
-                        errorMessage={errors.price}
+                        label="Max limit 最大限额"
+                        invalid={(errors.amount && touched.amount) as boolean}
+                        errorMessage={errors.amount}
                     >
-                        <Field name="price">
+                        <Field name="maxAmount">
                             {({ field, form }: FieldProps) => {
                                 return (
                                     <NumericFormatInput
                                         form={form}
                                         field={field}
-                                        placeholder="Price"
+                                        placeholder="Amount"
                                         customInput={
-                                            PriceInput as ComponentType
+                                            FixedInput as ComponentType
                                         }
                                         onValueChange={(e) => {
                                             form.setFieldValue(

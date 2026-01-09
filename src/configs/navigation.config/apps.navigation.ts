@@ -191,7 +191,7 @@ const appsNavigation: NavigationTree[] = [
                 subMenu: [
                     {
                         key: 'appsPlatform.settings',
-                        path: `${APP_PREFIX_PATH}/platform/settings/profile`,
+                        path: `${APP_PREFIX_PATH}/platform/settings`,
                         title: 'Settings',
                         translateKey: 'nav.appsPlatform.settings',
                         icon: '',
@@ -229,6 +229,28 @@ const appsNavigation: NavigationTree[] = [
                     //     authority: [ADMIN, USER],
                     //     subMenu: [],
                     // },
+                ],
+            },
+            //风控导航
+            {
+                key: 'apps.risk',
+                path: '',
+                title: 'Risk',
+                translateKey: 'nav.appsRisk.risk',
+                icon: 'risk',
+                type: NAV_ITEM_TYPE_COLLAPSE,
+                authority: [ADMIN, USER],
+                subMenu: [
+                    {
+                        key: 'appsRisk.rules',
+                        path: `${APP_PREFIX_PATH}/risk/rules`,
+                        title: 'Rules',
+                        translateKey: 'nav.appsRisk.rules',
+                        icon: '',
+                        type: NAV_ITEM_TYPE_ITEM,
+                        authority: [ADMIN, USER],
+                        subMenu: [],
+                    },
                 ],
             },
      

@@ -12,13 +12,13 @@ import cloneDeep from 'lodash/cloneDeep'
 import type { TableQueries } from '@/@types/common'
 import type { ChangeEvent } from 'react'
 
-const ProductTableSearch = () => {
+const ChannelTableSearch = () => {
     const dispatch = useAppDispatch()
 
     const searchInput = useRef(null)
 
     const tableData = useAppSelector(
-        (state) => state.salesProductList.data.tableData
+        (state) => state.salesChannelList.data.tableData
     )
 
     const debounceFn = debounce(handleDebounceFn, 500)
@@ -57,4 +57,4 @@ const ProductTableSearch = () => {
     )
 }
 
-export default ProductTableSearch
+export default ChannelTableSearch

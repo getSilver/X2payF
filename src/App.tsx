@@ -11,10 +11,14 @@ import './locales'
 const environment = process.env.NODE_ENV
 
 /**
- * Set enableMock(Default false) to true at configs/app.config.js
- * If you wish to enable mock api
+ * Mock 服务启动逻辑
+ * 优先使用环境变量 VITE_ENABLE_MOCK，否则使用 appConfig.enableMock
  */
-if (environment !== 'production' && appConfig.enableMock) {
+const enableMock = import.meta.env.VITE_ENABLE_MOCK !== undefined
+    ? import.meta.env.VITE_ENABLE_MOCK === 'true'
+    : appConfig.enableMock
+
+if (environment !== 'production' && enableMock) {
     mockServer({ environment })
 }
 function App() {

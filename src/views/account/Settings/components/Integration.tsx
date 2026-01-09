@@ -8,7 +8,10 @@ import Avatar from '@/components/ui/Avatar'
 import Card from '@/components/ui/Card'
 import isEmpty from 'lodash/isEmpty'
 import { apiGetAccountSettingIntegrationData } from '@/services/AccountServices'
+import type { MFAFactor } from '@/@types/mfa'
+import { apiListMFAFactors, apiUnenrollFactor } from '@/services/MFAService'
 import cloneDeep from 'lodash/cloneDeep'
+import MFAIntegrationDialog from './MFAIntegrationDialog'
 
 type IntegrationDetail = {
     name: string
@@ -17,6 +20,10 @@ type IntegrationDetail = {
     type: string
     active: boolean
     installed?: boolean
+    factorId?: string
+    about?: string
+    features?: string[]
+    qrCodeUri?: string
 }
 
 type IntegrationType = {
@@ -47,18 +54,77 @@ const Integration = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
-    const handleToggle = (
-        bool: boolean,
-        name: string,
+    const handleToggle = async (
+        currentActive: boolean,
+        targetApp: IntegrationDetail,
         category: keyof IntegrationType
     ) => {
+        const nextActive = !currentActive
+        if (targetApp.name === 'MFA' && category === 'installed' && !nextActive) {
+            let factorId = targetApp.factorId
+            if (!factorId) {
+                try {
+                    const response = await apiListMFAFactors()
+                    const factors = response.data as MFAFactor[]
+                    const totpFactor = factors.find(
+                        (factor) => factor.factor_type === 'totp'
+                    )
+                    if (totpFactor?.id) {
+                        factorId = totpFactor.id
+                        setData((prevState) => {
+                            const nextState = cloneDeep(
+                                prevState as IntegrationType
+                            )
+                            const nextInstalled = nextState.installed?.map(
+                                (app) =>
+                                    app.name === 'MFA'
+                                        ? { ...app, factorId }
+                                        : app
+                            )
+                            nextState.installed = nextInstalled
+                            return nextState
+                        })
+                    }
+                } catch (error) {
+                    toast.push(
+                        <Notification
+                            title="Failed to load MFA factors"
+                            type="danger"
+                        />,
+                        { placement: 'top-center' }
+                    )
+                }
+            }
+            if (!factorId) {
+                toast.push(
+                    <Notification
+                        title="Missing MFA factor id"
+                        type="danger"
+                    />,
+                    { placement: 'top-center' }
+                )
+                return
+            }
+            try {
+                await apiUnenrollFactor(factorId)
+            } catch (error) {
+                toast.push(
+                    <Notification
+                        title="Failed to disable MFA"
+                        type="danger"
+                    />,
+                    { placement: 'top-center' }
+                )
+                return
+            }
+        }
         setData((prevState) => {
             const nextState = cloneDeep(prevState as IntegrationType)
             const nextCategoryValue = (prevState as IntegrationType)[
                 category
             ].map((app) => {
-                if (app?.name === name) {
-                    app.active = !bool
+                if (app?.name === targetApp.name) {
+                    app.active = nextActive
                 }
                 return app
             })
@@ -77,6 +143,34 @@ const Integration = () => {
 
     const onViewIntegrationClose = () => {
         setViewIntegration(false)
+    }
+
+    const handleMfaBound = (factorId: string) => {
+        setData((prevState) => {
+            const nextState = cloneDeep(prevState as IntegrationType)
+            const nextInstalled = nextState.installed?.map((app) => {
+                if (app.name === 'MFA') {
+                    return { ...app, factorId, active: true }
+                }
+                return app
+            })
+            nextState.installed = nextInstalled
+            return nextState
+        })
+    }
+
+    const handleMfaFactorLoaded = (factorId: string) => {
+        setData((prevState) => {
+            const nextState = cloneDeep(prevState as IntegrationType)
+            const nextInstalled = nextState.installed?.map((app) => {
+                if (app.name === 'MFA') {
+                    return { ...app, factorId }
+                }
+                return app
+            })
+            nextState.installed = nextInstalled
+            return nextState
+        })
     }
 
     const handleInstall = (details: IntegrationDetail) => {
@@ -98,6 +192,19 @@ const Integration = () => {
             })
         }, 1000)
     }
+
+    const isMfa = intergrationDetails?.name === 'MFA'
+    const aboutText =
+        intergrationDetails?.about ||
+        intergrationDetails?.desc ||
+        'Connect this integration to unlock more workflows and automation.'
+    const featureList =
+        intergrationDetails?.features || [
+            'Real-time notifications and sync.',
+            'Secure access and permission control.',
+            'Granular activity tracking.',
+            'Easy setup and maintenance.',
+        ]
 
     return (
         <>
@@ -132,7 +239,7 @@ const Integration = () => {
                                 <Switcher
                                     checked={app.active}
                                     onChange={(val) =>
-                                        handleToggle(val, app.name, 'installed')
+                                        handleToggle(val, app, 'installed')
                                     }
                                 />
                             </div>
@@ -183,75 +290,70 @@ const Integration = () => {
                 onClose={onViewIntegrationClose}
                 onRequestClose={onViewIntegrationClose}
             >
-                <div className="flex items-center">
-                    <Avatar
-                        className="bg-transparent dark:bg-transparent"
-                        src={intergrationDetails.img}
+                {isMfa ? (
+                    <MFAIntegrationDialog
+                        isOpen={viewIntegration}
+                        onClose={onViewIntegrationClose}
+                        onBound={handleMfaBound}
+                        onFactorLoaded={handleMfaFactorLoaded}
+                        qrCodeUri={intergrationDetails.qrCodeUri}
                     />
-                    <div className="ltr:ml-3 rtl:mr-3">
-                        <h6>{intergrationDetails.name}</h6>
-                        <span>{intergrationDetails.type}</span>
-                    </div>
-                </div>
-                <div className="mt-6">
-                    <span className="font-semibold text-gray-900 dark:text-gray-100">
-                        About {intergrationDetails.name}
-                    </span>
-                    <p className="mt-2 mb-4">
-                        Wings medium plunger pot, redeye doppio siphon froth
-                        iced. Latte, and, barista cultivar fair trade grinder
-                        caramelization spoon. Whipped, grinder to go brewed est
-                        single shot half and half. Plunger pot blue mountain et
-                        blue mountain grinder carajillo, saucer half and half
-                        milk instant strong.
-                    </p>
-                    <span className="font-semibold text-gray-900 dark:text-gray-100">
-                        Key Features
-                    </span>
-                    <ul className="list-disc mt-2 ltr:ml-4 rtl:mr-4">
-                        <li className="mb-1">
-                            Fair trade, cortado con panna, crema foam cinnamon
-                            aged.{' '}
-                        </li>
-                        <li className="mb-1">
-                            Mug saucer acerbic, caffeine organic kopi-luwak
-                            galão siphon.{' '}
-                        </li>
-                        <li className="mb-1">
-                            To go half and half cultivar single origin ut,
-                            french press.{' '}
-                        </li>
-                        <li className="mb-1">
-                            Mocha latte flavour cortado cup kopi-luwak.{' '}
-                        </li>
-                    </ul>
-                </div>
-                <div className="text-right mt-6">
-                    <Button
-                        className="ltr:mr-2 rtl:ml-2"
-                        variant="plain"
-                        onClick={onViewIntegrationClose}
-                    >
-                        Cancel
-                    </Button>
-                    {intergrationDetails?.installed ? (
-                        <Button disabled variant="solid">
-                            Installed
-                        </Button>
-                    ) : (
-                        <Button
-                            variant="solid"
-                            loading={installing}
-                            onClick={() =>
-                                handleInstall(
-                                    intergrationDetails as IntegrationDetail
-                                )
-                            }
-                        >
-                            Install
-                        </Button>
-                    )}
-                </div>
+                ) : (
+                    <>
+                        <div className="flex items-center">
+                            <Avatar
+                                className="bg-transparent dark:bg-transparent"
+                                src={intergrationDetails.img}
+                            />
+                            <div className="ltr:ml-3 rtl:mr-3">
+                                <h6>{intergrationDetails.name}</h6>
+                                <span>{intergrationDetails.type}</span>
+                            </div>
+                        </div>
+                        <div className="mt-6">
+                            <span className="font-semibold text-gray-900 dark:text-gray-100">
+                                About {intergrationDetails.name}
+                            </span>
+                            <p className="mt-2 mb-4">{aboutText}</p>
+                            <span className="font-semibold text-gray-900 dark:text-gray-100">
+                                Key Features
+                            </span>
+                            <ul className="list-disc mt-2 ltr:ml-4 rtl:mr-4">
+                                {featureList.map((feature) => (
+                                    <li key={feature} className="mb-1">
+                                        {feature}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                        <div className="text-right mt-6">
+                            <Button
+                                className="ltr:mr-2 rtl:ml-2"
+                                variant="plain"
+                                onClick={onViewIntegrationClose}
+                            >
+                                Cancel
+                            </Button>
+                            {intergrationDetails?.installed ? (
+                                <Button disabled variant="solid">
+                                    Installed
+                                </Button>
+                            ) : (
+                                <Button
+                                    variant="solid"
+                                    loading={installing}
+                                    onClick={() =>
+                                        handleInstall(
+                                            intergrationDetails as IntegrationDetail
+                                        )
+                                    }
+                                >
+                                    Install
+                                </Button>
+                            )}
+                        </div>
+                    </>
+                )}
             </Dialog>
         </>
     )

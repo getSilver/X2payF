@@ -2,13 +2,14 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import {
     apiGetSalesProducts,
     apiDeleteSalesProducts,
+    apiPutSalesProduct,
 } from '@/services/PaymentService'
 import type { TableQueries } from '@/@types/common'
 
-type Product = {
+type Channel = {
     id: string
     name: string
-    productCode: string
+    channelCode: string
     img: string
     category: string
     price: number
@@ -16,10 +17,10 @@ type Product = {
     status: number
 }
 
-type Products = Product[]
+type Channels = Channel[]
 
 type GetSalesProductsResponse = {
-    data: Products
+    data: Channels
     total: number
 }
 
@@ -27,21 +28,21 @@ type FilterQueries = {
     name: string
     category: string[]
     status: number[]
-    productStatus: number
+    channelStatus: number
 }
 
-export type SalesProductListState = {
+export type SalesChannelListState = {
     loading: boolean
     deleteConfirmation: boolean
     selectedProduct: string
     tableData: TableQueries
     filterData: FilterQueries
-    productList: Product[]
+    channelList: Channel[]
 }
 
 type GetSalesProductsRequest = TableQueries & { filterData?: FilterQueries }
 
-export const SLICE_NAME = 'salesProductList'
+export const SLICE_NAME = 'salesChannelList'
 
 export const getProducts = createAsyncThunk(
     SLICE_NAME + '/getProducts',
@@ -62,6 +63,20 @@ export const deleteProduct = async (data: { id: string | string[] }) => {
     return response.data
 }
 
+export const toggleChannelStatus = createAsyncThunk(
+    SLICE_NAME + '/toggleChannelStatus',
+    async (data: { id: string; status: number }) => {
+        const nextStatus = data.status === 1 ? 0 : 1
+        await apiPutSalesProduct<
+            { id: string; status: number },
+            { id: string; status: number }
+        >({
+            id: data.id,
+            status: nextStatus,
+        })
+        return { id: data.id, status: nextStatus }
+    }
+)
 export const initialTableData: TableQueries = {
     total: 0,
     pageIndex: 1,
@@ -73,26 +88,26 @@ export const initialTableData: TableQueries = {
     },
 }
 
-const initialState: SalesProductListState = {
+const initialState: SalesChannelListState = {
     loading: false,
     deleteConfirmation: false,
     selectedProduct: '',
-    productList: [],
+    channelList: [],
     tableData: initialTableData,
     filterData: {
         name: '',
-        category: ['bags', 'cloths', 'devices', 'shoes', 'watches'],
+        category: ['宸磋タ', '缇庡浗', '鍗板害', '鏃ユ湰', '娌欑壒'],
         status: [0, 1],
-        productStatus: 0,
+        channelStatus: 0,
     },
 }
 
-const productListSlice = createSlice({
+const channelListSlice = createSlice({
     name: `${SLICE_NAME}/state`,
     initialState,
     reducers: {
-        updateProductList: (state, action) => {
-            state.productList = action.payload
+        updateChannelList: (state, action) => {
+            state.channelList = action.payload
         },
         setTableData: (state, action) => {
             state.tableData = action.payload
@@ -103,29 +118,37 @@ const productListSlice = createSlice({
         toggleDeleteConfirmation: (state, action) => {
             state.deleteConfirmation = action.payload
         },
-        setSelectedProduct: (state, action) => {
+        setSelectedChannel: (state, action) => {
             state.selectedProduct = action.payload
         },
     },
     extraReducers: (builder) => {
         builder
             .addCase(getProducts.fulfilled, (state, action) => {
-                state.productList = action.payload.data
+                state.channelList = action.payload.data
                 state.tableData.total = action.payload.total
                 state.loading = false
             })
             .addCase(getProducts.pending, (state) => {
                 state.loading = true
             })
+            .addCase(toggleChannelStatus.fulfilled, (state, action) => {
+                const { id, status } = action.payload
+                const target = state.channelList.find((item) => item.id === id)
+                if (target) {
+                    target.status = status
+                }
+            })
     },
 })
 
 export const {
-    updateProductList,
+    updateChannelList,
     setTableData,
     setFilterData,
     toggleDeleteConfirmation,
-    setSelectedProduct,
-} = productListSlice.actions
+    setSelectedChannel,
+} = channelListSlice.actions
 
-export default productListSlice.reducer
+export default channelListSlice.reducer
+

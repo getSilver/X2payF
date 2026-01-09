@@ -68,7 +68,7 @@ const appsRoute: Routes = [
     {
         key: 'appsChannel.channel',
         path: `${APP_PREFIX_PATH}/channel/`,
-        component: lazy(() => import('@/views/channel/Channellist')),
+        component: lazy(() => import('@/views/channel/ChannelList')),
         authority: [ADMIN, USER],
     },
     {
@@ -88,7 +88,7 @@ const appsRoute: Routes = [
     {
         key: 'appsChannel.payment',
         path: `${APP_PREFIX_PATH}/channel/payment`,
-        component: lazy(() => import('@/views/channel/Paymentlist')),
+        component: lazy(() => import('@/views/channel/PaymentList')),
         authority: [ADMIN, USER],
     },
     {
@@ -104,12 +104,12 @@ const appsRoute: Routes = [
         authority: [ADMIN, USER],
     },
     //财务面板路由
-    // {
-    //     key: 'appsFinances.dashboard',
-    //     path: `${APP_PREFIX_PATH}/finances/dashboard`,
-    //     component: lazy(() => import('@/views/finances/Dashboard')),
-    //     authority: [ADMIN, USER],
-    // },
+    {
+        key: 'appsFinances.dashboard',
+        path: `${APP_PREFIX_PATH}/finances/dashboard`,
+        component: lazy(() => import('@/views/finances/Dashboard/Dashboard')),
+        authority: [ADMIN, USER],
+    },
     // {
     //     key: 'appsFinances.withdraw',
     //     path: `${APP_PREFIX_PATH}/finances/withdraw`,
@@ -130,6 +130,26 @@ const appsRoute: Routes = [
         authority: [ADMIN, USER],
         meta: {
             header: 'Settings',
+            headerContainer: true,
+        },
+    },
+    {
+        key: 'appsPlatform.settings',
+        path: `${APP_PREFIX_PATH}/platform/settings`,
+        component: lazy(() => import('@/views/platform/Settings')),
+        authority: [ADMIN, USER],
+        meta: {
+            header: 'Settings',
+            headerContainer: true,
+        },
+    },
+    {
+        key: 'appsRisk.rules',
+        path: `${APP_PREFIX_PATH}/risk/rules`,
+        component: lazy(() => import('@/views/risk/Rules')),
+        authority: [ADMIN, USER],
+        meta: {
+            header: 'Risk Rules',
             headerContainer: true,
         },
     },

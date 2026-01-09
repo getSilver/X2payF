@@ -11,9 +11,9 @@ type Options = {
 }[]
 
 type FormFieldsName = {
-    category: string
+    area: string
     tags: Options
-    vendor: string
+    key: string
     brand: string
 }
 
@@ -21,18 +21,18 @@ type OrganizationFieldsProps = {
     touched: FormikTouched<FormFieldsName>
     errors: FormikErrors<FormFieldsName>
     values: {
-        category: string
+        area: string
         tags: Options
         [key: string]: unknown
     }
 }
 
-const categories = [
+const area = [
     { label: '巴西', value: 'brl' },
+    { label: '印度', value: 'inr' },
+    { label: '沙特', value: 'mxn' },
     { label: '美国', value: 'usd' },
     { label: '欧洲', value: 'eur' },
-    { label: '印度', value: 'inr' },
-    { label: '墨西哥', value: 'mxn' },
 ]
 
 const tags = [
@@ -41,30 +41,30 @@ const tags = [
 ]
 
 const OrganizationFields = (props: OrganizationFieldsProps) => {
-    const { values = { category: '', tags: [] }, touched, errors } = props
+    const { values = { area: '', tags: [] }, touched, errors } = props
 
     return (
         <AdaptableCard divider isLastChild className="mb-4">
-            <h5>Organizations</h5>
-            <p className="mb-6">Section to config the product attribute</p>
+            <h5>Organizations 渠道信息</h5>
+            <p className="mb-6">Section to config channel information</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="col-span-1">
                     <FormItem
-                        label="Category地区"
+                        label="Area地区"
                         invalid={
-                            (errors.category && touched.category) as boolean
+                            (errors.area && touched.area) as boolean
                         }
-                        errorMessage={errors.category}
+                        errorMessage={errors.area}
                     >
-                        <Field name="category">
+                        <Field name="area">
                             {({ field, form }: FieldProps) => (
                                 <Select
                                     field={field}
                                     form={form}
-                                    options={categories}
-                                    value={categories.filter(
-                                        (category) =>
-                                            category.value === values.category
+                                    options={area}
+                                    value={area.filter(
+                                        (area) =>
+                                            area.value === values.area
                                     )}
                                     onChange={(option) =>
                                         form.setFieldValue(
@@ -106,14 +106,14 @@ const OrganizationFields = (props: OrganizationFieldsProps) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="col-span-1">
                     <FormItem
-                        label="网关URL"
+                        label="上游网关URL"
                         invalid={(errors.brand && touched.brand) as boolean}
                         errorMessage={errors.brand}
                     >
                         <Field
                             type="text"
                             autoComplete="off"
-                            name="网关URL"
+                            name="url"
                             placeholder="网关URL"
                             component={Input}
                         />
@@ -122,13 +122,13 @@ const OrganizationFields = (props: OrganizationFieldsProps) => {
                 <div className="col-span-1">
                     <FormItem
                         label="密钥"
-                        invalid={(errors.vendor && touched.vendor) as boolean}
-                        errorMessage={errors.vendor}
+                        invalid={(errors.key && touched.key) as boolean}
+                        errorMessage={errors.key}
                     >
                         <Field
                             type="text"
                             autoComplete="off"
-                            name="密钥"
+                            name="key"
                             placeholder="密钥"
                             component={Input}
                         />

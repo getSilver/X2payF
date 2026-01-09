@@ -4,20 +4,33 @@ import paginate from '@/utils/paginate'
 import type { Server } from 'miragejs'
 
 export default function crmFakeApi(server: Server, apiPrefix: string) {
-    server.get(`${apiPrefix}/crm/dashboard`, (schema) => {
+    const apiPrefixV1 = `${apiPrefix}/v1`
+    const register = (
+        method: 'get' | 'post' | 'put' | 'del',
+        path: string,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        handler: any
+    ) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const serverAny = server as any
+        serverAny[method](`${apiPrefix}${path}`, handler)
+        serverAny[method](`${apiPrefixV1}${path}`, handler)
+    }
+
+    register('get', '/crm/dashboard', (schema: any) => {
         return schema.db.crmDashboardData[0]
     })
 
-    server.get(`${apiPrefix}/crm/calendar`, (schema) => schema.db.eventsData)
+    register('get', '/crm/calendar', (schema: any) => schema.db.eventsData)
 
-    server.get(`${apiPrefix}/crm/customers`, (schema, { queryParams }) => {
+    register('get', '/crm/customers', (schema: any, { queryParams }: any) => {
         const pageIndex = parseInt(queryParams.pageIndex as string) || 1
         const pageSize = parseInt(queryParams.pageSize as string) || 10
         const sort = queryParams.sort ? JSON.parse(queryParams.sort as string) : { order: '', key: '' }
         const query = queryParams.query as string || ''
         const { order, key } = sort
         const users = schema.db.userDetailData
-        const sanitizeUsers = users.filter((elm) => typeof elm !== 'function')
+        const sanitizeUsers = users.filter((elm: any) => typeof elm !== 'function')
         let data = sanitizeUsers
         let total = users.length
 
@@ -47,7 +60,7 @@ export default function crmFakeApi(server: Server, apiPrefix: string) {
         return responseData
     })
 
-    server.get(`${apiPrefix}/crm/customers-statistic`, () => {
+    register('get', '/crm/customers-statistic', () => {
         return {
             totalCustomers: {
                 value: 2420,
@@ -64,25 +77,27 @@ export default function crmFakeApi(server: Server, apiPrefix: string) {
         }
     })
 
-    server.get(
-        `${apiPrefix}/crm/mer-details`,
-        (schema, { queryParams }) => {
+    register(
+        'get',
+        '/crm/mer-details',
+        (schema: any, { queryParams }: any) => {
             const id = queryParams.id
             const user = schema.db.userDetailData.find(id)
             return user
         }
     )
 
-    server.del(
-        `${apiPrefix}/crm/customer/delete`,
-        (schema, { requestBody }) => {
+    register(
+        'del',
+        '/crm/customer/delete',
+        (schema: any, { requestBody }: any) => {
             const { id } = JSON.parse(requestBody)
             schema.db.userDetailData.remove({ id })
             return {}
         }
     )
 
-    server.post(`${apiPrefix}/crm/customers`, (schema, { requestBody }) => {
+    register('post', '/crm/customers', (schema: any, { requestBody }: any) => {
         const data = JSON.parse(requestBody)
         const newId = Math.max(...schema.db.userDetailData.map((user: any) => user.id)) + 1
         const newCustomer = {
@@ -112,14 +127,14 @@ export default function crmFakeApi(server: Server, apiPrefix: string) {
         return newCustomer
     })
 
-    server.put(`${apiPrefix}/crm/customers`, (schema, { requestBody }) => {
+    register('put', '/crm/customers', (schema: any, { requestBody }: any) => {
         const data = JSON.parse(requestBody)
         const { id } = data
         schema.db.userDetailData.update({ id }, data)
         return {}
     })
 
-    server.get(`${apiPrefix}/crm/mails`, (schema, { queryParams }) => {
+    register('get', '/crm/mails', (schema: any, { queryParams }: any) => {
         const { category } = queryParams
         let data = schema.db.mailData
 
@@ -150,7 +165,7 @@ export default function crmFakeApi(server: Server, apiPrefix: string) {
         return data
     })
 
-    server.get(`${apiPrefix}/crm/mail`, (schema, { queryParams }) => {
+    register('get', '/crm/mail', (schema: any, { queryParams }: any) => {
         const id = queryParams.id
         const mail = schema.db.mailData.find(id)
         return mail

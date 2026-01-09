@@ -22,12 +22,18 @@ const DashboardHeader = () => {
     )
     const endDate = useAppSelector((state) => state.cryptoWallets?.data?.endDate)
 
+    const isRangeSelected = startDate != null && endDate != null
+
     const handleDateChange = (value: [Date | null, Date | null]) => {
-        dispatch(setStartDate(dayjs(value[0]).unix()))
-        dispatch(setEndDate(dayjs(value[1]).unix()))
+        const [start, end] = value
+        dispatch(setStartDate(start ? dayjs(start).unix() : null))
+        dispatch(setEndDate(end ? dayjs(end).unix() : null))
     }
 
     const onFilter = () => {
+        if (!isRangeSelected) {
+            return
+        }
         dispatch(getWalletData())
     }
 
@@ -40,14 +46,14 @@ const DashboardHeader = () => {
             <div className="flex flex-col lg:flex-row lg:items-center gap-3">
                 <DatePickerRange
                     value={[
-                        startDate ? dayjs.unix(startDate).toDate() : dayjs().subtract(3, 'month').toDate(),
-                        endDate ? dayjs.unix(endDate).toDate() : dayjs().toDate(),
+                        startDate != null ? dayjs.unix(startDate).toDate() : null,
+                        endDate != null ? dayjs.unix(endDate).toDate() : null,
                     ]}
                     inputFormat={dateFormat}
                     size="sm"
                     onChange={handleDateChange}
                 />
-                <Button size="sm" icon={<HiOutlineFilter />} onClick={onFilter}>
+                <Button size="sm" icon={<HiOutlineFilter />} onClick={onFilter} disabled={!isRangeSelected}>
                     Filter
                 </Button>
             </div>

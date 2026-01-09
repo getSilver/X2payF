@@ -6,6 +6,10 @@ import type {
     ResetPassword,
     SignInResponse,
     SignUpResponse,
+    RequestMFAChallengeRequest,
+    RequestMFAChallengeResponse,
+    VerifyMFARequest,
+    VerifyMFAResponse,
 } from '@/@types/auth'
 
 export async function apiSignIn(data: SignInCredential) {
@@ -42,6 +46,23 @@ export async function apiForgotPassword(data: ForgotPassword) {
 export async function apiResetPassword(data: ResetPassword) {
     return ApiService.fetchData({
         url: '/reset-password',
+        method: 'post',
+        data,
+    })
+}
+
+// MFA 相关 API（Mock 版本）
+export async function apiRequestMFAChallenge(data: RequestMFAChallengeRequest) {
+    return ApiService.fetchData<RequestMFAChallengeResponse>({
+        url: '/mfa/challenge',
+        method: 'post',
+        data,
+    })
+}
+
+export async function apiVerifyMFA(data: VerifyMFARequest) {
+    return ApiService.fetchData<VerifyMFAResponse>({
+        url: '/mfa/verify',
         method: 'post',
         data,
     })

@@ -40,6 +40,10 @@
             "activityLog": "Activity Log",
             "kycForm": "KYC Form"
         },
+        "appsRisk": {
+            "risk": "Risk",
+            "rules": "Rules"
+        },
         "appsDemo": {
             "demo": "Demo Card"
         },
@@ -128,6 +132,13 @@
             "sharedComponentDoc": "Shared Component",
             "utilsDoc": "Utilities",
             "changeLog": "Changelog"
+        }
+    },
+    "paymentDetails": {
+        "customerInfo": {
+            "title": "Voucher",
+            "payment": "Payment",
+            "receipt": "Receipt"
         }
     }
 }

@@ -1,5 +1,4 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
-import dayjs from 'dayjs'
 import {
     apiGetWalletData,
     apiGetTransctionHistoryData,
@@ -67,8 +66,8 @@ type GetTransctionHistoryDataResponse = {
 type GetWalletDataResponse = Wallet[]
 
 export type CryptoWalletsState = {
-    startDate: number
-    endDate: number
+    startDate: number | null
+    endDate: number | null
     loading: boolean
     walletsData: Wallet[]
     transactionHistoryLoading: boolean
@@ -88,7 +87,9 @@ export const getWalletData = createAsyncThunk(
     async (_, { getState }) => {
         const state = getState() as { cryptoWallets: { data: CryptoWalletsState } }
         const { startDate, endDate } = state.cryptoWallets.data
-        const response = await apiGetWalletData<GetWalletDataResponse>({ startDate, endDate })
+        const params =
+            startDate != null && endDate != null ? { startDate, endDate } : undefined
+        const response = await apiGetWalletData<GetWalletDataResponse>(params)
         return response.data
     }
 )
@@ -101,7 +102,7 @@ export const getTransctionHistoryData = createAsyncThunk(
         const { startDate, endDate } = state.cryptoWallets.data
 
         // 创建缓存key（包含时间范围）
-        const cacheKey = `${tab}_${pageIndex}_${pageSize}_${query}_${sort.order}_${sort.key}_${startDate || ''}_${endDate || ''}`
+        const cacheKey = `${tab}_${pageIndex}_${pageSize}_${query}_${sort.order}_${sort.key}_${startDate ?? ''}_${endDate ?? ''}`
         const cachedData = state.cryptoWallets.data.transactionHistoryCache[cacheKey]
 
         // 检查缓存是否有效（5分钟内有效）
@@ -111,7 +112,10 @@ export const getTransctionHistoryData = createAsyncThunk(
         }
 
         try {
-            const requestData = { ...data, startDate, endDate }
+            const requestData =
+                startDate != null && endDate != null
+                    ? { ...data, startDate, endDate }
+                    : data
             const response = await apiGetTransctionHistoryData<
                 GetTransctionHistoryDataResponse,
                 typeof requestData
@@ -155,10 +159,8 @@ export const initialTableData: TableQueries = {
 }
 
 const initialState: CryptoWalletsState = {
-    startDate: dayjs(
-        dayjs().subtract(3, 'month').format('DD-MMM-YYYY, hh:mm A')
-    ).unix(),
-    endDate: dayjs(new Date()).unix(),
+    startDate: null,
+    endDate: null,
     loading: true,
     walletsData: [],
     transactionHistoryLoading: true,
@@ -175,10 +177,10 @@ const walletsSlice = createSlice({
     name: `${SLICE_NAME}/state`,
     initialState,
     reducers: {
-        setStartDate: (state, action: PayloadAction<number>) => {
+        setStartDate: (state, action: PayloadAction<number | null>) => {
             state.startDate = action.payload
         },
-        setEndDate: (state, action: PayloadAction<number>) => {
+        setEndDate: (state, action: PayloadAction<number | null>) => {
             state.endDate = action.payload
         },
         setSelectedTab: (state, action) => {

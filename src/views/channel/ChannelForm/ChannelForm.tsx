@@ -61,10 +61,10 @@ type ChannelForm = {
 const { useUniqueId } = hooks
 
 const validationSchema = Yup.object().shape({
-    name: Yup.string().required('Product Name Required'),
-    price: Yup.number().required('Price Required'),
+    name: Yup.string().required('Channel Name Required'),
+    price: Yup.number().required('Rates Required'),
     stock: Yup.number().required('SKU Required'),
-    category: Yup.string().required('Category Required'),
+    category: Yup.string().required('Area Required'),
 })
 
 const DeleteProductButton = ({ onDelete }: { onDelete: OnDelete }) => {

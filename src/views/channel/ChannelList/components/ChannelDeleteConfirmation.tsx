@@ -12,13 +12,13 @@ import {
 const ProductDeleteConfirmation = () => {
     const dispatch = useAppDispatch()
     const dialogOpen = useAppSelector(
-        (state) => state.salesProductList.data.deleteConfirmation
+        (state) => state.salesChannelList.data.deleteConfirmation
     )
     const selectedProduct = useAppSelector(
-        (state) => state.salesProductList.data.selectedProduct
+        (state) => state.salesChannelList.data.selectedProduct
     )
     const tableData = useAppSelector(
-        (state) => state.salesProductList.data.tableData
+        (state) => state.salesChannelList.data.tableData
     )
 
     const onDialogClose = () => {
@@ -58,10 +58,11 @@ const ProductDeleteConfirmation = () => {
             onConfirm={onDelete}
         >
             <p>
-                想人家的时候叫人家小甜甜，现在叫人家牛夫人，无情的还要删除拉黑！你想清楚再点红色按钮删除拉黑！！！
+                鎯充汉瀹剁殑鏃跺€欏彨浜哄灏忕敎鐢滐紝鐜板湪鍙汉瀹剁墰澶汉锛屾棤鎯呯殑杩樿鍒犻櫎鎷夐粦锛佷綘鎯虫竻妤氬啀鐐圭孩鑹叉寜閽垹闄ゆ媺榛戯紒锛侊紒
             </p>
         </ConfirmDialog>
     )
 }
 
 export default ProductDeleteConfirmation
+

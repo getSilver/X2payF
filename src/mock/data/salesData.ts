@@ -661,13 +661,13 @@ export const orderDetailsData = [
             name: 'Lloyd Obrien',
             img: '/img/avatars/thumb-11.jpg',
             previousOrder: 11,
-            shippingAddress: {
+            paymentInfo: {
                 line1: '100 Main ST',
                 line2: 'PO Box 1022',
                 line3: 'Seattle WA 98104',
                 line4: 'United States of America',
             },
-            billingAddress: {
+            receiptInfo: {
                 line1: '1527 Pond Reef Rd',
                 line2: 'Ketchikan',
                 line3: 'Alaska 99901',

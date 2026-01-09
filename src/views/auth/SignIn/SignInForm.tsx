@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
 import Checkbox from '@/components/ui/Checkbox'
@@ -14,19 +15,30 @@ import type { CommonProps } from '@/@types/common'
 interface SignInFormProps extends CommonProps {
     disableSubmit?: boolean
     forgotPasswordUrl?: string
-    signUpUrl?: string
 }
 
+// 登录表单数据
 type SignInFormSchema = {
-    userName: string
+    username: string
     password: string
     rememberMe: boolean
 }
 
-const validationSchema = Yup.object().shape({
-    userName: Yup.string().required('Please enter your user name'),
+// MFA 验证表单数据
+type MFAFormSchema = {
+    code: string
+}
+
+const loginValidationSchema = Yup.object().shape({
+    username: Yup.string().required('Please enter your user name'),
     password: Yup.string().required('Please enter your password'),
     rememberMe: Yup.bool(),
+})
+
+const mfaValidationSchema = Yup.object().shape({
+    code: Yup.string()
+        .required('Please enter the code')
+        .length(6, 'The code is a 6-digit'),
 })
 
 const SignInForm = (props: SignInFormProps) => {
@@ -34,29 +46,129 @@ const SignInForm = (props: SignInFormProps) => {
         disableSubmit = false,
         className,
         forgotPasswordUrl = '/forgot-password',
-        signUpUrl = '/sign-up',
     } = props
 
     const [message, setMessage] = useTimeOutMessage()
+    const [successMessage, setSuccessMessage] = useState('')
 
-    const { signIn } = useAuth()
+    const { signIn, requiresMFA, verifyMFA, cancelMFA } = useAuth()
 
+    // 处理登录
     const onSignIn = async (
         values: SignInFormSchema,
         setSubmitting: (isSubmitting: boolean) => void
     ) => {
-        const { userName, password } = values
+        const { username, password } = values
         setSubmitting(true)
+        setSuccessMessage('')
 
-        const result = await signIn({ userName, password })
+        const result = await signIn({ username, password })
 
-        if (result?.status === 'failed') {
+        if (result.status === 'failed') {
+            setMessage(result.message)
+        } else if (result.status === 'mfa_required') {
+            setSuccessMessage('Please enter the MFA code')
+        }
+
+        setSubmitting(false)
+    }
+
+    // 处理 MFA 验证
+    const onVerifyMFA = async (
+        values: MFAFormSchema,
+        setSubmitting: (isSubmitting: boolean) => void
+    ) => {
+        setSubmitting(true)
+        setSuccessMessage('')
+
+        const result = await verifyMFA(values.code, 'totp')
+
+        if (result.status === 'failed') {
             setMessage(result.message)
         }
 
         setSubmitting(false)
     }
 
+    // 取消 MFA，返回登录
+    const handleCancelMFA = () => {
+        cancelMFA()
+        setMessage('')
+        setSuccessMessage('')
+    }
+
+    // MFA 验证表单
+    if (requiresMFA) {
+        return (
+            <div className={className}>
+                {message && (
+                    <Alert showIcon className="mb-4" type="danger">
+                        <>{message}</>
+                    </Alert>
+                )}
+                {successMessage && (
+                    <Alert showIcon className="mb-4" type="info">
+                        <>{successMessage}</>
+                    </Alert>
+                )}
+                <div className="mb-4">
+                    <h4 className="mb-2">MFA Validation</h4>
+                    <p className="text-gray-500">
+                        Please enter the 6-digit verification code from your authenticator app.
+                    </p>
+                </div>
+                <Formik
+                    initialValues={{ code: '' }}
+                    validationSchema={mfaValidationSchema}
+                    onSubmit={(values, { setSubmitting }) => {
+                        onVerifyMFA(values, setSubmitting)
+                    }}
+                >
+                    {({ touched, errors, isSubmitting }) => (
+                        <Form>
+                            <FormContainer>
+                                <FormItem
+                                    label="Verification code"
+                                    invalid={
+                                        (errors.code && touched.code) as boolean
+                                    }
+                                    errorMessage={errors.code}
+                                >
+                                    <Field
+                                        type="text"
+                                        autoComplete="one-time-code"
+                                        name="code"
+                                        placeholder="000000"
+                                        maxLength={6}
+                                        component={Input}
+                                    />
+                                </FormItem>
+                                <Button
+                                    block
+                                    loading={isSubmitting}
+                                    variant="solid"
+                                    type="submit"
+                                >
+                                    {isSubmitting ? 'Verifying...' : 'Verification'}
+                                </Button>
+                                <Button
+                                    block
+                                    className="mt-2"
+                                    variant="plain"
+                                    type="button"
+                                    onClick={handleCancelMFA}
+                                >
+                                    Return to Login
+                                </Button>
+                            </FormContainer>
+                        </Form>
+                    )}
+                </Formik>
+            </div>
+        )
+    }
+
+    // 登录表单
     return (
         <div className={className}>
             {message && (
@@ -66,11 +178,11 @@ const SignInForm = (props: SignInFormProps) => {
             )}
             <Formik
                 initialValues={{
-                    userName: 'admin',
-                    password: '123Qwe',
+                    username: '',
+                    password: '',
                     rememberMe: true,
                 }}
-                validationSchema={validationSchema}
+                validationSchema={loginValidationSchema}
                 onSubmit={(values, { setSubmitting }) => {
                     if (!disableSubmit) {
                         onSignIn(values, setSubmitting)
@@ -85,15 +197,15 @@ const SignInForm = (props: SignInFormProps) => {
                             <FormItem
                                 label="User Name"
                                 invalid={
-                                    (errors.userName &&
-                                        touched.userName) as boolean
+                                    (errors.username &&
+                                        touched.username) as boolean
                                 }
-                                errorMessage={errors.userName}
+                                errorMessage={errors.username}
                             >
                                 <Field
                                     type="text"
-                                    autoComplete="off"
-                                    name="userName"
+                                    autoComplete="username"
+                                    name="username"
                                     placeholder="User Name"
                                     component={Input}
                                 />
@@ -107,7 +219,7 @@ const SignInForm = (props: SignInFormProps) => {
                                 errorMessage={errors.password}
                             >
                                 <Field
-                                    autoComplete="off"
+                                    autoComplete="current-password"
                                     name="password"
                                     placeholder="Password"
                                     component={PasswordInput}
@@ -122,7 +234,7 @@ const SignInForm = (props: SignInFormProps) => {
                                     Remember Me
                                 </Field>
                                 <ActionLink to={forgotPasswordUrl}>
-                                    Forgot Password?
+                                   Forgot Password?
                                 </ActionLink>
                             </div>
                             <Button
@@ -131,12 +243,8 @@ const SignInForm = (props: SignInFormProps) => {
                                 variant="solid"
                                 type="submit"
                             >
-                                {isSubmitting ? 'Signing in...' : 'Sign In'}
+                                {isSubmitting ? 'Logging in...' : 'Sign in'}
                             </Button>
-                            <div className="mt-4 text-center">
-                                <span>{`Don't have an account yet?`} </span>
-                                <ActionLink to={signUpUrl}>Sign up</ActionLink>
-                            </div>
                         </FormContainer>
                     </Form>
                 )}

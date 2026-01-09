@@ -26,6 +26,12 @@ import {
     transactionHistoryData,
     cryptoDashboardData,
 } from './data/cryptoData'
+import { riskRulesData } from './data/riskData'
+import {
+    platformCurrenciesData,
+    platformTimezonesData,
+    platformAssociationsData,
+} from './data/platformSettingsData'
 
 import {
     authFakeApi,
@@ -34,6 +40,8 @@ import {
     cryptoFakeApi,
     channelFakeApi,
     accountFakeApi,
+    platformSettingsFakeApi,
+    riskFakeApi,
 } from './fakeApi'
 
 const { apiPrefix } = appConfig
@@ -65,6 +73,10 @@ export function mockServer({ environment = 'test' }) {
                 marketData,
                 transactionHistoryData,
                 cryptoDashboardData,
+                riskRulesData,
+                platformCurrenciesData,
+                platformTimezonesData,
+                platformAssociationsData,
             })
         },
         routes() {
@@ -82,6 +94,8 @@ export function mockServer({ environment = 'test' }) {
             cryptoFakeApi(this, apiPrefix)
             channelFakeApi(this, apiPrefix)
             accountFakeApi(this, apiPrefix)
+            platformSettingsFakeApi(this, apiPrefix)
+            riskFakeApi(this, apiPrefix)
         },
     })
 }

@@ -52,11 +52,19 @@ export const settingIntergrationData = {
             active: true,
         },
         {
-            name: 'Slack',
-            desc: 'Post to a Slack channel',
+            name: 'MFA',
+            desc: 'Binding MFA',
             img: '/img/thumbs/slack.png',
             type: 'Notifications and events',
-            active: true,
+            active: false,
+            factorId: 'mfa-factor-1',
+            about: 'Add an authenticator app to protect your account with MFA.',
+            features: [
+                'TOTP-based verification with common apps.',
+                'Instant enable/disable from settings.',
+                'Secure factor management.',
+                'Audit-friendly activity logs.',
+            ],
         },
         {
             name: 'Notion',

@@ -111,7 +111,7 @@ const Billing = () => {
                             <FormRow
                                 name="paymentMethods"
                                 alignCenter={false}
-                                label="Credit Cards"
+                                label="Payment apps"
                                 {...validatorProps}
                             >
                                 <div className="rounded-lg border border-gray-200 dark:border-gray-600">

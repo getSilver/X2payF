@@ -98,14 +98,14 @@ const FilterForm = forwardRef<FormikProps<FormModel>, FilterFormProps>(
                                                     name={field.name}
                                                     value={0}
                                                 >
-                                                    已付{' '}
+                                                    成功{' '}
                                                 </Checkbox>
                                                 <Checkbox
                                                     className="mb-3"
                                                     name={field.name}
                                                     value={1}
                                                 >
-                                                    退款{' '}
+                                                    未支付{' '}
                                                 </Checkbox>
                                                 <Checkbox
                                                     className="mb-3"

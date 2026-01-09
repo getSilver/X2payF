@@ -142,7 +142,7 @@ const OrderColumn = ({ row }: { row: Order }) => {
     const navigate = useNavigate()
 
     const onView = useCallback(() => {
-        navigate(`/app/payment/payment-details/${row.id}`)
+        navigate(`/app/payment/order-details/${row.id}`)
     }, [navigate, row])
 
     return (
@@ -166,7 +166,7 @@ const ActionColumn = ({ row }: { row: Order }) => {
     }
 
     const onView = useCallback(() => {
-        navigate(`/app/payment/payment-details/${row.id}`)
+        navigate(`/app/payment/order-details/${row.id}`)
     }, [navigate, row])
 
     return (

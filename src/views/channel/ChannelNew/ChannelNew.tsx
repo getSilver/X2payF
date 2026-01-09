@@ -6,8 +6,9 @@ import toast from '@/components/ui/toast'
 import Notification from '@/components/ui/Notification'
 import { useNavigate } from 'react-router-dom'
 import { apiCreateSalesProduct } from '@/services/PaymentService'
+import ChannelForm from '@/views/channel/ChannelForm'
 
-const ProductNew = () => {
+const ChannelNew = () => {
     const navigate = useNavigate()
 
     const addProduct = async (data: FormModel) => {
@@ -29,7 +30,7 @@ const ProductNew = () => {
                     type="success"
                     duration={2500}
                 >
-                    Product successfuly added
+                    Channel successfuly added
                 </Notification>,
                 {
                     placement: 'top-center',
@@ -45,7 +46,7 @@ const ProductNew = () => {
 
     return (
         <>
-            <ProductForm
+            <ChannelForm
                 type="new"
                 onFormSubmit={handleFormSubmit}
                 onDiscard={handleDiscard}
@@ -54,4 +55,4 @@ const ProductNew = () => {
     )
 }
 
-export default ProductNew
+export default ChannelNew

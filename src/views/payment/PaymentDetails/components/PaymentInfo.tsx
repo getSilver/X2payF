@@ -16,14 +16,14 @@ type PaymentInfoProps = {
 const PaymentInfo = ({ data }: PaymentInfoProps) => {
     return (
         <Card className="mb-4">
-            <h5 className="mb-4">订单功能</h5>
+            <h5 className="mb-4">订单数</h5>
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center">
                     <Avatar size={60} src={data?.shippingLogo} />
                     <div className="ltr:ml-2 rtl:mr-2">
                         <h6>{data?.shippingVendor}</h6>
                         <span>
-                            带思考填充什么数据 {data?.estimatedMin} ~{' '}
+                            商品数据{data?.estimatedMin} ~{' '}
                             {data?.estimatedMax} days
                         </span>
                     </div>
@@ -39,9 +39,11 @@ const PaymentInfo = ({ data }: PaymentInfoProps) => {
                     />
                 </span>
             </div>
-            <Button className="mr-2 mb-2" variant="twoTone" color="yellow-500">驳回订单</Button>
-            <Button className="mr-2 mb-2" variant="twoTone" color="blue-600">通知下游</Button>
-            <Button className="mr-2 mb-2" variant="twoTone" color="red-600">设为已付</Button>
+            <div className="grid grid-cols-3 gap-2">
+                <Button className="w-full" variant="twoTone" color="yellow-500">回调</Button>
+                <Button className="w-full" variant="twoTone" color="blue-600">refunds</Button>
+                <Button className="w-full" variant="twoTone" color="red-600">手动成功</Button>
+            </div>
         </Card>
     )
 }

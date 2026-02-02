@@ -1,17 +1,14 @@
 import Card from '@/components/ui/Card'
 import Avatar from '@/components/ui/Avatar'
 import IconText from '@/components/shared/IconText'
-import { HiMail, HiPhone, HiExternalLink } from 'react-icons/hi'
+import { HiExternalLink } from 'react-icons/hi'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
 type CustomerInfoProps = {
     data?: {
         name: string
-        // email: string
-        // phone: string
         img: string
-        // previousOrder: number
         paymentInfo: {
             line1: string
             line2: string
@@ -45,26 +42,10 @@ const CustomerInfo = ({ data }: CustomerInfoProps) => {
                         <div className="font-semibold group-hover:text-gray-900 group-hover:dark:text-gray-100">
                             {data?.name}
                         </div>
-                        {/* <span>
-                            <span className="font-semibold">
-                                {data?.previousOrder}{' '}
-                            </span>
-                            previous orders
-                        </span> */}
                     </div>
                 </div>
                 <HiExternalLink className="text-xl hidden group-hover:block" />
             </Link>
-            {/* <hr className="my-5" /> */}
-            {/* <IconText
-                className="mb-4"
-                icon={<HiMail className="text-xl opacity-70" />}
-            >
-                <span className="font-semibold">{data?.email}</span>
-            </IconText>
-            <IconText icon={<HiPhone className="text-xl opacity-70" />}>
-                <span className="font-semibold">{data?.phone}</span>
-            </IconText> */}
             <hr className="my-5" />
             <h6 className="mb-4">{t('paymentDetails.customerInfo.payment')}</h6>
             <address className="not-italic">

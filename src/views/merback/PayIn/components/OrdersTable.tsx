@@ -21,6 +21,7 @@ import useThemeClass from '@/utils/hooks/useThemeClass'
 import { useNavigate } from 'react-router-dom'
 import cloneDeep from 'lodash/cloneDeep'
 import dayjs from 'dayjs'
+import type { PaymentStatus } from '@/@types/payment'
 import type {
     DataTableResetHandle,
     OnSortParam,
@@ -70,33 +71,48 @@ const ActionIcon = ({ type }: { type: number }) => {
 }
 
 const orderStatusColor: Record<
-    number,
+    PaymentStatus,
     {
         label: string
         dotClass: string
         textClass: string
     }
 > = {
-    0: {
+    SUCCESS: {
         label: 'Paid',
         dotClass: 'bg-emerald-500',
         textClass: 'text-emerald-500',
     },
-    1: {
+    PENDING: {
         label: 'Pending',
         dotClass: 'bg-amber-500',
         textClass: 'text-amber-500',
     },
-    2: {
+    PROCESSING: {
+        label: 'Processing',
+        dotClass: 'bg-amber-500',
+        textClass: 'text-amber-500',
+    },
+    FAILED: {
         label: 'Unpaid',
         dotClass: 'bg-green-500',
-        textClass: 'text-green-500'
+        textClass: 'text-green-500',
     },
-    //退款
-    3: {
+    CANCELLED: {
+        label: 'Cancelled',
+        dotClass: 'bg-gray-500',
+        textClass: 'text-gray-500',
+    },
+    CLOSED: {
+        label: 'Closed',
+        dotClass: 'bg-gray-500',
+        textClass: 'text-gray-500',
+    },
+    //退�?
+    REFUNDED: {
         label: 'Refund',
         dotClass: 'bg-red-500',
-        textClass: 'text-red-500'
+        textClass: 'text-red-500',
     },
 }
 
@@ -264,7 +280,7 @@ const OrdersTable = () => {
                 accessorKey: 'customer',
             },
             {
-                header: 'Status状态',
+                header: 'Status',
                 accessorKey: 'status',
                 cell: (props) => {
                     const { status } = props.row.original
@@ -368,3 +384,7 @@ const OrdersTable = () => {
 }
 
 export default OrdersTable
+
+
+
+

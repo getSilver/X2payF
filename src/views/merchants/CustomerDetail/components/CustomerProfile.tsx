@@ -115,7 +115,7 @@ const CustomerProfile = ({ data = {} }: CustomerProfileProps) => {
                     <h4 className="font-bold">{data.name}</h4>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-y-7 gap-x-4 mt-8">
-                    <CustomerInfoField title="Email" value={data.email} />
+                    <CustomerInfoField title="Email" value={data.contact_email} />
                     <CustomerInfoField
                         title="商户ID"
                         value={data.personalInfo?.phoneNumber}

@@ -98,7 +98,7 @@ const PersonalInfoForm = (props: PersonalInfoFormProps) => {
                 </Field>
             </FormItem>
             <FormItem
-                label="Name标注产品名"
+                label="Name标注产品"
                 invalid={errors.name && touched.name}
                 errorMessage={errors.name}
             >
@@ -187,7 +187,7 @@ const PersonalInfoForm = (props: PersonalInfoFormProps) => {
                     {({ field }: FieldProps) => (
                         <Input
                             value={formatRegisterTime(field.value)}
-                            inputPrefix={<HiCake className="text-xl" />}
+                            prefix={<HiCake className="text-xl" />}
                             readOnly
                             disabled
                         />

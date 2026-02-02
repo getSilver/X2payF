@@ -51,7 +51,15 @@ const API_CONFIG = {
 const SIGNATURE_REQUIRED_PATHS = ['/api/v1/']
 
 // 不需要 Token 的 API 路径
-const NO_TOKEN_PATHS = ['/sign-in', '/sign-up', '/forgot-password', '/api/v1/auth/']
+const NO_TOKEN_PATHS = [
+    '/api/v1/auth/login',
+    '/api/v1/auth/register',
+    '/api/v1/auth/forgot-password',
+    '/api/v1/auth/reset-password',
+    '/api/v1/auth/mfa/challenge',
+    '/api/v1/auth/mfa/verify',
+    '/api/v1/auth/mfa/send',
+]
 
 // 401 状态码
 const UNAUTHORIZED_CODES = [401]

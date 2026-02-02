@@ -41,8 +41,8 @@ const appsNavigation: NavigationTree[] = [
                         subMenu: [],
                     },
                     {
-                        key: 'appsOrders.payIn',
-                        path: `${APP_PREFIX_PATH}/payment/pay-in`,
+                        key: 'appsOrders.payment',
+                        path: `${APP_PREFIX_PATH}/payment`,
                         title: 'Pay In',
                         translateKey: 'nav.appsOrders.payIn',
                         icon: '',

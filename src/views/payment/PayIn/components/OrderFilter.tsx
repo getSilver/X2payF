@@ -14,12 +14,13 @@ import Checkbox from '@/components/ui/Checkbox'
 import Radio from '@/components/ui/Radio'
 import Drawer from '@/components/ui/Drawer'
 import { Field, Form, Formik, FormikProps, FieldProps } from 'formik'
+import type { PaymentStatus } from '@/@types/payment'
 import type { MouseEvent } from 'react'
 
 type FormModel = {
     name: string
     category: string[]
-    status: number[]
+    status: PaymentStatus[]
     productStatus: number
 }
 
@@ -79,7 +80,7 @@ const FilterForm = forwardRef<FormikProps<FormModel>, FilterFormProps>(
                                 invalid={errors.status && touched.status}
                                 errorMessage={errors.status as string}
                             >
-                                <h6 className="mb-4">支付状态</h6>
+                                <h6 className="mb-4">支付状</h6>
                                 <Field name="status">
                                     {({ field, form }: FieldProps) => (
                                         <>
@@ -96,21 +97,21 @@ const FilterForm = forwardRef<FormikProps<FormModel>, FilterFormProps>(
                                                 <Checkbox
                                                     className="mb-3"
                                                     name={field.name}
-                                                    value={0}
+                                                    value={'SUCCESS'}
                                                 >
                                                     已付{' '}
                                                 </Checkbox>
                                                 <Checkbox
                                                     className="mb-3"
                                                     name={field.name}
-                                                    value={1}
+                                                    value={'REFUNDED'}
                                                 >
                                                     退款{' '}
                                                 </Checkbox>
                                                 <Checkbox
                                                     className="mb-3"
                                                     name={field.name}
-                                                    value={2}
+                                                    value={'PENDING'}
                                                 >
                                                     未通知{' '}
                                                 </Checkbox>

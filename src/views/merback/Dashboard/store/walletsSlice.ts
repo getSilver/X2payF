@@ -13,8 +13,9 @@ export type Trade = {
     date: number
     sdate: number    //成功时间Successful time
     symbol: string
-    price: number
+    fee: number
     amount: number
+    settlement: number
 }
 
 export type TransactionDetails = {

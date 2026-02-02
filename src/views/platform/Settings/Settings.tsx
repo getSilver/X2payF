@@ -202,7 +202,7 @@ const Settings = () => {
     const fetchCurrencies = async () => {
         setLoading((prev) => ({ ...prev, currencies: true }))
         try {
-            const response = await apiGetPlatformCurrencies<Currency[]>()
+            const response = await apiGetPlatformCurrencies<Currency[], Record<string, unknown>>()
             setCurrencies(normalizeList<Currency>(response.data))
         } catch (error) {
             toast.push(
@@ -220,7 +220,7 @@ const Settings = () => {
     const fetchTimezones = async () => {
         setLoading((prev) => ({ ...prev, timezones: true }))
         try {
-            const response = await apiGetPlatformTimezones<Timezone[]>()
+            const response = await apiGetPlatformTimezones<Timezone[], Record<string, unknown>>()
             setTimezones(normalizeList<Timezone>(response.data))
         } catch (error) {
             toast.push(
@@ -238,7 +238,7 @@ const Settings = () => {
     const fetchAssociations = async () => {
         setLoading((prev) => ({ ...prev, associations: true }))
         try {
-            const response = await apiGetPlatformAssociations<Association[]>()
+            const response = await apiGetPlatformAssociations<Association[], Record<string, unknown>>()
             setAssociations(normalizeList<Association>(response.data))
         } catch (error) {
             toast.push(

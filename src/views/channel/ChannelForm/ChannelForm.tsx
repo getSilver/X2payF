@@ -1,56 +1,107 @@
 import { forwardRef, useState } from 'react'
 import { FormContainer } from '@/components/ui/Form'
 import Button from '@/components/ui/Button'
-import hooks from '@/components/ui/hooks'
 import StickyFooter from '@/components/shared/StickyFooter'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
 import { Form, Formik, FormikProps } from 'formik'
 import BasicInformationFields from './BasicInformationFields'
 import PricingFields from './PricingFields'
-import OrganizationFields from './OrganizationFields'
-import ProductImages from './ProductImages'
+import APIConfigFields from './OrganizationFields'
+import CertificateUpload from './CertificateUpload'
 import cloneDeep from 'lodash/cloneDeep'
 import { HiOutlineTrash } from 'react-icons/hi2'
 import { AiOutlineSave } from 'react-icons/ai'
 import * as Yup from 'yup'
+import type { ChannelStatus, PaymentMethod } from '@/@types/channel'
+import type { TransactionType } from '@/@types/payment'
 
-// eslint-disable-next-line  @typescript-eslint/no-explicit-any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type FormikRef = FormikProps<any>
 
-type InitialData = {
-    id?: string
-    name?: string
-    productCode?: string
-    img?: string
-    imgList?: {
-        id: string
-        name: string
-        img: string
-    }[]
-    category?: string
-    price?: number
-    stock?: number
-    status?: number
-    costPerItem?: number
-    bulkDiscountPrice?: number
-    taxRate?: number
-    tags?: string[]
-    brand?: string
-    vendor?: string
-    description?: string
+/**
+ * 证书信息
+ */
+type CertificateInfo = {
+    id: string
+    name: string
+    content: string
+    uploadTime: string
 }
 
-export type FormModel = Omit<InitialData, 'tags'> & {
-    tags: { label: string; value: string }[] | string[]
+/**
+ * 渠道表单初始数据
+ */
+export type InitialData = {
+    id?: string
+    code?: string
+    name?: string
+    display_name?: string
+    status?: ChannelStatus
+    supported_currencies?: string[]
+    supported_payment_methods?: PaymentMethod[]
+    supported_transaction_types?: TransactionType[]
+    // Pay_In 费率配置
+    pay_in_percentage_fee?: string
+    pay_in_fixed_fee?: string
+    // Pay_Out 费率配置
+    pay_out_percentage_fee?: string
+    pay_out_fixed_fee?: string
+    // 限额配置
+    min_amount?: string
+    max_amount?: string
+    daily_limit?: string
+    // API 配置
+    production_endpoint?: string
+    test_endpoint?: string
+    merchant_id?: string
+    app_id?: string
+    secret_key?: string
+    certificate?: string
+    certificateInfo?: CertificateInfo
+    timeout?: string
+    retry_count?: string
+    retry_interval?: string
+}
+
+/**
+ * 表单数据模型
+ */
+export type FormModel = {
+    id?: string
+    code: string
+    name: string
+    display_name: string
+    supported_currencies: string[]
+    supported_payment_methods: PaymentMethod[]
+    supported_transaction_types: TransactionType[]
+    // Pay_In 费率配置
+    pay_in_percentage_fee: string
+    pay_in_fixed_fee: string
+    // Pay_Out 费率配置
+    pay_out_percentage_fee: string
+    pay_out_fixed_fee: string
+    // 限额配置
+    min_amount: string
+    max_amount: string
+    daily_limit: string
+    // API 配置
+    production_endpoint: string
+    test_endpoint: string
+    merchant_id: string
+    app_id: string
+    secret_key: string
+    certificate: string
+    certificateInfo?: CertificateInfo
+    timeout: string
+    retry_count: string
+    retry_interval: string
 }
 
 export type SetSubmitting = (isSubmitting: boolean) => void
-
 export type OnDeleteCallback = React.Dispatch<React.SetStateAction<boolean>>
-
 type OnDelete = (callback: OnDeleteCallback) => void
 
-type ChannelForm = {
+type ChannelFormProps = {
     initialData?: InitialData
     type: 'edit' | 'new'
     onDiscard?: () => void
@@ -58,16 +109,59 @@ type ChannelForm = {
     onFormSubmit: (formData: FormModel, setSubmitting: SetSubmitting) => void
 }
 
-const { useUniqueId } = hooks
-
-const validationSchema = Yup.object().shape({
-    name: Yup.string().required('Channel Name Required'),
-    price: Yup.number().required('Rates Required'),
-    stock: Yup.number().required('SKU Required'),
-    category: Yup.string().required('Area Required'),
+/**
+ * 表单验证规则（根据类型动态调整）
+ */
+const getValidationSchema = (type: 'edit' | 'new') => Yup.object().shape({
+    code: Yup.string()
+        .required('渠道代码必填')
+        .min(2, '渠道代码至少2个字符')
+        .max(32, '渠道代码最多32个字符'),
+    name: Yup.string()
+        .required('渠道名称必填')
+        .max(100, '渠道名称最多100个字符'),
+    display_name: Yup.string()
+        .required('显示名称必填')
+        .max(100, '显示名称最多100个字符'),
+    supported_currencies: Yup.array()
+        .min(1, '至少选择一种币种')
+        .required('支持币种必填'),
+    supported_payment_methods: Yup.array()
+        .min(1, '至少选择一种支付方式')
+        .required('支付方式必填'),
+    supported_transaction_types: Yup.array()
+        .min(1, '至少选择一种交易类型')
+        .required('交易类型必填'),
+    // Pay_In 费率配置验证
+    pay_in_percentage_fee: Yup.string().required('代收百分比费率必填'),
+    pay_in_fixed_fee: Yup.string().required('代收固定费用必填'),
+    // Pay_Out 费率配置验证
+    pay_out_percentage_fee: Yup.string().required('代付百分比费率必填'),
+    pay_out_fixed_fee: Yup.string().required('代付固定费用必填'),
+    // 限额配置验证
+    min_amount: Yup.string().required('最小金额必填'),
+    max_amount: Yup.string().required('最大金额必填'),
+    daily_limit: Yup.string().required('日限额必填'),
+    // API 配置验证
+    production_endpoint: Yup.string().url('请输入有效的URL').required('生产环境端点必填'),
+    test_endpoint: Yup.string().url('请输入有效的URL').required('测试环境端点必填'),
+    merchant_id: Yup.string().required('商户ID必填'),
+    app_id: Yup.string().required('应用ID必填'),
+    // 编辑模式下密钥可选（后端不返回密钥），新建模式下必填
+    secret_key: type === 'edit' 
+        ? Yup.string().notRequired()
+        : Yup.string().required('密钥必填'),
+    // 证书可选
+    certificate: Yup.string().notRequired(),
+    timeout: Yup.string().required('超时时间必填'),
+    retry_count: Yup.string().required('重试次数必填'),
+    retry_interval: Yup.string().required('重试间隔必填'),
 })
 
-const DeleteProductButton = ({ onDelete }: { onDelete: OnDelete }) => {
+/**
+ * 删除按钮组件
+ */
+const DeleteChannelButton = ({ onDelete }: { onDelete: OnDelete }) => {
     const [dialogOpen, setDialogOpen] = useState(false)
 
     const onConfirmDialogOpen = () => {
@@ -92,144 +186,157 @@ const DeleteProductButton = ({ onDelete }: { onDelete: OnDelete }) => {
                 type="button"
                 onClick={onConfirmDialogOpen}
             >
-                Delete
+                删除
             </Button>
             <ConfirmDialog
                 isOpen={dialogOpen}
                 type="danger"
-                title="Delete Channel"
+                title="删除渠道"
                 confirmButtonColor="red-600"
                 onClose={onConfirmDialogClose}
                 onRequestClose={onConfirmDialogClose}
                 onCancel={onConfirmDialogClose}
                 onConfirm={handleConfirm}
             >
-                <p>
-                    想人家的时候叫人家小甜甜，现在叫人家牛夫人，无情的还要删除拉黑！你想清楚再点红色按钮删除拉黑！！！
-                </p>
+                <p>确定要删除此渠道吗？删除后将无法恢复，请谨慎操作。</p>
             </ConfirmDialog>
         </>
     )
 }
 
-const ChannelForm = forwardRef<FormikRef, ChannelForm>((props, ref) => {
+/**
+ * 渠道表单组件
+ */
+const ChannelForm = forwardRef<FormikRef, ChannelFormProps>((props, ref) => {
     const {
         type,
         initialData = {
             id: '',
+            code: '',
             name: '',
-            productCode: '',
-            img: '',
-            imgList: [],
-            category: '',
-            price: 0,
-            stock: 0,
-            status: 0,
-            costPerItem: 0,
-            bulkDiscountPrice: 0,
-            taxRate: 6,
-            tags: [],
-            brand: '',
-            vendor: '',
-            description: '',
+            display_name: '',
+            supported_currencies: [],
+            supported_payment_methods: [],
+            supported_transaction_types: [],
+            pay_in_percentage_fee: '',
+            pay_in_fixed_fee: '',
+            pay_out_percentage_fee: '',
+            pay_out_fixed_fee: '',
+            min_amount: '',
+            max_amount: '',
+            daily_limit: '',
+            production_endpoint: '',
+            test_endpoint: '',
+            merchant_id: '',
+            app_id: '',
+            secret_key: '',
+            certificate: '',
+            certificateInfo: undefined,
+            timeout: '30',
+            retry_count: '3',
+            retry_interval: '1000',
         },
         onFormSubmit,
         onDiscard,
         onDelete,
     } = props
 
-    const newId = useUniqueId('product-')
-
     return (
-        <>
-            <Formik
-                innerRef={ref}
-                initialValues={{
-                    ...initialData,
-                    tags: initialData?.tags
-                        ? initialData.tags.map((value) => ({
-                            label: value,
-                            value,
-                        }))
-                        : [],
-                }}
-                validationSchema={validationSchema}
-                onSubmit={(values: FormModel, { setSubmitting }) => {
-                    const formData = cloneDeep(values)
-                    formData.tags = formData.tags.map((tag) => {
-                        if (typeof tag !== 'string') {
-                            return tag.value
-                        }
-                        return tag
-                    })
-                    if (type === 'new') {
-                        formData.id = newId
-                        if (formData.imgList && formData.imgList.length > 0) {
-                            formData.img = formData.imgList[0].img
-                        }
-                    }
-                    onFormSubmit?.(formData, setSubmitting)
-                }}
-            >
-                {({ values, touched, errors, isSubmitting }) => (
-                    <Form>
-                        <FormContainer>
-                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                                <div className="lg:col-span-2">
-                                    <BasicInformationFields
-                                        touched={touched}
-                                        errors={errors}
-                                    />
-                                    <PricingFields
-                                        touched={touched}
-                                        errors={errors}
-                                    />
-                                    <OrganizationFields
-                                        touched={touched}
-                                        errors={errors}
-                                        values={values}
-                                    />
-                                </div>
-                                <div className="lg:col-span-1">
-                                    <ProductImages values={values} />
-                                </div>
+        <Formik
+            innerRef={ref}
+            initialValues={{
+                id: initialData.id || '',
+                code: initialData.code || '',
+                name: initialData.name || '',
+                display_name: initialData.display_name || '',
+                supported_currencies: initialData.supported_currencies || [],
+                supported_payment_methods: initialData.supported_payment_methods || [],
+                supported_transaction_types: initialData.supported_transaction_types || [],
+                pay_in_percentage_fee: initialData.pay_in_percentage_fee || '',
+                pay_in_fixed_fee: initialData.pay_in_fixed_fee || '',
+                pay_out_percentage_fee: initialData.pay_out_percentage_fee || '',
+                pay_out_fixed_fee: initialData.pay_out_fixed_fee || '',
+                min_amount: initialData.min_amount || '',
+                max_amount: initialData.max_amount || '',
+                daily_limit: initialData.daily_limit || '',
+                production_endpoint: initialData.production_endpoint || '',
+                test_endpoint: initialData.test_endpoint || '',
+                merchant_id: initialData.merchant_id || '',
+                app_id: initialData.app_id || '',
+                secret_key: initialData.secret_key || '',
+                certificate: initialData.certificate || '',
+                certificateInfo: initialData.certificateInfo,
+                timeout: initialData.timeout || '30',
+                retry_count: initialData.retry_count || '3',
+                retry_interval: initialData.retry_interval || '1000',
+            }}
+            validationSchema={getValidationSchema(type)}
+            onSubmit={(values: FormModel, { setSubmitting }) => {
+                const formData = cloneDeep(values)
+                onFormSubmit?.(formData, setSubmitting)
+            }}
+        >
+            {({ values, touched, errors, isSubmitting }) => (
+                <Form>
+                    <FormContainer>
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                            <div className="lg:col-span-2">
+                                <BasicInformationFields
+                                    touched={touched}
+                                    errors={errors}
+                                    values={values}
+                                    type={type}
+                                />
+                                <APIConfigFields
+                                    touched={touched}
+                                    errors={errors}
+                                />
+                                <PricingFields
+                                    touched={touched}
+                                    errors={errors}
+                                />
                             </div>
-                            <StickyFooter
-                                className="-mx-8 px-8 flex items-center justify-between py-4"
-                                stickyClass="border-t bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
-                            >
-                                <div>
-                                    {type === 'edit' && (
-                                        <DeleteProductButton
-                                            onDelete={onDelete as OnDelete}
-                                        />
-                                    )}
-                                </div>
-                                <div className="md:flex items-center">
-                                    <Button
-                                        size="sm"
-                                        className="ltr:mr-3 rtl:ml-3"
-                                        type="button"
-                                        onClick={() => onDiscard?.()}
-                                    >
-                                        Discard
-                                    </Button>
-                                    <Button
-                                        size="sm"
-                                        variant="solid"
-                                        loading={isSubmitting}
-                                        icon={<AiOutlineSave />}
-                                        type="submit"
-                                    >
-                                        Save
-                                    </Button>
-                                </div>
-                            </StickyFooter>
-                        </FormContainer>
-                    </Form>
-                )}
-            </Formik>
-        </>
+                            <div className="lg:col-span-1">
+                                <CertificateUpload
+                                    values={values}
+                                    touched={touched}
+                                    errors={errors}
+                                />
+                            </div>
+                        </div>
+                        <StickyFooter
+                            className="-mx-8 px-8 flex items-center justify-between py-4"
+                            stickyClass="border-t bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                        >
+                            <div>
+                                {type === 'edit' && onDelete && (
+                                    <DeleteChannelButton onDelete={onDelete} />
+                                )}
+                            </div>
+                            <div className="md:flex items-center">
+                                <Button
+                                    size="sm"
+                                    className="ltr:mr-3 rtl:ml-3"
+                                    type="button"
+                                    onClick={() => onDiscard?.()}
+                                >
+                                    取消
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="solid"
+                                    loading={isSubmitting}
+                                    icon={<AiOutlineSave />}
+                                    type="submit"
+                                >
+                                    保存
+                                </Button>
+                            </div>
+                        </StickyFooter>
+                    </FormContainer>
+                </Form>
+            )}
+        </Formik>
     )
 })
 

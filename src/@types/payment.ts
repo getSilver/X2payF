@@ -18,37 +18,6 @@ export type PaymentStatus =
     | 'REFUNDED'
 
 /**
- * 创建支付请求参数
- */
-export interface CreatePaymentRequest {
-    app_id: string
-    merchant_tx_id: string
-    transaction_type: TransactionType
-    amount: number
-    currency: string
-    payment_method?: string
-    notify_url?: string
-    return_url?: string
-    subject: string
-    extra?: string
-    expire_minutes?: number
-}
-
-/**
- * 创建支付响应
- */
-export interface CreatePaymentResponse {
-    payment_id: string
-    merchant_tx_id: string
-    status: PaymentStatus
-    amount: number
-    currency: string
-    transaction_type: TransactionType
-    created_at: string
-    expired_at: string
-}
-
-/**
  * 支付订单详情
  */
 export interface PaymentOrder {
@@ -60,15 +29,25 @@ export interface PaymentOrder {
     amount: number
     currency: string
     payment_method: string
+    channel_id?: string
     end_to_end?: string
     status: PaymentStatus
+    error_code?: string
+    account_name?: string
+    account_bank?: string
+    account_number?: string
+    account_type?: string
+    progress_status?: number
     notify_url?: string
     return_url?: string
-    subject: string
+    subject?: string
+    body?: string
     extra?: string
+    fee?: number
+    settlement?: number
     created_at: string
-    updated_at: string
-    expired_at: string
+    updated_at?: string
+    expired_at?: string
 }
 
 /**

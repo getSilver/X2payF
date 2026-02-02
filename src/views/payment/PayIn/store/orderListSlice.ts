@@ -5,34 +5,17 @@ import {
     PayloadAction,
 } from '@reduxjs/toolkit'
 import {
-    apiGetSalesOrders,
+    apiGetPayments,
     apiDeleteSalesOrders,
 } from '@/services/PaymentService'
 import type { TableQueries } from '@/@types/common'
+import type { PaymentStatus, PaymentOrder } from '@/@types/payment'
 
-export type Order = {
-    id: string      //交易ID
-    mid: string     //商户ID
-    cid: string     //渠道ID
-    date: number    //创建时间
-    sdate: number    //成功时间Successful time
-    // subdate: number    //提交时间Sub time
-    customer: string
-    status: number
-    paymentMethod: string    // 支付方式
-    paymentIdentifier: string // 支付标识符
-    totalAmount: number           //结算金额
-    subAmount: number      //提交金额
-    fee: number         //手续费
-    amount: number    //实际收金额
-    channel: string     //通道名
-    actionType: number  // 交易方向
-    action: string      // 交易动作
-}
+export type Order = PaymentOrder
 
 type Orders = Order[]
 
-type GetSalesOrdersResponse = {
+type GetOrdersResult = {
     data: Orders
     total: number
 }
@@ -40,7 +23,7 @@ type GetSalesOrdersResponse = {
 type FilterQueries = {
     name: string
     category: string[]
-    status: number[]
+    status: PaymentStatus[]
     productStatus: number
 }
 
@@ -59,11 +42,19 @@ export const SLICE_NAME = 'salesOrderList'
 export const getOrders = createAsyncThunk(
     SLICE_NAME + '/getOrders',
     async (data: TableQueries) => {
-        const response = await apiGetSalesOrders<
-            GetSalesOrdersResponse,
-            TableQueries
-        >(data)
-        return response.data
+        // 对接后端 API: GET /api/v1/payments
+        const response = await apiGetPayments({
+            page: data.pageIndex,
+            page_size: data.pageSize,
+            // 可以根据需要添加其他筛选参数
+            // status: ...,
+            // transaction_type: ...,
+        })
+        return {
+            data: response.data.data.list,
+            total: response.data.data.total,
+        } as GetOrdersResult
+        
     }
 )
 
@@ -93,7 +84,7 @@ const initialState: SalesOrderListState = {
     filterData: {
         name: '',
         category: ['bags', 'cloths', 'devices', 'shoes', 'watches'],
-        status: [0, 1, 2],
+        status: ['SUCCESS', 'PENDING', 'FAILED'],
         productStatus: 0,
     },
     selectedRows: [],
@@ -147,6 +138,11 @@ const orderListSlice = createSlice({
             })
             .addCase(getOrders.pending, (state) => {
                 state.loading = true
+            })
+            .addCase(getOrders.rejected, (state) => {
+                state.loading = false
+                state.orderList = []
+                state.tableData.total = 0
             })
     },
 })

@@ -77,11 +77,9 @@ const EditCustomerProfile = () => {
             twitter,
             pinterest,
             linkedIn,
+            agent:clonedData.personalInfo?.agent || '',
         }
-        clonedData.personalInfo = {
-            ...clonedData.personalInfo,
-            ...personalInfo,
-        }
+        clonedData.personalInfo = personalInfo
         const newData = { ...clonedData, ...basicInfo }
         dispatch(updateProfileData(newData))
         dispatch(putCustomer(newData as Customer))

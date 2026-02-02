@@ -1,17 +1,13 @@
 import {
-    updatePaymentMethodData,
     closeDeletePaymentMethodDialog,
+    deleteApplication,
     useAppDispatch,
     useAppSelector,
 } from '../store'
-import cloneDeep from 'lodash/cloneDeep'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
 
 const DeletePaymentMethod = () => {
     const dispatch = useAppDispatch()
-    const data = useAppSelector(
-        (state) => state.crmCustomerDetails.data.paymentMethodData
-    )
     const dialogOpen = useAppSelector(
         (state) => state.crmCustomerDetails.data.deletePaymentMethodDialog
     )
@@ -19,13 +15,16 @@ const DeletePaymentMethod = () => {
         (state) => state.crmCustomerDetails.data.selectedCard
     )
 
-    const onDelete = () => {
-        let newData = cloneDeep(data) || []
-        newData = newData.filter(
-            (payment) => payment.last4Number !== selectedCard.last4Number
-        )
+    const onDelete = async () => {
+        if (selectedCard.id) {
+            // 调用后端 API 删除应用
+            try {
+                await dispatch(deleteApplication({ appId: selectedCard.id }))
+            } catch (error) {
+                console.error('删除应用失败:', error)
+            }
+        }
         dispatch(closeDeletePaymentMethodDialog())
-        dispatch(updatePaymentMethodData(newData))
     }
 
     const onDialogClose = () => {
@@ -36,14 +35,14 @@ const DeletePaymentMethod = () => {
         <ConfirmDialog
             isOpen={dialogOpen}
             type="danger"
-            title="Remove payment method"
+            title="删除应用"
             confirmButtonColor="red-600"
             onClose={onDialogClose}
             onRequestClose={onDialogClose}
             onCancel={onDialogClose}
             onConfirm={onDelete}
         >
-            <p> Are you sure you want to remove this payment method? </p>
+            <p>确定要删除该应用吗？删除后数据将无法恢复。</p>
         </ConfirmDialog>
     )
 }

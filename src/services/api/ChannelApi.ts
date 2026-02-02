@@ -18,15 +18,15 @@ import type {
 } from '@/@types/channel'
 
 const CHANNEL_API = {
-    CHANNELS: '/api/v1/channels',
-    CHANNEL_DETAIL: (id: string) => `/api/v1/channels/${id}`,
-    CHANNEL_STATUS: (id: string) => `/api/v1/channels/${id}/status`,
-    CHANNEL_CONFIG: (id: string) => `/api/v1/channels/${id}/config`,
-    CHANNEL_API_CONFIG: (id: string) => `/api/v1/channels/${id}/api-config`,
-    CHANNEL_FEE_CONFIG: (id: string) => `/api/v1/channels/${id}/fee-config`,
-    CHANNEL_LIMIT_CONFIG: (id: string) => `/api/v1/channels/${id}/limit-config`,
-    CHANNEL_CREDENTIALS: (id: string) => `/api/v1/channels/${id}/credentials`,
-    CHANNEL_HEALTH: (id: string) => `/api/v1/channels/${id}/health`,
+    CHANNELS: '/api/v1/admin/channels',
+    CHANNEL_DETAIL: (id: string) => `/api/v1/admin/channels/${id}`,
+    CHANNEL_STATUS: (id: string) => `/api/v1/admin/channels/${id}/status`,
+    CHANNEL_CONFIG: (id: string) => `/api/v1/admin/channels/${id}/config`,
+    CHANNEL_API_CONFIG: (id: string) => `/api/v1/admin/channels/${id}/api-config`,
+    CHANNEL_FEE_CONFIG: (id: string) => `/api/v1/admin/channels/${id}/fee-config`,
+    CHANNEL_LIMIT_CONFIG: (id: string) => `/api/v1/admin/channels/${id}/limit-config`,
+    CHANNEL_CREDENTIALS: (id: string) => `/api/v1/admin/channels/${id}/credentials`,
+    CHANNEL_METRICS: (id: string) => `/api/v1/admin/channels/${id}/metrics`,
 }
 
 export async function apiCreateChannel(data: CreateChannelRequest) {
@@ -114,9 +114,9 @@ export async function apiHotUpdateCredentials(channelId: string, data: HotUpdate
     })
 }
 
-export async function apiGetChannelHealth(channelId: string) {
+export async function apiGetChannelMetrics(channelId: string) {
     return ApiService.fetchData<ChannelStatusInfo>({
-        url: CHANNEL_API.CHANNEL_HEALTH(channelId),
+        url: CHANNEL_API.CHANNEL_METRICS(channelId),
         method: 'get',
     })
 }

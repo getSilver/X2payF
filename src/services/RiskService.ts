@@ -19,23 +19,23 @@ import type {
 
 const RISK_API = {
     // 商户风控查询
-    MERCHANT_QUERY: '/v1/risk/merchant/query',
-    MERCHANT_APPEAL: '/v1/risk/merchant/appeal',
-    MERCHANT_HELP: '/v1/risk/merchant/help',
+    MERCHANT_QUERY: '/api/v1/merchant/risk/merchant/query',
+    MERCHANT_APPEAL: '/api/v1/merchant/risk/merchant/appeal',
+    MERCHANT_HELP: '/api/v1/merchant/risk/merchant/help',
     // 申诉管理
-    APPEAL_STATUS: (id: string) => `/v1/risk/merchant/appeal/${id}/status`,
+    APPEAL_STATUS: (id: string) => `/api/v1/merchant/risk/merchant/appeal/${id}/status`,
     MERCHANT_APPEALS: (merchantId: string) =>
-        `/v1/risk/merchant/${merchantId}/appeals`,
+        `/api/v1/merchant/risk/merchant/${merchantId}/appeals`,
     // 风险等级
     MERCHANT_RISK_LEVEL: (merchantId: string) =>
-        `/v1/risk/merchant/${merchantId}/level`,
+        `/api/v1/merchant/risk/merchant/${merchantId}/level`,
     MERCHANT_RISK_LEVEL_HISTORY: (merchantId: string) =>
-        `/v1/risk/merchant/${merchantId}/level/history`,
+        `/api/v1/merchant/risk/merchant/${merchantId}/level/history`,
     MERCHANT_SUGGESTIONS: (merchantId: string) =>
-        `/v1/risk/merchant/${merchantId}/suggestions`,
+        `/api/v1/merchant/risk/merchant/${merchantId}/suggestions`,
     // 管理员规则管理
-    ADMIN_RULES: '/v1/risk/admin/rules',
-    ADMIN_RULE_DETAIL: (id: string) => `/v1/risk/admin/rules/${id}`,
+    ADMIN_RULES: '/api/v1/admin/risk/rules',
+    ADMIN_RULE_DETAIL: (id: string) => `/api/v1/admin/risk/rules/${id}`,
 }
 
 // ==================== 商户风控查询 ====================

@@ -1,61 +1,23 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import {
-    apiGetCrmCustomers,
-    apiPutCrmCustomer,
-    apiGetCrmCustomersStatistic,
-} from '@/services/CrmService'
+    apiListAllAccounts,
+    apiUpdateAccountStatus,
+} from '@/services/api/AccountApi'
 import type { TableQueries } from '@/@types/common'
+import type {
+    Merchant,
+    AccountStatus,
+} from '@/@types/account'
+import type {
+    ListAllAccountsParams,
+    ListAllAccountsResponse,
+    UnifiedAccount,
+} from '@/services/api/AccountApi'
 
-type PersonalInfo = {
-    location: string
-    agent: string
-    birthday: string
-    phoneNumber: string
-    facebook: string
-    twitter: string
-    pinterest: string
-    linkedIn: string
-}
+// ==================== 类型定义 ====================
 
-type OrderHistory = {
-    id: string
-    item: string
+type Filter = {
     status: string
-    amount: number
-    date: number
-}
-
-type PaymentMethod = {
-    cardHolderName: string
-    cardType: string
-    expMonth: string
-    expYear: string
-    last4Number: string
-    primary: boolean
-}
-
-type Subscription = {
-    plan: string
-    status: string
-    billing: string
-    nextPaymentDate: number
-    amount: number
-}
-
-export type Customer = {
-    id: string
-    name: string
-    email: string
-    img: string
-    role: string
-    lastOnline: number
-    status: string
-    amount: number
-    // agent: string
-    personalInfo: PersonalInfo
-    orderHistory: OrderHistory[]
-    paymentMethod: PaymentMethod[]
-    subscription: Subscription[]
 }
 
 type Statistic = {
@@ -69,57 +31,106 @@ type CustomerStatistic = {
     newCustomers: Statistic
 }
 
-type Filter = {
-    status: string
-}
-
-type GetCrmCustomersResponse = {
-    data: Customer[]
-    total: number
-}
-
-type GetCrmCustomersStatisticResponse = CustomerStatistic
-
 export type CustomersState = {
     loading: boolean
     statisticLoading: boolean
-    customerList: Customer[]
+    customerList: UnifiedAccount[]
     statisticData: Partial<CustomerStatistic>
     tableData: TableQueries
     filterData: Filter
     drawerOpen: boolean
-    selectedCustomer: Partial<Customer>
+    selectedCustomer: Partial<UnifiedAccount>
 }
 
 export const SLICE_NAME = 'crmCustomers'
 
+// ==================== 异步操作 ====================
+
+/**
+ * 后端响应包装格式
+ * 后端返回格式: { code: "0", message: "success", request_id: "xxx", data: {...} }
+ */
+interface BackendResponse<T> {
+    code: string
+    message: string
+    request_id: string
+    data: T
+}
+
+/**
+ * 获取商户统计数据
+ * 注意：后端暂无统计接口，这里使用账户列表计算
+ */
 export const getCustomerStatistic = createAsyncThunk(
     'crmCustomers/data/getCustomerStatistic',
     async () => {
-        const response =
-            await apiGetCrmCustomersStatistic<GetCrmCustomersStatisticResponse>()
-        return response.data
+        // 获取所有账户来计算统计数据
+        const response = await apiListAllAccounts({ page: 1, page_size: 1000 })
+        // 后端响应格式: { code, message, request_id, data: { total, page, page_size, list } }
+        const backendData = response.data as unknown as BackendResponse<ListAllAccountsResponse>
+        const accounts = backendData.data?.list || []
+        const total = backendData.data?.total || 0
+        
+        // 计算各状态数量
+        const normalCount = accounts.filter(m => m.status === 'Normal').length
+        
+        // 返回统计数据格式
+        return {
+            totalCustomers: { value: total, growShrink: 0 },
+            activeCustomers: { value: normalCount, growShrink: 0 },
+            newCustomers: { value: 0, growShrink: 0 }, // 需要后端支持按时间筛选
+        }
     }
 )
 
+/**
+ * 获取账户列表
+ */
 export const getCustomers = createAsyncThunk(
     'crmCustomers/data/getCustomers',
     async (data: TableQueries & { filterData?: Filter }) => {
-        const response = await apiGetCrmCustomers<
-            GetCrmCustomersResponse,
-            TableQueries
-        >(data)
+        // 构建查询参数
+        const params: ListAllAccountsParams = {
+            page: data.pageIndex,
+            page_size: data.pageSize,
+        }
+        
+        // 添加搜索关键词
+        if (data.query) {
+            params.name = data.query
+        }
+        
+        // 添加状态筛选
+        if (data.filterData?.status) {
+            params.status = data.filterData.status
+        }
+        
+        const response = await apiListAllAccounts(params)
+        // 后端响应格式: { code, message, request_id, data: { total, page, page_size, list } }
+        const backendData = response.data as unknown as BackendResponse<ListAllAccountsResponse>
+        
+        return {
+            data: backendData.data?.list || [],
+            total: backendData.data?.total || 0,
+        }
+    }
+)
+
+/**
+ * 更新商户状态
+ */
+export const updateCustomerStatus = createAsyncThunk(
+    'crmCustomers/data/updateCustomerStatus',
+    async (data: { id: string; status: AccountStatus; reason: string }) => {
+        const response = await apiUpdateAccountStatus(data.id, {
+            status: data.status,
+            reason: data.reason,
+        })
         return response.data
     }
 )
 
-export const putCustomer = createAsyncThunk(
-    'crmCustomers/data/putCustomer',
-    async (data: Customer) => {
-        const response = await apiPutCrmCustomer(data)
-        return response.data
-    }
-)
+// ==================== 初始状态 ====================
 
 export const initialTableData: TableQueries = {
     total: 0,
@@ -146,6 +157,8 @@ const initialState: CustomersState = {
     drawerOpen: false,
     selectedCustomer: {},
 }
+
+// ==================== Slice ====================
 
 const customersSlice = createSlice({
     name: `${SLICE_NAME}/state`,
@@ -180,12 +193,27 @@ const customersSlice = createSlice({
             .addCase(getCustomers.pending, (state) => {
                 state.loading = true
             })
+            .addCase(getCustomers.rejected, (state) => {
+                state.loading = false
+            })
             .addCase(getCustomerStatistic.fulfilled, (state, action) => {
                 state.statisticData = action.payload
                 state.statisticLoading = false
             })
             .addCase(getCustomerStatistic.pending, (state) => {
                 state.statisticLoading = true
+            })
+            .addCase(getCustomerStatistic.rejected, (state) => {
+                state.statisticLoading = false
+            })
+            .addCase(updateCustomerStatus.fulfilled, (state, action) => {
+                // 更新成功后刷新列表中的状态
+                const updatedId = action.meta.arg.id
+                const newStatus = action.meta.arg.status
+                const index = state.customerList.findIndex(c => c.id === updatedId)
+                if (index !== -1) {
+                    state.customerList[index].status = newStatus
+                }
             })
     },
 })

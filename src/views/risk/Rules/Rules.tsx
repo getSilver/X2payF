@@ -190,47 +190,13 @@ const Rules = () => {
         setSaving(true)
         try {
             if (editingId) {
-                const response = await apiUpdateRiskRule(editingId, payload)
-                const next =
-                    (response.data as RiskRuleResponse) || {
-                        id: editingId,
-                        name: payload.name,
-                        type: payload.type,
-                        conditions: payload.conditions,
-                        actions: payload.actions,
-                        priority: payload.priority || 0,
-                        status: payload.status || 'active',
-                        description: payload.description || '',
-                        created_by: 'admin',
-                        created_at: new Date().toISOString(),
-                        updated_at: new Date().toISOString(),
-                    }
-                setRules((prev) =>
-                    prev.map((rule) =>
-                        rule.id === editingId ? { ...rule, ...next } : rule
-                    )
-                )
+                await apiUpdateRiskRule(editingId, payload)
                 toast.push(
                     <Notification title="Rule updated" type="success" />,
                     { placement: 'top-center' }
                 )
             } else {
-                const response = await apiCreateRiskRule(payload)
-                const next =
-                    (response.data as RiskRuleResponse) || {
-                        id: `rule-${Date.now()}`,
-                        name: payload.name,
-                        type: payload.type,
-                        conditions: payload.conditions,
-                        actions: payload.actions,
-                        priority: payload.priority || 0,
-                        status: payload.status || 'active',
-                        description: payload.description || '',
-                        created_by: 'admin',
-                        created_at: new Date().toISOString(),
-                        updated_at: new Date().toISOString(),
-                    }
-                setRules((prev) => [next, ...prev])
+                await apiCreateRiskRule(payload)
                 toast.push(
                     <Notification title="Rule created" type="success" />,
                     { placement: 'top-center' }
@@ -238,6 +204,8 @@ const Rules = () => {
             }
             setDialogOpen(false)
             setEditingId(null)
+            // 重新获取列表以确保数据同步
+            await fetchRules()
         } catch (error) {
             toast.push(
                 <Notification
@@ -267,14 +235,13 @@ const Rules = () => {
         }
         try {
             await apiDeleteRiskRule(deleteTarget.id)
-            setRules((prev) =>
-                prev.filter((rule) => rule.id !== deleteTarget.id)
-            )
             toast.push(
                 <Notification title="Rule deleted" type="success" />,
                 { placement: 'top-center' }
             )
             closeDelete()
+            // 重新获取列表以确保数据同步
+            await fetchRules()
         } catch (error) {
             toast.push(
                 <Notification title="Failed to delete rule" type="danger" />,
@@ -391,6 +358,7 @@ const Rules = () => {
                     isOpen={dialogOpen}
                     onClose={() => setDialogOpen(false)}
                     onRequestClose={() => setDialogOpen(false)}
+                    scrollable
                 >
                     <h5 className="mb-4">
                         {editingId ? 'Edit Risk Rule' : 'Add Risk Rule'}

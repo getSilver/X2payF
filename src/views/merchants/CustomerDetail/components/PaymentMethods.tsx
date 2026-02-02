@@ -23,10 +23,6 @@ const PaymentMethods = () => {
         (state) => state.crmCustomerDetails.data.paymentMethodData
     )
 
-    const subscriptionData = useAppSelector(
-        (state) => state.crmCustomerDetails.data.subscriptionData || []
-    )
-
     const onEditPaymentMethodDialogOpen = (card: PaymentMethod) => {
         dispatch(updateSelectedCard(card))
         dispatch(openEditPaymentMethodDialog())
@@ -51,7 +47,7 @@ const PaymentMethods = () => {
                         <div className="rounded-lg border border-gray-200 dark:border-gray-600">
                             {data.map((card, index) => (
                                 <div
-                                    key={card.last4Number}
+                                    key={card.id || card.number || index}
                                     className={classNames(
                                         'flex flex-col lg:flex-row lg:items-center justify-between gap-3 p-4',
                                         !isLastChild(data, index) &&
@@ -74,48 +70,41 @@ const PaymentMethods = () => {
                                         <div>
                                             <div className="flex items-center">
                                                 <div className="text-gray-900 dark:text-gray-100 font-semibold">
-                                                    {card.cardHolderName} 这里显示通道名••••{' '}
-                                                    {card.last4Number}
+                                                    {card.channelName} {' '}
+                                                    {card.number}
                                                     <div>
-                                    <span>
-                                        <span className="mx-1"> 金额</span><NumericFormat
-                                            className="font-semibold text-gray-900 dark:text-gray-100"
-                                            displayType="text"
-                                            value={(
-                                                Math.round((subscriptionData[0]?.funds || 0) * 100) /
-                                                100
-                                            ).toFixed(3)}
-                                            prefix={'$'}
-                                            thousandSeparator={true}
-                                        /></span>
-                                    <span> | </span>
-                                    <span>
-                                        <span className="mx-1"> 冻结</span>
-                                        <NumericFormat
-                                            className="font-semibold text-gray-900 dark:text-gray-100"
-                                            displayType="text"
-                                            value={(
-                                                Math.round((subscriptionData[0]?.freeze || 0) * 100) /
-                                                100
-                                            ).toFixed(3)}
-                                            prefix={'$'}
-                                            thousandSeparator={true}
-                                        />
-                                    </span>
-                                    <span>
-                                        <span className="mx-1">可用</span>
-                                        <NumericFormat
-                                            className="font-semibold text-gray-900 dark:text-gray-100"
-                                            displayType="text"
-                                            value={(
-                                                Math.round((subscriptionData[0]?.amount || 0) * 100) /
-                                                100
-                                            ).toFixed(3)}
-                                            prefix={'$'}
-                                            thousandSeparator={true}
-                                        />
-                                    </span>
-                                </div>
+                                                        <span>
+                                                            <span className="mx-1">金额</span>
+                                                            <NumericFormat
+                                                                className="font-semibold text-gray-900 dark:text-gray-100"
+                                                                displayType="text"
+                                                                value={(Math.round((card.balanceAmount || 0) * 100) / 100).toFixed(3)}
+                                                                prefix={'$'}
+                                                                thousandSeparator={true}
+                                                            />
+                                                        </span>
+                                                        <span> | </span>
+                                                        <span>
+                                                            <span className="mx-1">冻结</span>
+                                                            <NumericFormat
+                                                                className="font-semibold text-gray-900 dark:text-gray-100"
+                                                                displayType="text"
+                                                                value={(Math.round((card.frozenAmount || 0) * 100) / 100).toFixed(3)}
+                                                                prefix={'$'}
+                                                                thousandSeparator={true}
+                                                            />
+                                                        </span>
+                                                        <span>
+                                                            <span className="mx-1">余额</span>
+                                                            <NumericFormat
+                                                                className="font-semibold text-gray-900 dark:text-gray-100"
+                                                                displayType="text"
+                                                                value={(Math.round((card.availableAmount || 0) * 100) / 100).toFixed(3)}
+                                                                prefix={'$'}
+                                                                thousandSeparator={true}
+                                                            />
+                                                        </span>
+                                                    </div>
                                                 </div>
                                                 {card.primary && (
                                                     <Tag className="bg-sky-100 text-sky-600 dark:bg-sky-500/20 dark:text-sky-100 rounded-md border-0 mx-2">
@@ -127,11 +116,7 @@ const PaymentMethods = () => {
                                                 )}
                                             </div>
                                             <span>
-                                                费率Fee%:{'6'}
-                                                {' '}
-                                                单笔费用:
-                                                {"12"}
-                                                。之前的动态引用数据我就不删了方便你改动
+                                                费率:{' '}{card.payIn || '0'}/{card.payOut || '0'}{' '}<span> | </span>单笔:{' '}{card.fixedFeeIn || '0'}/{card.fixedFeeOut || '0'}<span> | </span>汇率:{' '}{"12"}/{'6'}
                                             </span>
                                         </div>
                                     </div>
@@ -172,7 +157,7 @@ const PaymentMethods = () => {
                         onClick={onAddNewCard}
                     >
                         <span className="font-semibold">
-                            Add new card
+                            Add new App
                         </span>
                     </Button>
                 </div>

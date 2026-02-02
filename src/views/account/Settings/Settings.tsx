@@ -4,7 +4,6 @@ import AdaptableCard from '@/components/shared/AdaptableCard'
 import Container from '@/components/shared/Container'
 import { useNavigate, useLocation } from 'react-router-dom'
 import isEmpty from 'lodash/isEmpty'
-import { apiGetAccountSettingData } from '@/services/AccountServices'
 
 type AccountSetting = {
     profile: {
@@ -79,16 +78,13 @@ const Settings = () => {
         navigate(`/account/settings/${val}`)
     }
 
-    const fetchData = async () => {
-        const response = await apiGetAccountSettingData<GetAccountSettingData>()
-        setData(response.data)
-    }
-
     useEffect(() => {
         setCurrentTab(path)
-        if (isEmpty(data)) {
-            fetchData()
-        }
+        // 使用静态数据，不调用后端接口
+        // 如果后端实现了 /account/setting 接口，可以取消注释
+        // if (isEmpty(data)) {
+        //     fetchData()
+        // }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 

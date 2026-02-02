@@ -3,22 +3,18 @@ import Notification from '@/components/ui/Notification'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
 import {
     toggleDeleteConfirmation,
-    deleteProduct,
-    getProducts,
+    deleteChannel,
     useAppDispatch,
     useAppSelector,
 } from '../store'
 
-const ProductDeleteConfirmation = () => {
+const ChannelDeleteConfirmation = () => {
     const dispatch = useAppDispatch()
     const dialogOpen = useAppSelector(
-        (state) => state.salesChannelList.data.deleteConfirmation
+        (state) => state.channelList.data.deleteConfirmation
     )
-    const selectedProduct = useAppSelector(
-        (state) => state.salesChannelList.data.selectedProduct
-    )
-    const tableData = useAppSelector(
-        (state) => state.salesChannelList.data.tableData
+    const selectedChannelId = useAppSelector(
+        (state) => state.channelList.data.selectedChannelId
     )
 
     const onDialogClose = () => {
@@ -27,17 +23,29 @@ const ProductDeleteConfirmation = () => {
 
     const onDelete = async () => {
         dispatch(toggleDeleteConfirmation(false))
-        const success = await deleteProduct({ id: selectedProduct })
-
-        if (success) {
-            dispatch(getProducts(tableData))
+        
+        try {
+            await dispatch(deleteChannel(selectedChannelId)).unwrap()
             toast.push(
                 <Notification
-                    title={'Successfuly Deleted'}
+                    title="删除成功"
                     type="success"
                     duration={2500}
                 >
-                    Product successfuly deleted
+                    渠道已成功删除
+                </Notification>,
+                {
+                    placement: 'top-center',
+                }
+            )
+        } catch (error) {
+            toast.push(
+                <Notification
+                    title="删除失败"
+                    type="danger"
+                    duration={2500}
+                >
+                    删除渠道时发生错误
                 </Notification>,
                 {
                     placement: 'top-center',
@@ -50,7 +58,7 @@ const ProductDeleteConfirmation = () => {
         <ConfirmDialog
             isOpen={dialogOpen}
             type="danger"
-            title="Delete Channel"
+            title="删除渠道"
             confirmButtonColor="red-600"
             onClose={onDialogClose}
             onRequestClose={onDialogClose}
@@ -58,11 +66,10 @@ const ProductDeleteConfirmation = () => {
             onConfirm={onDelete}
         >
             <p>
-                鎯充汉瀹剁殑鏃跺€欏彨浜哄灏忕敎鐢滐紝鐜板湪鍙汉瀹剁墰澶汉锛屾棤鎯呯殑杩樿鍒犻櫎鎷夐粦锛佷綘鎯虫竻妤氬啀鐐圭孩鑹叉寜閽垹闄ゆ媺榛戯紒锛侊紒
+                确定要删除此渠道吗？删除后将无法恢复，请谨慎操作。
             </p>
         </ConfirmDialog>
     )
 }
 
-export default ProductDeleteConfirmation
-
+export default ChannelDeleteConfirmation

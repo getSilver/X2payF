@@ -15,11 +15,12 @@ import Radio from '@/components/ui/Radio'
 import Drawer from '@/components/ui/Drawer'
 import { Field, Form, Formik, FormikProps, FieldProps } from 'formik'
 import type { MouseEvent } from 'react'
+import type { PaymentStatus } from '@/@types/payment'
 
 type FormModel = {
     name: string
     category: string[]
-    status: number[]
+    status: PaymentStatus[]
     productStatus: number
 }
 
@@ -79,7 +80,7 @@ const FilterForm = forwardRef<FormikProps<FormModel>, FilterFormProps>(
                                 invalid={errors.status && touched.status}
                                 errorMessage={errors.status as string}
                             >
-                                <h6 className="mb-4">支付状态</h6>
+                                <h6 className="mb-4">Status</h6>
                                 <Field name="status">
                                     {({ field, form }: FieldProps) => (
                                         <>
@@ -96,21 +97,21 @@ const FilterForm = forwardRef<FormikProps<FormModel>, FilterFormProps>(
                                                 <Checkbox
                                                     className="mb-3"
                                                     name={field.name}
-                                                    value={0}
+                                                    value="SUCCESS"
                                                 >
                                                     已付{' '}
                                                 </Checkbox>
                                                 <Checkbox
                                                     className="mb-3"
                                                     name={field.name}
-                                                    value={1}
+                                                    value="REFUNDED"
                                                 >
                                                     退款{' '}
                                                 </Checkbox>
                                                 <Checkbox
                                                     className="mb-3"
                                                     name={field.name}
-                                                    value={2}
+                                                    value="FAILED"
                                                 >
                                                     未通知{' '}
                                                 </Checkbox>
@@ -139,8 +140,8 @@ const FilterForm = forwardRef<FormikProps<FormModel>, FilterFormProps>(
                                                 )
                                             }
                                         >
-                                            <Radio value={0}>代收</Radio>
-                                            <Radio value={1}>代付</Radio>
+                                            <Radio value="SUCCESS">代收</Radio>
+                                            <Radio value="REFUNDED">代付</Radio>
                                         </Radio.Group>
                                     )}
                                 </Field>
@@ -215,3 +216,7 @@ const ProductFilter = () => {
 FilterForm.displayName = 'FilterForm'
 
 export default ProductFilter
+
+
+
+

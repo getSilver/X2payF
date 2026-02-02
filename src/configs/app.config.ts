@@ -13,7 +13,7 @@ const appConfig: AppConfig = {
     unAuthenticatedEntryPath: '/sign-in',
     tourPath: '/',
     locale: 'en',
-    enableMock: false, // 关闭 Mock，使用真实后端
+    enableMock: false, // 临时启用 Mock 查看页面效果
 }
 
 export default appConfig

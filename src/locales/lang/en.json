@@ -4,14 +4,13 @@
         "appsOrders": {
             "orders": "Orders",
             "dashboard": "Dashboard",
-            "payIn": "PayIn",
-            "payOut": "PayOut"
+            "payIn": "Payment"
         },
         "appsMer": {
             "merchants": "Merchants",
             "dashboard": "Dashboard",
-            "mgmt": "Dashboard",
-            "merDetails": "商户信息"
+            "mgmt": "MGMT",
+            "merDetails": "Merchants"
         },
         "appsChannel": {
             "channel": "Channels",

@@ -13,6 +13,7 @@ export interface DialogProps extends ReactModal.Props {
     height?: string | number
     onClose?: (e: MouseEvent<HTMLSpanElement>) => void
     width?: string | number
+    scrollable?: boolean
 }
 
 const Dialog = (props: DialogProps) => {
@@ -32,6 +33,7 @@ const Dialog = (props: DialogProps) => {
         portalClassName,
         style,
         width = 520,
+        scrollable = false,
         ...rest
     } = props
 
@@ -73,6 +75,9 @@ const Dialog = (props: DialogProps) => {
 
     const dialogClass = classNames(defaultDialogContentClass, contentClassName)
 
+    // scrollable 模式下，overlay 可滚动，弹窗整体随页面滚动
+    const overlayScrollClass = scrollable ? 'overflow-y-auto' : ''
+
     return (
         <Modal
             className={{
@@ -81,7 +86,7 @@ const Dialog = (props: DialogProps) => {
                 beforeClose: 'dialog-before-close',
             }}
             overlayClassName={{
-                base: classNames('dialog-overlay', overlayClassName as string),
+                base: classNames('dialog-overlay', overlayClassName as string, overlayScrollClass),
                 afterOpen: 'dialog-overlay-after-open',
                 beforeClose: 'dialog-overlay-before-close',
             }}

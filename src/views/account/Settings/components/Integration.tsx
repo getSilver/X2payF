@@ -6,10 +6,6 @@ import toast from '@/components/ui/toast'
 import Switcher from '@/components/ui/Switcher'
 import Avatar from '@/components/ui/Avatar'
 import Card from '@/components/ui/Card'
-import isEmpty from 'lodash/isEmpty'
-import { apiGetAccountSettingIntegrationData } from '@/services/AccountServices'
-import type { MFAFactor } from '@/@types/mfa'
-import { apiListMFAFactors, apiUnenrollFactor } from '@/services/MFAService'
 import cloneDeep from 'lodash/cloneDeep'
 import MFAIntegrationDialog from './MFAIntegrationDialog'
 
@@ -34,23 +30,45 @@ type IntegrationType = {
 type GetAccountSettingIntegrationDataResponse = IntegrationType
 
 const Integration = () => {
-    const [data, setData] = useState<Partial<IntegrationType>>({})
+    // 静态数据：MFA 集成配置
+    const initialData: IntegrationType = {
+        installed: [
+            {
+                name: 'MFA',
+                desc: '多因子认证，为您的账户提供额外的安全保护',
+                img: '/img/others/img-8.png',
+                type: '安全',
+                active: true,
+                installed: true,
+            },
+        ],
+        available: [],
+    }
+
+    const [data, setData] = useState<Partial<IntegrationType>>(initialData)
     const [viewIntegration, setViewIntegration] = useState(false)
     const [intergrationDetails, setIntergrationDetails] = useState<
         Partial<IntegrationDetail>
     >({})
     const [installing, setInstalling] = useState(false)
+    const [showMFADialog, setShowMFADialog] = useState(false)
 
     const fetchData = async () => {
-        const response =
-            await apiGetAccountSettingIntegrationData<GetAccountSettingIntegrationDataResponse>()
-        setData(response.data)
+        // 暂时使用静态数据，不调用后端接口
+        // 如果后端实现了 /account/setting/integration 接口，可以取消注释
+        // try {
+        //     const response = await apiGetAccountSettingIntegrationData<GetAccountSettingIntegrationDataResponse>()
+        //     setData(response.data)
+        // } catch (error) {
+        //     console.error('获取集成数据失败:', error)
+        //     // 失败时使用静态数据
+        //     setData(initialData)
+        // }
     }
 
     useEffect(() => {
-        if (isEmpty(data)) {
-            fetchData()
-        }
+        // 组件加载时不需要获取数据，使用静态数据
+        // fetchData()
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
@@ -60,64 +78,13 @@ const Integration = () => {
         category: keyof IntegrationType
     ) => {
         const nextActive = !currentActive
-        if (targetApp.name === 'MFA' && category === 'installed' && !nextActive) {
-            let factorId = targetApp.factorId
-            if (!factorId) {
-                try {
-                    const response = await apiListMFAFactors()
-                    const factors = response.data as MFAFactor[]
-                    const totpFactor = factors.find(
-                        (factor) => factor.factor_type === 'totp'
-                    )
-                    if (totpFactor?.id) {
-                        factorId = totpFactor.id
-                        setData((prevState) => {
-                            const nextState = cloneDeep(
-                                prevState as IntegrationType
-                            )
-                            const nextInstalled = nextState.installed?.map(
-                                (app) =>
-                                    app.name === 'MFA'
-                                        ? { ...app, factorId }
-                                        : app
-                            )
-                            nextState.installed = nextInstalled
-                            return nextState
-                        })
-                    }
-                } catch (error) {
-                    toast.push(
-                        <Notification
-                            title="Failed to load MFA factors"
-                            type="danger"
-                        />,
-                        { placement: 'top-center' }
-                    )
-                }
-            }
-            if (!factorId) {
-                toast.push(
-                    <Notification
-                        title="Missing MFA factor id"
-                        type="danger"
-                    />,
-                    { placement: 'top-center' }
-                )
-                return
-            }
-            try {
-                await apiUnenrollFactor(factorId)
-            } catch (error) {
-                toast.push(
-                    <Notification
-                        title="Failed to disable MFA"
-                        type="danger"
-                    />,
-                    { placement: 'top-center' }
-                )
-                return
-            }
+        
+        // MFA 特殊处理：打开 MFA 管理对话框
+        if (targetApp.name === 'MFA') {
+            setShowMFADialog(true)
+            return
         }
+        
         setData((prevState) => {
             const nextState = cloneDeep(prevState as IntegrationType)
             const nextCategoryValue = (prevState as IntegrationType)[
@@ -137,6 +104,12 @@ const Integration = () => {
         details: IntegrationDetail,
         installed: boolean
     ) => {
+        // MFA 特殊处理：直接打开 MFA 管理对话框
+        if (details.name === 'MFA') {
+            setShowMFADialog(true)
+            return
+        }
+        
         setViewIntegration(true)
         setIntergrationDetails({ ...details, installed })
     }
@@ -145,33 +118,11 @@ const Integration = () => {
         setViewIntegration(false)
     }
 
-    const handleMfaBound = (factorId: string) => {
-        setData((prevState) => {
-            const nextState = cloneDeep(prevState as IntegrationType)
-            const nextInstalled = nextState.installed?.map((app) => {
-                if (app.name === 'MFA') {
-                    return { ...app, factorId, active: true }
-                }
-                return app
-            })
-            nextState.installed = nextInstalled
-            return nextState
-        })
+    const handleMFASuccess = () => {
+        // MFA 操作成功后刷新数据
+        fetchData()
     }
 
-    const handleMfaFactorLoaded = (factorId: string) => {
-        setData((prevState) => {
-            const nextState = cloneDeep(prevState as IntegrationType)
-            const nextInstalled = nextState.installed?.map((app) => {
-                if (app.name === 'MFA') {
-                    return { ...app, factorId }
-                }
-                return app
-            })
-            nextState.installed = nextInstalled
-            return nextState
-        })
-    }
 
     const handleInstall = (details: IntegrationDetail) => {
         setInstalling(true)
@@ -193,7 +144,6 @@ const Integration = () => {
         }, 1000)
     }
 
-    const isMfa = intergrationDetails?.name === 'MFA'
     const aboutText =
         intergrationDetails?.about ||
         intergrationDetails?.desc ||
@@ -208,7 +158,7 @@ const Integration = () => {
 
     return (
         <>
-            <h5>Installed</h5>
+            <h5>已安装</h5>
             <div className="grid lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 mt-4">
                 {data?.installed?.map((app) => (
                     <Card
@@ -221,7 +171,7 @@ const Integration = () => {
                                 size="sm"
                                 onClick={() => onViewIntegrationOpen(app, true)}
                             >
-                                View Intergration
+                                查看集成
                             </Button>
                         }
                     >
@@ -249,7 +199,7 @@ const Integration = () => {
                 ))}
             </div>
             <div className="mt-10">
-                <h5>Available</h5>
+                <h5>可用集成</h5>
                 <div className="grid lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 mt-4">
                     {data?.available?.map((app) => (
                         <Card
@@ -264,7 +214,7 @@ const Integration = () => {
                                         onViewIntegrationOpen(app, false)
                                     }
                                 >
-                                    View Intergration
+                                    查看集成
                                 </Button>
                             }
                         >
@@ -284,76 +234,73 @@ const Integration = () => {
                     ))}
                 </div>
             </div>
+            
+            {/* MFA 管理对话框 */}
+            <MFAIntegrationDialog
+                isOpen={showMFADialog}
+                onClose={() => setShowMFADialog(false)}
+                onSuccess={handleMFASuccess}
+            />
+            
+            {/* 其他集成详情对话框 */}
             <Dialog
                 width={650}
                 isOpen={viewIntegration}
                 onClose={onViewIntegrationClose}
                 onRequestClose={onViewIntegrationClose}
             >
-                {isMfa ? (
-                    <MFAIntegrationDialog
-                        isOpen={viewIntegration}
-                        onClose={onViewIntegrationClose}
-                        onBound={handleMfaBound}
-                        onFactorLoaded={handleMfaFactorLoaded}
-                        qrCodeUri={intergrationDetails.qrCodeUri}
+                <div className="flex items-center">
+                    <Avatar
+                        className="bg-transparent dark:bg-transparent"
+                        src={intergrationDetails.img}
                     />
-                ) : (
-                    <>
-                        <div className="flex items-center">
-                            <Avatar
-                                className="bg-transparent dark:bg-transparent"
-                                src={intergrationDetails.img}
-                            />
-                            <div className="ltr:ml-3 rtl:mr-3">
-                                <h6>{intergrationDetails.name}</h6>
-                                <span>{intergrationDetails.type}</span>
-                            </div>
-                        </div>
-                        <div className="mt-6">
-                            <span className="font-semibold text-gray-900 dark:text-gray-100">
-                                About {intergrationDetails.name}
-                            </span>
-                            <p className="mt-2 mb-4">{aboutText}</p>
-                            <span className="font-semibold text-gray-900 dark:text-gray-100">
-                                Key Features
-                            </span>
-                            <ul className="list-disc mt-2 ltr:ml-4 rtl:mr-4">
-                                {featureList.map((feature) => (
-                                    <li key={feature} className="mb-1">
-                                        {feature}
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                        <div className="text-right mt-6">
-                            <Button
-                                className="ltr:mr-2 rtl:ml-2"
-                                variant="plain"
-                                onClick={onViewIntegrationClose}
-                            >
-                                Cancel
-                            </Button>
-                            {intergrationDetails?.installed ? (
-                                <Button disabled variant="solid">
-                                    Installed
-                                </Button>
-                            ) : (
-                                <Button
-                                    variant="solid"
-                                    loading={installing}
-                                    onClick={() =>
-                                        handleInstall(
-                                            intergrationDetails as IntegrationDetail
-                                        )
-                                    }
-                                >
-                                    Install
-                                </Button>
-                            )}
-                        </div>
-                    </>
-                )}
+                    <div className="ltr:ml-3 rtl:mr-3">
+                        <h6>{intergrationDetails.name}</h6>
+                        <span>{intergrationDetails.type}</span>
+                    </div>
+                </div>
+                <div className="mt-6">
+                    <span className="font-semibold text-gray-900 dark:text-gray-100">
+                        关于 {intergrationDetails.name}
+                    </span>
+                    <p className="mt-2 mb-4">{aboutText}</p>
+                    <span className="font-semibold text-gray-900 dark:text-gray-100">
+                        主要功能
+                    </span>
+                    <ul className="list-disc mt-2 ltr:ml-4 rtl:mr-4">
+                        {featureList.map((feature) => (
+                            <li key={feature} className="mb-1">
+                                {feature}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+                <div className="text-right mt-6">
+                    <Button
+                        className="ltr:mr-2 rtl:ml-2"
+                        variant="plain"
+                        onClick={onViewIntegrationClose}
+                    >
+                        取消
+                    </Button>
+                    {intergrationDetails?.installed ? (
+                        <Button disabled variant="solid">
+                            已安装
+                        </Button>
+                    ) : (
+                        <Button
+                            variant="solid"
+                            loading={installing}
+                            onClick={() =>
+                                handleInstall(
+                                    intergrationDetails as IntegrationDetail
+                                )
+                            }
+                        >
+                            安装
+                        </Button>
+                    )}
+                </div>
             </Dialog>
         </>
     )

@@ -19,6 +19,7 @@ import useThemeClass from '@/utils/hooks/useThemeClass'
 import { useNavigate } from 'react-router-dom'
 import cloneDeep from 'lodash/cloneDeep'
 import dayjs from 'dayjs'
+import type { PaymentStatus } from '@/@types/payment'
 import type {
     DataTableResetHandle,
     OnSortParam,
@@ -32,7 +33,7 @@ type Order = {
     // cid: string     //渠道ID
     date: number    //创建时间
     sdate: number    //成功时间Successful time
-    status: number
+    status: PaymentStatus
     paymentMetthod: string
     paymentIdendifier: string
     totalAmount: number           //结算金额
@@ -45,33 +46,48 @@ type Order = {
 }
 
 const orderStatusColor: Record<
-    number,
+    PaymentStatus,
     {
         label: string
         dotClass: string
         textClass: string
     }
 > = {
-    0: {
+    SUCCESS: {
         label: 'Paid',
         dotClass: 'bg-emerald-500',
         textClass: 'text-emerald-500',
     },
-    1: {
+    PENDING: {
         label: 'Pending',
         dotClass: 'bg-amber-500',
         textClass: 'text-amber-500',
     },
-    2: {
+    PROCESSING: {
+        label: 'Processing',
+        dotClass: 'bg-amber-500',
+        textClass: 'text-amber-500',
+    },
+    FAILED: {
         label: 'Failed',
         dotClass: 'bg-red-500',
-        textClass: 'text-red-500'
+        textClass: 'text-red-500',
+    },
+    CANCELLED: {
+        label: 'Cancelled',
+        dotClass: 'bg-gray-500',
+        textClass: 'text-gray-500',
+    },
+    CLOSED: {
+        label: 'Closed',
+        dotClass: 'bg-gray-500',
+        textClass: 'text-gray-500',
     },
     //退款
-    3: {
+    REFUNDED: {
         label: 'Refund',
         dotClass: 'bg-stone-500',
-        textClass: 'text-stone-500'
+        textClass: 'text-stone-500',
     },
 }
 

@@ -13,29 +13,36 @@ import type { ComponentType } from 'react'
 import type { InputProps } from '@/components/ui/Input'
 
 type FormFieldsName = {
-    fixed: number
-    amount: number
-    rates: number
+    // Pay_In 费率
+    pay_in_percentage_fee: string
+    pay_in_fixed_fee: string
+    // Pay_Out 费率
+    pay_out_percentage_fee: string
+    pay_out_fixed_fee: string
+    // 限额配置
+    min_amount: string
+    max_amount: string
+    daily_limit: string
 }
 
-type ChannelFieldsProps = {
+type PricingFieldsProps = {
     touched: FormikTouched<FormFieldsName>
     errors: FormikErrors<FormFieldsName>
 }
 
-const FixedInput = (props: InputProps) => {
+const AmountInput = (props: InputProps) => {
     return <Input {...props} value={props.field.value} prefix="$" />
 }
 
-const RatesInput = (props: InputProps) => {
-    return <Input {...props} value={props.field.value} />
+const PercentInput = (props: InputProps) => {
+    return <Input {...props} value={props.field.value} suffix="%" />
 }
 
 const NumericFormatInput = ({
     onValueChange,
     ...rest
 }: Omit<NumericFormatProps, 'form'> & {
-    /* eslint-disable @typescript-eslint/no-explicit-any */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     form: any
     field: FieldInputProps<unknown>
 }) => {
@@ -50,128 +57,180 @@ const NumericFormatInput = ({
     )
 }
 
-const PricingFields = (props: ChannelFieldsProps) => {
+const PricingFields = (props: PricingFieldsProps) => {
     const { touched, errors } = props
 
     return (
         <AdaptableCard divider className="mb-4">
-            <h5>配置信息</h5>
-            <p className="mb-6">Section to config channel information</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="col-span-1">
+            <h5>费率与限额配置</h5>
+            <p className="mb-6">配置渠道的费率和交易限额</p>
+            
+            {/* Pay_In（代收）费率配置 */}
+            <div className="mb-6">
+                <h6 className="mb-4 text-gray-700 dark:text-gray-200">代收（Pay_In）费率</h6>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormItem
-                        label="Rates(%) 比例成本"
-                        invalid={(errors.rates && touched.rates) as boolean}
-                        errorMessage={errors.rates}
+                        label="百分比费率"
+                        invalid={(errors.pay_in_percentage_fee && touched.pay_in_percentage_fee) as boolean}
+                        errorMessage={errors.pay_in_percentage_fee}
                     >
-                        <Field name="rates">
-                            {({ field, form }: FieldProps) => {
-                                return (
-                                    <NumericFormatInput
-                                        form={form}
-                                        field={field}
-                                        placeholder="Rates"
-                                        customInput={
-                                            RatesInput as ComponentType
-                                        }
-                                        isAllowed={({ floatValue }) =>
-                                            (floatValue as number) <= 100
-                                        }
-                                        onValueChange={(e) => {
-                                            form.setFieldValue(
-                                                field.name,
-                                                e.value
-                                            )
-                                        }}
-                                    />
-                                )
-                            }}
+                        <Field name="pay_in_percentage_fee">
+                            {({ field, form }: FieldProps) => (
+                                <NumericFormatInput
+                                    form={form}
+                                    field={field}
+                                    placeholder="例如: 2.5"
+                                    customInput={PercentInput as ComponentType}
+                                    decimalScale={2}
+                                    isAllowed={({ floatValue }) =>
+                                        floatValue === undefined || floatValue <= 100
+                                    }
+                                    onValueChange={(e) => {
+                                        form.setFieldValue(field.name, e.value)
+                                    }}
+                                />
+                            )}
                         </Field>
                     </FormItem>
-                </div>
-                <div className="col-span-1">
+
                     <FormItem
-                        label="Fixed costs 固定成本"
-                        invalid={(errors.fixed && touched.fixed) as boolean}
-                        errorMessage={errors.fixed}
+                        label="固定费用"
+                        invalid={(errors.pay_in_fixed_fee && touched.pay_in_fixed_fee) as boolean}
+                        errorMessage={errors.pay_in_fixed_fee}
                     >
-                        <Field name="fixed">
-                            {({ field, form }: FieldProps) => {
-                                return (
-                                    <NumericFormatInput
-                                        form={form}
-                                        field={field}
-                                        placeholder="Fixed"
-                                        customInput={
-                                            FixedInput as ComponentType
-                                        }
-                                        onValueChange={(e) => {
-                                            form.setFieldValue(
-                                                field.name,
-                                                e.value
-                                            )
-                                        }}
-                                    />
-                                )
-                            }}
+                        <Field name="pay_in_fixed_fee">
+                            {({ field, form }: FieldProps) => (
+                                <NumericFormatInput
+                                    form={form}
+                                    field={field}
+                                    placeholder="例如: 0.30"
+                                    customInput={AmountInput as ComponentType}
+                                    decimalScale={2}
+                                    onValueChange={(e) => {
+                                        form.setFieldValue(field.name, e.value)
+                                    }}
+                                />
+                            )}
                         </Field>
                     </FormItem>
                 </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="col-span-1">
+
+            {/* Pay_Out（代付）费率配置 */}
+            <div className="mb-6">
+                <h6 className="mb-4 text-gray-700 dark:text-gray-200">代付（Pay_Out）费率</h6>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormItem
-                        label="Min limit 最小限额"
-                        invalid={(errors.amount && touched.amount) as boolean}
-                        errorMessage={errors.amount}
+                        label="百分比费率"
+                        invalid={(errors.pay_out_percentage_fee && touched.pay_out_percentage_fee) as boolean}
+                        errorMessage={errors.pay_out_percentage_fee}
                     >
-                        <Field name="minAmount">
-                            {({ field, form }: FieldProps) => {
-                                return (
-                                    <NumericFormatInput
-                                        form={form}
-                                        field={field}
-                                        placeholder="Amount"
-                                        customInput={
-                                            FixedInput as ComponentType
-                                        }
-                                        onValueChange={(e) => {
-                                            form.setFieldValue(
-                                                field.name,
-                                                e.value
-                                            )
-                                        }}
-                                    />
-                                )
-                            }}
+                        <Field name="pay_out_percentage_fee">
+                            {({ field, form }: FieldProps) => (
+                                <NumericFormatInput
+                                    form={form}
+                                    field={field}
+                                    placeholder="例如: 1.5"
+                                    customInput={PercentInput as ComponentType}
+                                    decimalScale={2}
+                                    isAllowed={({ floatValue }) =>
+                                        floatValue === undefined || floatValue <= 100
+                                    }
+                                    onValueChange={(e) => {
+                                        form.setFieldValue(field.name, e.value)
+                                    }}
+                                />
+                            )}
+                        </Field>
+                    </FormItem>
+
+                    <FormItem
+                        label="固定费用"
+                        invalid={(errors.pay_out_fixed_fee && touched.pay_out_fixed_fee) as boolean}
+                        errorMessage={errors.pay_out_fixed_fee}
+                    >
+                        <Field name="pay_out_fixed_fee">
+                            {({ field, form }: FieldProps) => (
+                                <NumericFormatInput
+                                    form={form}
+                                    field={field}
+                                    placeholder="例如: 1.00"
+                                    customInput={AmountInput as ComponentType}
+                                    decimalScale={2}
+                                    onValueChange={(e) => {
+                                        form.setFieldValue(field.name, e.value)
+                                    }}
+                                />
+                            )}
                         </Field>
                     </FormItem>
                 </div>
-                <div className="col-span-1">
+            </div>
+
+            {/* 限额配置 */}
+            <div>
+                <h6 className="mb-4 text-gray-700 dark:text-gray-200">交易限额</h6>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <FormItem
-                        label="Max limit 最大限额"
-                        invalid={(errors.amount && touched.amount) as boolean}
-                        errorMessage={errors.amount}
+                        label="单笔最小金额"
+                        invalid={(errors.min_amount && touched.min_amount) as boolean}
+                        errorMessage={errors.min_amount}
                     >
-                        <Field name="maxAmount">
-                            {({ field, form }: FieldProps) => {
-                                return (
-                                    <NumericFormatInput
-                                        form={form}
-                                        field={field}
-                                        placeholder="Amount"
-                                        customInput={
-                                            FixedInput as ComponentType
-                                        }
-                                        onValueChange={(e) => {
-                                            form.setFieldValue(
-                                                field.name,
-                                                e.value
-                                            )
-                                        }}
-                                    />
-                                )
-                            }}
+                        <Field name="min_amount">
+                            {({ field, form }: FieldProps) => (
+                                <NumericFormatInput
+                                    form={form}
+                                    field={field}
+                                    placeholder="例如: 1.00"
+                                    customInput={AmountInput as ComponentType}
+                                    decimalScale={2}
+                                    onValueChange={(e) => {
+                                        form.setFieldValue(field.name, e.value)
+                                    }}
+                                />
+                            )}
+                        </Field>
+                    </FormItem>
+
+                    <FormItem
+                        label="单笔最大金额"
+                        invalid={(errors.max_amount && touched.max_amount) as boolean}
+                        errorMessage={errors.max_amount}
+                    >
+                        <Field name="max_amount">
+                            {({ field, form }: FieldProps) => (
+                                <NumericFormatInput
+                                    form={form}
+                                    field={field}
+                                    placeholder="例如: 10000.00"
+                                    customInput={AmountInput as ComponentType}
+                                    decimalScale={2}
+                                    onValueChange={(e) => {
+                                        form.setFieldValue(field.name, e.value)
+                                    }}
+                                />
+                            )}
+                        </Field>
+                    </FormItem>
+
+                    <FormItem
+                        label="日交易限额"
+                        invalid={(errors.daily_limit && touched.daily_limit) as boolean}
+                        errorMessage={errors.daily_limit}
+                    >
+                        <Field name="daily_limit">
+                            {({ field, form }: FieldProps) => (
+                                <NumericFormatInput
+                                    form={form}
+                                    field={field}
+                                    placeholder="例如: 100000.00"
+                                    customInput={AmountInput as ComponentType}
+                                    decimalScale={2}
+                                    onValueChange={(e) => {
+                                        form.setFieldValue(field.name, e.value)
+                                    }}
+                                />
+                            )}
                         </Field>
                     </FormItem>
                 </div>

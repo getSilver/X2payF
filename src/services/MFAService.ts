@@ -1,4 +1,5 @@
 import ApiService from './ApiService'
+import { MFA_ADMIN_API, USER_ADMIN_API } from '@/constants/api.constant'
 import type {
     EnrollTOTPRequest,
     TOTPEnrollmentResponse,
@@ -7,21 +8,6 @@ import type {
     MFAFactor,
     ResetUserMFARequest,
 } from '@/@types/mfa'
-
-// ==================== API 路径配置 ====================
-
-const MFA_API = {
-    // TOTP 管理
-    TOTP_ENROLL: '/api/v1/mfa/totp/enroll',
-    TOTP_VERIFY: '/api/v1/mfa/totp/verify',
-    // 邮箱管理
-    EMAIL_ENROLL: '/api/v1/mfa/email/enroll',
-    // 因子管理
-    FACTORS: '/api/v1/mfa/factors',
-    FACTOR_DETAIL: (id: string) => `/api/v1/mfa/factors/${id}`,
-    // 管理员操作
-    ADMIN_RESET_MFA: (userId: string) => `/api/v1/admin/users/${userId}/mfa`,
-}
 
 // ==================== TOTP 管理 ====================
 
@@ -32,7 +18,7 @@ const MFA_API = {
  */
 export async function apiEnrollTOTP(data: EnrollTOTPRequest) {
     return ApiService.fetchData<TOTPEnrollmentResponse, EnrollTOTPRequest>({
-        url: MFA_API.TOTP_ENROLL,
+        url: MFA_ADMIN_API.TOTP_ENROLL,
         method: 'post',
         data,
     })
@@ -50,7 +36,7 @@ export async function apiVerifyTOTPEnrollment(
         { message: string; factor_id: string },
         VerifyTOTPEnrollmentRequest
     >({
-        url: MFA_API.TOTP_VERIFY,
+        url: MFA_ADMIN_API.TOTP_VERIFY,
         method: 'post',
         data,
     })
@@ -65,7 +51,7 @@ export async function apiVerifyTOTPEnrollment(
  */
 export async function apiEnrollEmail(data: EnrollEmailRequest) {
     return ApiService.fetchData<MFAFactor, EnrollEmailRequest>({
-        url: MFA_API.EMAIL_ENROLL,
+        url: MFA_ADMIN_API.EMAIL_ENROLL,
         method: 'post',
         data,
     })
@@ -79,7 +65,7 @@ export async function apiEnrollEmail(data: EnrollEmailRequest) {
  */
 export async function apiListMFAFactors() {
     return ApiService.fetchData<MFAFactor[]>({
-        url: MFA_API.FACTORS,
+        url: MFA_ADMIN_API.FACTORS,
         method: 'get',
     })
 }
@@ -87,12 +73,14 @@ export async function apiListMFAFactors() {
 /**
  * 解绑 MFA 因子
  * @param factorId 因子 ID
+ * @param code 验证码（6位数字）
  * @returns 操作结果
  */
-export async function apiUnenrollFactor(factorId: string) {
+export async function apiUnenrollFactor(factorId: string, code: string) {
     return ApiService.fetchData<{ message: string; factor_id: string }>({
-        url: MFA_API.FACTOR_DETAIL(factorId),
+        url: MFA_ADMIN_API.factor(factorId),
         method: 'delete',
+        data: { code },
     })
 }
 
@@ -112,7 +100,7 @@ export async function apiResetUserMFA(
         { message: string; user_id: string },
         ResetUserMFARequest
     >({
-        url: MFA_API.ADMIN_RESET_MFA(userId),
+        url: USER_ADMIN_API.resetMfa(userId),
         method: 'delete',
         data,
     })

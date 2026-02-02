@@ -141,7 +141,7 @@ export const userDetailData = [
                 date: 1631532800,
             },
         ],
-        paymentMethod: [
+        payment_method: [
             {
                 cardHolderName: 'Carolyn Perkins',
                 cardType: 'VISA',
@@ -218,7 +218,7 @@ export const userDetailData = [
                 date: 1631532800,
             },
         ],
-        paymentMethod: [
+        payment_method: [
             {
                 cardHolderName: 'Terrance Moreno',
                 cardType: 'VISA',
@@ -295,7 +295,7 @@ export const userDetailData = [
                 date: 1631532800,
             },
         ],
-        paymentMethod: [
+        payment_method: [
             {
                 cardHolderName: 'Ron Vargas',
                 cardType: 'VISA',
@@ -372,7 +372,7 @@ export const userDetailData = [
                 date: 1631532800,
             },
         ],
-        paymentMethod: [
+        payment_method: [
             {
                 cardHolderName: 'Luke Cook',
                 cardType: 'VISA',
@@ -449,7 +449,7 @@ export const userDetailData = [
                 date: 1631532800,
             },
         ],
-        paymentMethod: [
+        payment_method: [
             {
                 cardHolderName: 'Joyce Freeman',
                 cardType: 'VISA',
@@ -526,7 +526,7 @@ export const userDetailData = [
                 date: 1631532800,
             },
         ],
-        paymentMethod: [
+        payment_method: [
             {
                 cardHolderName: 'Samantha Phillips',
                 cardType: 'VISA',
@@ -603,7 +603,7 @@ export const userDetailData = [
                 date: 1631532800,
             },
         ],
-        paymentMethod: [
+        payment_method: [
             {
                 cardHolderName: 'Tara Fletcher',
                 cardType: 'VISA',
@@ -680,7 +680,7 @@ export const userDetailData = [
                 date: 1631532800,
             },
         ],
-        paymentMethod: [
+        payment_method: [
             {
                 cardHolderName: 'Frederick Adams',
                 cardType: 'VISA',
@@ -757,7 +757,7 @@ export const userDetailData = [
                 date: 1631532800,
             },
         ],
-        paymentMethod: [
+        payment_method: [
             {
                 cardHolderName: 'Carolyn Hanson',
                 cardType: 'VISA',
@@ -834,7 +834,7 @@ export const userDetailData = [
                 date: 1631532800,
             },
         ],
-        paymentMethod: [
+        payment_method: [
             {
                 cardHolderName: 'Brittany Hale',
                 cardType: 'VISA',
@@ -911,7 +911,7 @@ export const userDetailData = [
                 date: 1631532800,
             },
         ],
-        paymentMethod: [
+        payment_method: [
             {
                 cardHolderName: 'Lloyd Obrien',
                 cardType: 'VISA',
@@ -988,7 +988,7 @@ export const userDetailData = [
                 date: 1631532800,
             },
         ],
-        paymentMethod: [
+        payment_method: [
             {
                 cardHolderName: 'Gabriella May',
                 cardType: 'VISA',
@@ -1065,7 +1065,7 @@ export const userDetailData = [
                 date: 1631532800,
             },
         ],
-        paymentMethod: [
+        payment_method: [
             {
                 cardHolderName: 'Lee Wheeler',
                 cardType: 'VISA',
@@ -1142,7 +1142,7 @@ export const userDetailData = [
                 date: 1631532800,
             },
         ],
-        paymentMethod: [
+        payment_method: [
             {
                 cardHolderName: 'Gail Barnes',
                 cardType: 'VISA',
@@ -1219,7 +1219,7 @@ export const userDetailData = [
                 date: 1631532800,
             },
         ],
-        paymentMethod: [
+        payment_method: [
             {
                 cardHolderName: 'Ella Robinson',
                 cardType: 'VISA',

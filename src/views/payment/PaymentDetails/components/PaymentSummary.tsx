@@ -3,20 +3,21 @@ import { NumericFormat } from 'react-number-format'
 
 type PaymentInfoProps = {
     label?: string
-    value?: number
+    value?: number | null
     isLast?: boolean
 }
 
 type PaymentSummaryProps = {
     data?: {
-        subAmount: number
-        Amount: number
-        Fees: number
-        total: number
+        amount?: number | null
+        settlement?: number | null
+        fee?: number | null
     }
 }
 
 const PaymentInfo = ({ label, value, isLast }: PaymentInfoProps) => {
+    const hasValue = typeof value === 'number' && Number.isFinite(value)
+    const displayValue = hasValue ? value / 100 : undefined
     return (
         <li
             className={`flex items-center justify-between${!isLast ? ' mb-3' : ''
@@ -24,14 +25,16 @@ const PaymentInfo = ({ label, value, isLast }: PaymentInfoProps) => {
         >
             <span>{label}</span>
             <span className="font-semibold">
-                <NumericFormat
-                    displayType="text"
-                    value={(Math.round((value as number) * 100) / 100).toFixed(
-                        3
-                    )}
-                    prefix={'$'}
-                    thousandSeparator={true}
-                />
+                {hasValue ? (
+                    <NumericFormat
+                        displayType="text"
+                        value={(Math.round(displayValue * 100) / 100).toFixed(3)}
+                        prefix={'$'}
+                        thousandSeparator={true}
+                    />
+                ) : (
+                    '-'
+                )}
             </span>
         </li>
     )
@@ -42,11 +45,10 @@ const PaymentSummary = ({ data }: PaymentSummaryProps) => {
         <Card className="mb-4">
             <h5 className="mb-4">Payment Summary</h5>
             <ul>
-                <PaymentInfo label="subAmount提交金额" value={data?.subAmount} />
-                <PaymentInfo label="fee(6%)费用" value={data?.Fees} />
-                <PaymentInfo label="Amount实收" value={data?.Amount} />
+                <PaymentInfo label="Amount" value={data?.amount} />
+                <PaymentInfo label="fee(6%)费用" value={data?.fee} />
                 <hr className="mb-3" />
-                <PaymentInfo isLast label="Total总计" value={data?.total} />
+                <PaymentInfo isLast label="Settlement " value={data?.settlement } />
             </ul>
         </Card>
     )

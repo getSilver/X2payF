@@ -58,26 +58,33 @@ function useAuth() {
         try {
             const resp = await apiSignIn(values)
 
-            if (resp.data) {
+            // 后端返回格式: { code, message, data: { requires_mfa, session, ... } }
+            // AxiosResponse.data 就是后端的整个响应体
+            const responseData = resp.data as any
+
+            // 检查后端返回的 data 字段
+            if (responseData && responseData.data) {
+                const loginData = responseData.data
+
                 // 检查是否需要 MFA 验证
-                if (resp.data.requires_mfa) {
+                if (loginData.requires_mfa) {
                     // 需要 MFA，保存用户 ID 等待验证
                     dispatch(
                         setMFAPending({
-                            userId: resp.data.user_id || '',
+                            userId: loginData.user_id || '',
                         })
                     )
                     return {
                         status: 'mfa_required',
-                        message: resp.data.message || '需要进行 MFA 验证',
-                        userId: resp.data.user_id,
+                        message: loginData.message || '需要进行 MFA 验证',
+                        userId: loginData.user_id,
                     }
                 }
 
                 // 不需要 MFA，直接登录成功
-                if (resp.data.session) {
+                if (loginData.session) {
                     const { session_token, user_id, expires_at } =
-                        resp.data.session
+                        loginData.session
 
                     dispatch(
                         signInSuccess({
@@ -146,15 +153,18 @@ function useAuth() {
                 factor_id: factorId,
             })
 
-            if (resp.data) {
+            // 后端返回格式: { code, message, data: { challenge_id, ... } }
+            const responseData = resp.data as any
+            if (responseData && responseData.data) {
+                const challengeData = responseData.data
                 dispatch(
                     setMFAChallenge({
-                        challengeId: resp.data.challenge_id,
+                        challengeId: challengeData.challenge_id,
                     })
                 )
                 return {
                     status: 'success',
-                    message: resp.data.message || '验证码已发送',
+                    message: challengeData.message || '验证码已发送',
                 }
             }
 
@@ -196,8 +206,11 @@ function useAuth() {
                 challenge_id: mfaPending.challengeId,
             })
 
-            if (resp.data) {
-                const { session_token, user_id, expires_at } = resp.data
+            // 后端返回格式: { code, message, data: { session_token, ... } }
+            const responseData = resp.data as any
+            if (responseData && responseData.data) {
+                const sessionData = responseData.data
+                const { session_token, user_id, expires_at } = sessionData
 
                 dispatch(
                     signInSuccess({

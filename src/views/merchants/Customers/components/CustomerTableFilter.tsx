@@ -17,10 +17,14 @@ type Option = {
 
 const { Control } = components
 
+// 后端状态选项
 const options: Option[] = [
-    { value: '', label: 'All', color: 'bg-gray-500' },
-    { value: 'active', label: 'Active', color: 'bg-emerald-500' },
-    { value: 'blocked', label: 'Blocked', color: 'bg-red-500' },
+    { value: '', label: '全部', color: 'bg-gray-500' },
+    { value: 'Normal', label: '正常', color: 'bg-emerald-500' },
+    { value: 'Locked', label: '锁定', color: 'bg-orange-500' },
+    { value: 'Frozen', label: '冻结', color: 'bg-blue-500' },
+    { value: 'Suspended', label: '暂停', color: 'bg-yellow-500' },
+    { value: 'Disabled', label: '禁用', color: 'bg-red-500' },
 ]
 
 const CustomSelectOption = ({

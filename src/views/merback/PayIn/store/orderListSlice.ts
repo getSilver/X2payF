@@ -9,6 +9,7 @@ import {
     apiDeleteSalesOrders,
 } from '@/services/PaymentService'
 import type { TableQueries } from '@/@types/common'
+import type { PaymentStatus } from '@/@types/payment'
 
 export type Order = {
     id: string          // 交易ID
@@ -18,14 +19,14 @@ export type Order = {
     succDate: number    // 成功时间
     sdate: number       // 成功时间 (兼容组件)
     customer: string    // 客户信息
-    status: number      // 订单状态
+    status: PaymentStatus      // 订单状�?
     paymentMethod: string    // 支付方式
-    paymentIdentifier: string // 支付标识符
-    totalAmount: number // 总金额
+    paymentIdentifier: string // 支付标识�?
+    totalAmount: number // 总金�?
     subAmount: number   // 提交金额
     amount: number      // 实际金额
-    fee: number         // 手续费
-    channel: string     // 通道名
+    fee: number         // 手续�?
+    channel: string     // 通道�?
     actionType: number  // 交易方向
     action: string      // 交易动作
 }
@@ -40,7 +41,7 @@ type GetSalesOrdersResponse = {
 type FilterQueries = {
     name: string
     category: string[]
-    status: number[]
+    status: PaymentStatus[]
     productStatus: number
 }
 
@@ -78,7 +79,7 @@ export const deleteOrders = async (data: { id: string | string[] }) => {
 export const initialTableData: TableQueries = {
     total: 0,
     pageIndex: 1,
-    pageSize: 25, // 默认每页显示25条记录
+    pageSize: 25, // 默认每页显示25条记�?
     query: '',
     sort: {
         order: '',
@@ -93,7 +94,7 @@ const initialState: SalesOrderListState = {
     filterData: {
         name: '',
         category: ['bags', 'cloths', 'devices', 'shoes', 'watches'],
-        status: [0, 1, 2],
+        status: ['SUCCESS', 'PENDING', 'FAILED'],
         productStatus: 0,
     },
     selectedRows: [],
@@ -163,3 +164,7 @@ export const {
 } = orderListSlice.actions
 
 export default orderListSlice.reducer
+
+
+
+

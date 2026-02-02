@@ -59,13 +59,13 @@ type SalesOrderDetailsResponse = {
         // phone: string
         img: string
         // previousOrder: number
-        shippingAddress: {
+        paymentInfo: {
             line1: string
             line2: string
             line3: string
             line4: string
         }
-        billingAddress: {
+        receiptInfo: {
             line1: string
             line2: string
             line3: string

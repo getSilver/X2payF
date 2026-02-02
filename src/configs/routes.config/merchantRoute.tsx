@@ -12,7 +12,7 @@ const merchantRoute: Routes = [
     },
     {
         key: 'merOrders.payIn',
-        path: `${MER_PREFIX_PATH}/pay-in`,
+        path: `${MER_PREFIX_PATH}/payment`,
         component: lazy(() => import('@/views/merback/PayIn')),
         authority: [],
     },

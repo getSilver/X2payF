@@ -1,142 +1,222 @@
 import AdaptableCard from '@/components/shared/AdaptableCard'
 import { FormItem } from '@/components/ui/Form'
 import Input from '@/components/ui/Input'
-import Select from '@/components/ui/Select'
-import CreatableSelect from 'react-select/creatable'
-import { Field, FormikErrors, FormikTouched, FieldProps } from 'formik'
-
-type Options = {
-    label: string
-    value: string
-}[]
+import { NumericFormat, NumericFormatProps } from 'react-number-format'
+import { Field, FormikErrors, FormikTouched, FieldProps, FieldInputProps } from 'formik'
+import type { ComponentType } from 'react'
+import type { InputProps } from '@/components/ui/Input'
 
 type FormFieldsName = {
-    area: string
-    tags: Options
-    key: string
-    brand: string
+    production_endpoint: string
+    test_endpoint: string
+    merchant_id: string
+    app_id: string
+    secret_key: string
+    timeout: string
+    retry_count: string
+    retry_interval: string
 }
 
-type OrganizationFieldsProps = {
+type APIConfigFieldsProps = {
     touched: FormikTouched<FormFieldsName>
     errors: FormikErrors<FormFieldsName>
-    values: {
-        area: string
-        tags: Options
-        [key: string]: unknown
-    }
 }
 
-const area = [
-    { label: '巴西', value: 'brl' },
-    { label: '印度', value: 'inr' },
-    { label: '沙特', value: 'mxn' },
-    { label: '美国', value: 'usd' },
-    { label: '欧洲', value: 'eur' },
-]
+const NumericFormatInput = ({
+    onValueChange,
+    ...rest
+}: Omit<NumericFormatProps, 'form'> & {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    form: any
+    field: FieldInputProps<unknown>
+}) => {
+    return (
+        <NumericFormat
+            customInput={Input as ComponentType}
+            type="text"
+            autoComplete="off"
+            onValueChange={onValueChange}
+            {...rest}
+        />
+    )
+}
 
-const tags = [
-    { label: '代收', value: 'payin' },
-    { label: '代付', value: 'payout' },
-]
+const SuffixInput = (props: InputProps & { suffix: string }) => {
+    return <Input {...props} value={props.field.value} suffix={props.suffix} />
+}
 
-const OrganizationFields = (props: OrganizationFieldsProps) => {
-    const { values = { area: '', tags: [] }, touched, errors } = props
+const TimeoutInput = (props: InputProps) => {
+    return <Input {...props} value={props.field.value} suffix="秒" />
+}
+
+const RetryCountInput = (props: InputProps) => {
+    return <Input {...props} value={props.field.value} suffix="次" />
+}
+
+const RetryIntervalInput = (props: InputProps) => {
+    return <Input {...props} value={props.field.value} suffix="毫秒" />
+}
+
+const APIConfigFields = (props: APIConfigFieldsProps) => {
+    const { touched, errors } = props
 
     return (
         <AdaptableCard divider isLastChild className="mb-4">
-            <h5>Organizations 渠道信息</h5>
-            <p className="mb-6">Section to config channel information</p>
+            <h5>API 配置</h5>
+            <p className="mb-6">配置渠道的 API 端点和认证信息</p>
+            
+            {/* API 端点配置 */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="col-span-1">
-                    <FormItem
-                        label="Area地区"
-                        invalid={
-                            (errors.area && touched.area) as boolean
-                        }
-                        errorMessage={errors.area}
-                    >
-                        <Field name="area">
-                            {({ field, form }: FieldProps) => (
-                                <Select
-                                    field={field}
-                                    form={form}
-                                    options={area}
-                                    value={area.filter(
-                                        (area) =>
-                                            area.value === values.area
-                                    )}
-                                    onChange={(option) =>
-                                        form.setFieldValue(
-                                            field.name,
-                                            option?.value
-                                        )
-                                    }
-                                />
-                            )}
-                        </Field>
-                    </FormItem>
-                </div>
-                <div className="col-span-1">
-                    <FormItem
-                        label="Tags"
-                        invalid={
-                            (errors.tags && touched.tags) as unknown as boolean
-                        }
-                        errorMessage={errors.tags as string}
-                    >
-                        <Field name="tags">
-                            {({ field, form }: FieldProps) => (
-                                <Select
-                                    isMulti
-                                    componentAs={CreatableSelect}
-                                    field={field}
-                                    form={form}
-                                    options={tags}
-                                    value={values.tags}
-                                    onChange={(option) =>
-                                        form.setFieldValue(field.name, option)
-                                    }
-                                />
-                            )}
-                        </Field>
-                    </FormItem>
-                </div>
+                <FormItem
+                    label="生产环境端点"
+                    invalid={(errors.production_endpoint && touched.production_endpoint) as boolean}
+                    errorMessage={errors.production_endpoint}
+                >
+                    <Field
+                        type="text"
+                        autoComplete="off"
+                        name="production_endpoint"
+                        placeholder="https://api.example.com/v1"
+                        component={Input}
+                    />
+                </FormItem>
+
+                <FormItem
+                    label="测试环境端点"
+                    invalid={(errors.test_endpoint && touched.test_endpoint) as boolean}
+                    errorMessage={errors.test_endpoint}
+                >
+                    <Field
+                        type="text"
+                        autoComplete="off"
+                        name="test_endpoint"
+                        placeholder="https://sandbox.example.com/v1"
+                        component={Input}
+                    />
+                </FormItem>
             </div>
+
+            {/* 认证配置 */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="col-span-1">
-                    <FormItem
-                        label="上游网关URL"
-                        invalid={(errors.brand && touched.brand) as boolean}
-                        errorMessage={errors.brand}
-                    >
-                        <Field
-                            type="text"
-                            autoComplete="off"
-                            name="url"
-                            placeholder="网关URL"
-                            component={Input}
-                        />
-                    </FormItem>
-                </div>
-                <div className="col-span-1">
-                    <FormItem
-                        label="密钥"
-                        invalid={(errors.key && touched.key) as boolean}
-                        errorMessage={errors.key}
-                    >
-                        <Field
-                            type="text"
-                            autoComplete="off"
-                            name="key"
-                            placeholder="密钥"
-                            component={Input}
-                        />
-                    </FormItem>
-                </div>
+                <FormItem
+                    label="商户ID"
+                    invalid={(errors.merchant_id && touched.merchant_id) as boolean}
+                    errorMessage={errors.merchant_id}
+                >
+                    <Field
+                        type="text"
+                        autoComplete="off"
+                        name="merchant_id"
+                        placeholder="渠道分配的商户ID"
+                        component={Input}
+                    />
+                </FormItem>
+
+                <FormItem
+                    label="应用ID"
+                    invalid={(errors.app_id && touched.app_id) as boolean}
+                    errorMessage={errors.app_id}
+                >
+                    <Field
+                        type="text"
+                        autoComplete="off"
+                        name="app_id"
+                        placeholder="渠道分配的应用ID"
+                        component={Input}
+                    />
+                </FormItem>
+            </div>
+
+            <FormItem
+                label="密钥"
+                invalid={(errors.secret_key && touched.secret_key) as boolean}
+                errorMessage={errors.secret_key}
+            >
+                <Field
+                    type="password"
+                    autoComplete="off"
+                    name="secret_key"
+                    placeholder="渠道分配的密钥"
+                    component={Input}
+                />
+            </FormItem>
+
+            {/* 请求配置 */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FormItem
+                    label="超时时间"
+                    invalid={(errors.timeout && touched.timeout) as boolean}
+                    errorMessage={errors.timeout}
+                >
+                    <Field name="timeout">
+                        {({ field, form }: FieldProps) => (
+                            <NumericFormatInput
+                                form={form}
+                                field={field}
+                                placeholder="30"
+                                customInput={TimeoutInput as ComponentType}
+                                decimalScale={0}
+                                isAllowed={({ floatValue }) =>
+                                    floatValue === undefined || (floatValue >= 1 && floatValue <= 300)
+                                }
+                                onValueChange={(e) => {
+                                    form.setFieldValue(field.name, e.value)
+                                }}
+                            />
+                        )}
+                    </Field>
+                </FormItem>
+
+                <FormItem
+                    label="重试次数"
+                    invalid={(errors.retry_count && touched.retry_count) as boolean}
+                    errorMessage={errors.retry_count}
+                >
+                    <Field name="retry_count">
+                        {({ field, form }: FieldProps) => (
+                            <NumericFormatInput
+                                form={form}
+                                field={field}
+                                placeholder="3"
+                                customInput={RetryCountInput as ComponentType}
+                                decimalScale={0}
+                                isAllowed={({ floatValue }) =>
+                                    floatValue === undefined || (floatValue >= 0 && floatValue <= 10)
+                                }
+                                onValueChange={(e) => {
+                                    form.setFieldValue(field.name, e.value)
+                                }}
+                            />
+                        )}
+                    </Field>
+                </FormItem>
+
+                <FormItem
+                    label="重试间隔"
+                    invalid={(errors.retry_interval && touched.retry_interval) as boolean}
+                    errorMessage={errors.retry_interval}
+                >
+                    <Field name="retry_interval">
+                        {({ field, form }: FieldProps) => (
+                            <NumericFormatInput
+                                form={form}
+                                field={field}
+                                placeholder="1000"
+                                customInput={RetryIntervalInput as ComponentType}
+                                decimalScale={0}
+                                isAllowed={({ floatValue }) =>
+                                    floatValue === undefined || (floatValue >= 100 && floatValue <= 60000)
+                                }
+                                onValueChange={(e) => {
+                                    form.setFieldValue(field.name, e.value)
+                                }}
+                            />
+                        )}
+                    </Field>
+                </FormItem>
             </div>
         </AdaptableCard>
     )
 }
 
-export default OrganizationFields
+export default APIConfigFields

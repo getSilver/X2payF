@@ -95,21 +95,21 @@ const TradeTable = ({ data, loading, tableData }: TradeTableProps) => {
                 },
             },
             {
-                header: 'Fee变更',
-                accessorKey: 'price',
+                header: 'Fee',
+                accessorKey: 'fee',
                 cell: (props) => {
                     const row = props.row.original
-                    return <span>{row.price} {row.symbol}</span>
+                    return <span>{row.fee} {row.symbol}</span>
                 },
             },
             {
-                header: 'Amount结算金额',
-                accessorKey: 'amountSettlement',
+                header: 'Settlement',
+                accessorKey: 'settlement',
                 cell: (props) => {
                     const row = props.row.original
                     return (
                         <span>
-                            {row.amount} {row.symbol}
+                            {row.settlement} {row.symbol}
                         </span>
                     )
                 },

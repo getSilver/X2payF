@@ -9,7 +9,6 @@ import {
     setDrawerOpen,
     useAppDispatch,
     useAppSelector,
-    Customer,
 } from '../store'
 import useThemeClass from '@/utils/hooks/useThemeClass'
 import CustomerEditDialog from './CustomerEditDialog'
@@ -17,14 +16,37 @@ import { Link } from 'react-router-dom'
 import dayjs from 'dayjs'
 import cloneDeep from 'lodash/cloneDeep'
 import type { OnSortParam, ColumnDef } from '@/components/shared/DataTable'
-import { NumericFormat } from 'react-number-format'
+import type { AccountStatus } from '@/@types/account'
+import type { UnifiedAccount } from '@/services/api/AccountApi'
 
-const statusColor: Record<string, string> = {
-    active: 'bg-emerald-500',
-    blocked: 'bg-red-500',
+// 状态颜色映射（后端状态）
+const statusColor: Record<AccountStatus, string> = {
+    Normal: 'bg-emerald-500',
+    Locked: 'bg-orange-500',
+    Frozen: 'bg-blue-500',
+    Suspended: 'bg-yellow-500',
+    Disabled: 'bg-red-500',
+    Deleted: 'bg-gray-500',
 }
 
-const ActionColumn = ({ row }: { row: Customer }) => {
+// 状态中文显示
+const statusLabel: Record<AccountStatus, string> = {
+    Normal: '正常',
+    Locked: '锁定',
+    Frozen: '冻结',
+    Suspended: '暂停',
+    Disabled: '禁用',
+    Deleted: '已删除',
+}
+
+// 账户类型中文显示
+const accountTypeLabel: Record<string, string> = {
+    MERCHANT: '商户',
+    AGENT: '代理商',
+    CHANNEL_PARTNER: '渠道合作商',
+}
+
+const ActionColumn = ({ row }: { row: UnifiedAccount }) => {
     const { textTheme } = useThemeClass()
     const dispatch = useAppDispatch()
 
@@ -38,17 +60,17 @@ const ActionColumn = ({ row }: { row: Customer }) => {
             className={`${textTheme} cursor-pointer select-none font-semibold`}
             onClick={onEdit}
         >
-            Edit
+            编辑
         </div>
     )
 }
 
-const NameColumn = ({ row }: { row: Customer }) => {
+const NameColumn = ({ row }: { row: UnifiedAccount }) => {
     const { textTheme } = useThemeClass()
 
     return (
         <div className="flex items-center">
-            <Avatar size={28} shape="circle" src={row.img} />
+            <Avatar size={28} shape="circle" />
             <Link
                 className={`hover:${textTheme} ml-2 rtl:mr-2 font-semibold`}
                 to={`/app/merchants/mer-details?id=${row.id}`}
@@ -84,10 +106,10 @@ const Customers = () => {
         [pageIndex, pageSize, sort, query, total]
     )
 
-    const columns: ColumnDef<Customer>[] = useMemo(
+    const columns: ColumnDef<UnifiedAccount>[] = useMemo(
         () => [
             {
-                header: 'Name',
+                header: '名称',
                 accessorKey: 'name',
                 cell: (props) => {
                     const row = props.row.original
@@ -95,47 +117,45 @@ const Customers = () => {
                 },
             },
             {
-                header: 'ID',
+                header: '账户ID',
                 accessorKey: 'id',
             },
             {
-                header: 'Amount',
-                accessorKey: 'amount',
+                header: '类型',
+                accessorKey: 'account_type',
                 cell: (props) => {
                     const row = props.row.original
-                    return (<div className="flex items-center">
-                        <NumericFormat
-                            displayType="text"
-                            value={(Math.round(row.amount * 100) / 100).toFixed(3)}
-                            prefix={'$'}
-                            thousandSeparator={true}
-                        />
-                    </div>)
+                    return accountTypeLabel[row.account_type] || row.account_type
                 },
             },
             {
-                header: 'Status',
+                header: '邮箱',
+                accessorKey: 'contact_email',
+            },
+            {
+                header: '状态',
                 accessorKey: 'status',
                 cell: (props) => {
                     const row = props.row.original
+                    const status = row.status as AccountStatus
                     return (
                         <div className="flex items-center">
-                            <Badge className={statusColor[row.status]} />
-                            <span className="ml-2 rtl:mr-2 capitalize">
-                                {row.status}
+                            <Badge className={statusColor[status] || 'bg-gray-500'} />
+                            <span className="ml-2 rtl:mr-2">
+                                {statusLabel[status] || status}
                             </span>
                         </div>
                     )
                 },
             },
             {
-                header: 'Last online',
-                accessorKey: 'lastOnline',
+                header: '创建时间',
+                accessorKey: 'created_at',
                 cell: (props) => {
                     const row = props.row.original
                     return (
                         <div className="flex items-center">
-                            {dayjs.unix(row.lastOnline).format('MM/DD/YYYY')}
+                            {dayjs(row.created_at).format('YYYY-MM-DD HH:mm')}
                         </div>
                     )
                 },

@@ -25,7 +25,7 @@ const CurrentSubscription = () => {
 
     return (
         <div className="mb-8">
-            <h6 className="mb-4">Sub说明：账户注册后是非激活关闭状态，点击激活，激活。点击沙箱是沙箱，点击运营进入运营正式环境，再点激活关闭账户</h6>
+            <h6 className="mb-4">默认沙盒，点击进入正式，点击取消进入沙盒</h6>
             {data.map((sub) => (
                 <Card key={sub.plan} bordered className="mb-4">
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -46,7 +46,6 @@ const CurrentSubscription = () => {
                                         </span>
                                     </Tag>
                                 </div>
-                                
                             </div>
                         </div>
                         <div className="flex">
@@ -56,7 +55,7 @@ const CurrentSubscription = () => {
                                     variant="plain"
                                     onClick={unsubscribe}
                                 >
-                                    沙箱 plan
+                                    取消 plan
                                 </Button>
                             )}
                             <Button
@@ -64,7 +63,7 @@ const CurrentSubscription = () => {
                                 className="ml-2 rtl:mr-2"
                                 onClick={subscribe}
                             >
-                                {subscribed ? '激活' : '正式环境'} Plan
+                                {subscribed ? '正式' : '沙盒'} Plan
                             </Button>
                         </div>
                     </div>

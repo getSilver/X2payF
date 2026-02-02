@@ -7,19 +7,24 @@ import dayjs from 'dayjs'
 import WebhookTip from '@/views/WebhookTip'
 
 type Event = {
-    time: number
+    time: string
     action: string
     details?: string
 }
 
 type ActivityProps = {
     data?: {
-        date: number
+        date: string
         events: Event[]
     }[]
 }
 
 const Activity = ({ data = [] }: ActivityProps) => {
+    const formatIso = (value: string) => {
+        const parsed = dayjs(value)
+        return parsed.isValid() ? parsed.toISOString() : '-'
+    }
+
     return (
         <Card className="mb-4">
             <h5 className="mb-4">Activity</h5>
@@ -29,7 +34,7 @@ const Activity = ({ data = [] }: ActivityProps) => {
                     className={!isLastChild(data, i) ? 'mb-8' : ''}
                 >
                     <div className="mb-2 font-semibold uppercase opacity-80">
-                        {dayjs.unix(activity.date).format('DD/MM/YYYYTHH:mm:sssZ')}
+                        {formatIso(activity.date)}
                     </div>
                     <Timeline>
                         {activity.events.map((event, j) => (
@@ -61,7 +66,7 @@ const Activity = ({ data = [] }: ActivityProps) => {
                                     </div>
                                 )}
                                 <div>
-                                    {dayjs.unix(event.time).format('hh:mm A')}
+                                    {formatIso(event.time)}
                                 </div>
                             </Timeline.Item>
                         ))}

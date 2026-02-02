@@ -9,6 +9,7 @@ import {
     apiDeleteSalesOrders,
 } from '@/services/PaymentService'
 import type { TableQueries } from '@/@types/common'
+import type { PaymentStatus } from '@/@types/payment'
 
 type Order = {
     id: string      //交易ID
@@ -17,7 +18,7 @@ type Order = {
     date: number    //提交时间
     succDate: number    //成功时间Successful time
     customer: string
-    status: number
+    status: PaymentStatus
     paymentMetthod: string
     paymentIdendifier: string
     totalAmount: number     //结算金额

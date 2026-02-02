@@ -71,6 +71,21 @@ export interface ChannelStatusInfo {
 }
 
 /**
+ * 渠道指标
+ */
+export interface ChannelMetrics {
+    id: string
+    channel_id: string
+    date: string
+    transaction_count: number
+    transaction_amount: string
+    success_rate: number
+    avg_response_time: number
+    error_count: number
+    created_at: string
+}
+
+/**
  * 渠道列表查询参数
  */
 export interface ChannelListParams {
@@ -116,12 +131,17 @@ export interface TieredFeeRule {
 }
 
 /**
- * 费率配置请求
+ * 费率配置请求（区分 Pay_In 和 Pay_Out）
  */
 export interface SetFeeConfigRequest {
-    percentage_fee: string
-    fixed_fee: string
-    tiered_rules?: TieredFeeRule[]
+    // Pay_In（代收）费率配置
+    pay_in_percentage_fee: string
+    pay_in_fixed_fee: string
+    pay_in_tiered_rules?: TieredFeeRule[]
+    // Pay_Out（代付）费率配置
+    pay_out_percentage_fee: string
+    pay_out_fixed_fee: string
+    pay_out_tiered_rules?: TieredFeeRule[]
 }
 
 /**
@@ -172,12 +192,17 @@ export interface APIConfigResponse {
 }
 
 /**
- * 费率配置响应
+ * 费率配置响应（区分 Pay_In 和 Pay_Out）
  */
 export interface FeeConfigResponse {
-    percentage_fee: string
-    fixed_fee: string
-    tiered_rules: TieredFeeRule[]
+    // Pay_In（代收）费率配置
+    pay_in_percentage_fee: string
+    pay_in_fixed_fee: string
+    pay_in_tiered_rules: TieredFeeRule[]
+    // Pay_Out（代付）费率配置
+    pay_out_percentage_fee: string
+    pay_out_fixed_fee: string
+    pay_out_tiered_rules: TieredFeeRule[]
 }
 
 /**

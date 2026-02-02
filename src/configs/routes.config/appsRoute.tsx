@@ -13,7 +13,7 @@ const appsRoute: Routes = [
     },
     {
         key: 'appsOrders.payIn',
-        path: `${APP_PREFIX_PATH}/payment/pay-in`,
+        path: `${APP_PREFIX_PATH}/payment`,
         component: lazy(() => import('@/views/payment/PayIn')),
         authority: [ADMIN, USER],
     },
@@ -110,12 +110,12 @@ const appsRoute: Routes = [
         component: lazy(() => import('@/views/finances/Dashboard/Dashboard')),
         authority: [ADMIN, USER],
     },
-    // {
-    //     key: 'appsFinances.withdraw',
-    //     path: `${APP_PREFIX_PATH}/finances/withdraw`,
-    //     component: lazy(() => import('@/views/finances/Withdraw')),
-    //     authority: [ADMIN, USER],
-    // },
+    {
+        key: 'appsFinances.withdraw',
+        path: `${APP_PREFIX_PATH}/finances/withdraw`,
+        component: lazy(() => import('@/views/finances/Withdraw')),
+        authority: [ADMIN, USER],
+    },
      {
         key: 'appsFinances.financialFlow',
         path: `${APP_PREFIX_PATH}/finances/financial-flow`,
@@ -149,7 +149,7 @@ const appsRoute: Routes = [
         component: lazy(() => import('@/views/risk/Rules')),
         authority: [ADMIN, USER],
         meta: {
-            header: 'Risk Rules',
+            header: '',
             headerContainer: true,
         },
     },

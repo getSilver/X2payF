@@ -3,9 +3,11 @@ import Badge from '@/components/ui/Badge'
 import Tooltip from '@/components/ui/Tooltip'
 import DataTable from '@/components/shared/DataTable'
 import Avatar from '@/components/ui/Avatar'
-import { HiOutlineEye, HiOutlineArrowUp,
+import {
+    HiOutlineEye,
+    HiOutlineArrowUp,
     HiOutlineArrowDown,
-     HiOutlineNoSymbol } from 'react-icons/hi2'
+} from 'react-icons/hi2'
 import { NumericFormat } from 'react-number-format'
 import {
     setSelectedRows,
@@ -23,6 +25,7 @@ import useThemeClass from '@/utils/hooks/useThemeClass'
 import { useNavigate } from 'react-router-dom'
 import cloneDeep from 'lodash/cloneDeep'
 import dayjs from 'dayjs'
+import type { PaymentOrder, PaymentStatus, TransactionType } from '@/@types/payment'
 import type {
     DataTableResetHandle,
     OnSortParam,
@@ -30,9 +33,9 @@ import type {
     Row,
 } from '@/components/shared/DataTable'
 
-const ActionIcon = ({ type }: { type: number }) => {
+const ActionIcon = ({ type }: { type: TransactionType }) => {
     switch (type) {
-        case 0:
+        case 'PAY_IN':
             return (
                 <Avatar
                     size="sm"
@@ -44,7 +47,7 @@ const ActionIcon = ({ type }: { type: number }) => {
                     }
                 />
             )
-        case 1:
+        case 'PAY_OUT':
             return (
                 <Avatar
                     size="sm"
@@ -56,64 +59,69 @@ const ActionIcon = ({ type }: { type: number }) => {
                     }
                 />
             )
-        case 2:
-            return (
-                <Avatar
-                    size="sm"
-                    className="bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-100"
-                    icon={<HiOutlineNoSymbol />}
-                />
-            )
-        default:
-            return <Avatar />
     }
 }
 
 const orderStatusColor: Record<
-    number,
+    PaymentStatus,
     {
         label: string
         dotClass: string
         textClass: string
     }
 > = {
-    0: {
+    SUCCESS: {
         label: 'Paid',
         dotClass: 'bg-emerald-500',
         textClass: 'text-emerald-500',
     },
-    1: {
+    PENDING: {
         label: 'Pending',
         dotClass: 'bg-amber-500',
         textClass: 'text-amber-500',
     },
-    2: {
-        label: 'Unpaid',
-        dotClass: 'bg-green-500',
-        textClass: 'text-green-500'
+    PROCESSING: {
+        label: 'Processing',
+        dotClass: 'bg-amber-500',
+        textClass: 'text-amber-500',
     },
-    //退款
-    3: {
+    FAILED: {
+        label: 'Failed',
+        dotClass: 'bg-red-500',
+        textClass: 'text-red-500',
+    },
+    CANCELLED: {
+        label: 'Cancelled',
+        dotClass: 'bg-gray-500',
+        textClass: 'text-gray-500',
+    },
+    CLOSED: {
+        label: 'Closed',
+        dotClass: 'bg-gray-500',
+        textClass: 'text-gray-500',
+    },
+    REFUNDED: {
         label: 'Refund',
         dotClass: 'bg-red-500',
-        textClass: 'text-red-500'
+        textClass: 'text-red-500',
     },
 }
 
+type PaymentMethod = PaymentOrder['payment_method']
 const PaymentMethodImage = ({
-    paymentMethod,
+    payment_method,
     className,
 }: {
-    paymentMethod: string
+    payment_method: PaymentMethod
     className: string
 }) => {
-    switch (paymentMethod) {
+    switch (payment_method) {
         case 'visa':
             return (
                 <img
                     className={className}
                 src="/img/others/img-8.png"
-                alt={paymentMethod}
+                alt={payment_method}
                 />
             )
         case 'master':
@@ -121,7 +129,7 @@ const PaymentMethodImage = ({
                 <img
                     className={className}
                 src="/img/others/img-9.png"
-                alt={paymentMethod}
+                alt={payment_method}
                 />
             )
          case 'pix':
@@ -129,7 +137,7 @@ const PaymentMethodImage = ({
                 <img
                     className={className}
                 src="/img/others/img-12.png"
-                alt={paymentMethod}
+                alt={payment_method}
                 />
             )
         default:
@@ -142,7 +150,7 @@ const OrderColumn = ({ row }: { row: Order }) => {
     const navigate = useNavigate()
 
     const onView = useCallback(() => {
-        navigate(`/app/payment/order-details/${row.id}`)
+        navigate(`/app/payment/order-details/${row.payment_id}`)
     }, [navigate, row])
 
     return (
@@ -150,7 +158,7 @@ const OrderColumn = ({ row }: { row: Order }) => {
             className={`cursor-pointer select-none font-semibold hover:${textTheme}`}
             onClick={onView}
         >
-            #{row.id}
+            #{row.payment_id}
         </span>
     )
 }
@@ -162,11 +170,11 @@ const ActionColumn = ({ row }: { row: Order }) => {
 
     const onDelete = () => {
         dispatch(setDeleteMode('single'))
-        dispatch(setSelectedRow([row.id]))
+        dispatch(setSelectedRow([row.payment_id]))
     }
 
     const onView = useCallback(() => {
-        navigate(`/app/payment/order-details/${row.id}`)
+        navigate(`/app/payment/order-details/${row.payment_id}`)
     }, [navigate, row])
 
     return (
@@ -233,16 +241,16 @@ const OrdersTable = () => {
         () => [
             {
                 header: 'Action',
-                accessorKey: 'action',
+                accessorKey: 'transaction_type',
                 cell: (props) => {
                     const row = props.row.original
                     return (
                         <div className="flex items-center gap-2">
                             <div>
-                                <ActionIcon type={row.actionType} />
+                                <ActionIcon type={row.transaction_type} />
                             </div>
                             <span className="font-semibold heading-text whitespace-nowrap">
-                                {row.action}
+                                {row.transaction_type}
                             </span>
                         </div>
                     )
@@ -250,33 +258,32 @@ const OrdersTable = () => {
             },
             {
                 header: 'Order交易ID',
-                accessorKey: 'id',
+                accessorKey: 'payment_id',
                 cell: (props) => <OrderColumn row={props.row.original} />,
             },
             {
                 header: 'Channel渠道ID',
-                accessorKey: 'cid',
+                accessorKey: 'channel_id',
             },
             {
                 header: 'Date创建时间',
-                accessorKey: 'date',
+                accessorKey: 'created_at',
                 cell: (props) => {
                     const row = props.row.original
                     return (
-                        <span>{dayjs.unix(row.date).format('DD/MM/YYYYTHH:mm:sssZ[Z]')}</span>
+                        <span>{dayjs(row.created_at).format('DD/MM/YYYY HH:mm:ss')}</span>
                     )
-
                 },
             },
             {
                 header: 'Customer商户ID',
-                accessorKey: 'customer',
+                accessorKey: 'merchant_id',
             },
             {
-                header: 'Status状态',
+                header: 'Status',
                 accessorKey: 'status',
                 cell: (props) => {
-                    const { status } = props.row.original
+                    const status = props.row.original.status
                     return (
                         <div className="flex items-center">
                             <Badge
@@ -293,18 +300,18 @@ const OrdersTable = () => {
             },
             {
                 header: 'Payment Method',
-                accessorKey: 'paymentMethod',
+                accessorKey: 'payment_method',
                 cell: (props) => {
-                    const { paymentMethod, paymentIdentifier } =
+                    const { payment_method, merchant_tx_id } =
                         props.row.original
                     return (
                         <span className="flex items-center">
                             <PaymentMethodImage
                                 className="max-h-[20px]"
-                                paymentMethod={paymentMethod}
+                                payment_method={payment_method}
                             />
                             <span className="ltr:ml-2 rtl:mr-2">
-                                {paymentIdentifier}
+                                {merchant_tx_id}
                             </span>
                         </span>
                     )
@@ -312,24 +319,23 @@ const OrdersTable = () => {
             },
             {
                 header: 'Amount',
-                accessorKey: 'totalAmount',
+                accessorKey: 'amount',
                 cell: (props) => {
-                    const { totalAmount } = props.row.original
+                    const { amount } = props.row.original
+                    const displayValue = amount / 100
                     return (
                         <NumericFormat
                             displayType="text"
-                            value={(
-                                Math.round(totalAmount * 100) / 100
-                            ).toFixed(2)}
+                            value={(Math.round(displayValue * 100) / 100).toFixed(2)}
                             prefix={'$'}
                             thousandSeparator={true}
-                        />
+                            />
                     )
                 },
             },
             {
                 header: '',
-                id: 'action',
+                id: 'actionMenu',
                 cell: (props) => <ActionColumn row={props.row.original} />,
             },
         ],
@@ -357,9 +363,9 @@ const OrdersTable = () => {
 
     const onRowSelect = (checked: boolean, row: Order) => {
         if (checked) {
-            dispatch(addRowItem([row.id]))
+            dispatch(addRowItem([row.payment_id]))
         } else {
-            dispatch(removeRowItem(row.id))
+            dispatch(removeRowItem(row.payment_id))
         }
     }
 
@@ -369,7 +375,7 @@ const OrdersTable = () => {
                 const originalRows = rows.map((row) => row.original)
                 const selectedIds: string[] = []
                 originalRows.forEach((row) => {
-                    selectedIds.push(row.id)
+                    selectedIds.push(row.payment_id)
                 })
                 dispatch(setSelectedRows(selectedIds))
             } else {

@@ -89,13 +89,14 @@ export default function salesFakeApi(server: Server, apiPrefix: string) {
         let total = orders.length
 
         if (key) {
-            if (
-                (key === 'date' ||
-                    key === 'status' ||
-                    key === 'paymentMethod') &&
-                order
-            ) {
+            if (key === 'date' && order) {
                 data.sort(sortBy(key, order === 'desc', parseInt as Primer))
+            } else if ((key === 'status' || key === 'paymentMethod') && order) {
+                data.sort(
+                    sortBy(key, order === 'desc', (a) =>
+                        (a as string).toUpperCase()
+                    )
+                )
             } else {
                 data.sort(
                     sortBy(key, order === 'desc', (a) =>

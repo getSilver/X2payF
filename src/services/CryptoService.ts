@@ -14,7 +14,7 @@ export async function apiGetPortfolioData<T>() {
     })
 }
 
-export async function apiGetWalletData<T>() {
+export async function apiGetWalletData<T>(params: { startDate: number; endDate: number } | undefined) {
     return ApiService.fetchData<T>({
         url: '/crypto/wallets',
         method: 'get',

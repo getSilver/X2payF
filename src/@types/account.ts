@@ -36,6 +36,7 @@ export interface Account {
  */
 export interface CreateMerchantRequest {
     request_id?: string      // 请求ID，用于幂等性控制（可选）
+    name: string             // 商户名称（必填）
     username: string         // 用户名，3-100字符（必填）
     password: string         // 密码，6-128字符（必填）
     email: string            // 邮箱，用于登录和通知（必填）

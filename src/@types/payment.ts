@@ -16,7 +16,7 @@ export type PaymentStatus =
     | 'CANCELLED'
     | 'CLOSED'
     | 'REFUNDED'
-
+  
 /**
  * 支付订单详情
  */
@@ -61,6 +61,9 @@ export interface PaymentListParams {
     end_date?: string
     page?: number
     page_size?: number
+    payment_id?: string      // 按支付ID搜索
+    merchant_tx_id?: string  // 按商户交易ID搜索
+    query?: string           // 通用搜索（交易ID或渠道ID）
 }
 
 /**

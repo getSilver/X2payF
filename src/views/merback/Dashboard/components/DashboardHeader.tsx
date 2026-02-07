@@ -18,9 +18,9 @@ const DashboardHeader = () => {
     const dispatch = useAppDispatch()
 
     const startDate = useAppSelector(
-        (state) => state.cryptoWallets?.data?.startDate
+        (state) => state.appWallets?.data?.startDate
     )
-    const endDate = useAppSelector((state) => state.cryptoWallets?.data?.endDate)
+    const endDate = useAppSelector((state) => state.appWallets?.data?.endDate)
 
     const isRangeSelected = startDate != null && endDate != null
 

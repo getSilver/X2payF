@@ -29,7 +29,9 @@ const ACCOUNT_API = {
     CREATE_MERCHANT: '/api/v1/admin/accounts/merchants',
     MERCHANT_LIST: '/api/v1/admin/merchants',
     MERCHANT_DETAIL: (id: string) => `/api/v1/admin/merchants/${id}/details`,
+    MERCHANT_UPDATE: (id: string) => `/api/v1/admin/merchants/${id}`,
     MERCHANT_APPLICATIONS: (id: string) => `/api/v1/admin/merchants/${id}/applications`,
+    MERCHANT_AGENT: (id: string) => `/api/v1/admin/merchants/${id}/agent`,
     
     // 应用管理
     APPLICATIONS: '/api/v1/admin/applications',
@@ -177,6 +179,10 @@ export interface CreateApplicationRequest {
         daily_limit?: number
         monthly_limit?: number
         settlement_limit?: number
+        // 提款手续费和汇率加点
+        withdrawal_fee_percent?: number   // 提款手续费百分比
+        exchange_rate_sell?: number       // 卖出汇率加点百分比（商户卖出本币换外币）
+        exchange_rate_buy?: number        // 买入汇率加点百分比（商户买入本币）
     }
 }
 
@@ -248,5 +254,37 @@ export async function apiGetChannelPartners(params?: AccountListParams) {
         url: ACCOUNT_API.CHANNEL_PARTNER_LIST,
         method: 'get',
         params,
+    })
+}
+
+/**
+ * 绑定商户到代理商
+ */
+export async function apiBindMerchantAgent(merchantId: string, agentId: string) {
+    return ApiService.fetchData<{ merchant_id: string; agent_id: string; message: string }>({
+        url: ACCOUNT_API.MERCHANT_AGENT(merchantId),
+        method: 'put',
+        data: { agent_id: agentId },
+    })
+}
+
+/**
+ * 解绑商户与代理商
+ */
+export async function apiUnbindMerchantAgent(merchantId: string) {
+    return ApiService.fetchData<{ merchant_id: string; message: string }>({
+        url: ACCOUNT_API.MERCHANT_AGENT(merchantId),
+        method: 'delete',
+    })
+}
+
+/**
+ * 更新商户信息
+ */
+export async function apiUpdateMerchant(merchantId: string, data: { name?: string; contact_email?: string }) {
+    return ApiService.fetchData<{ merchant_id: string; message: string }>({
+        url: ACCOUNT_API.MERCHANT_UPDATE(merchantId),
+        method: 'put',
+        data,
     })
 }

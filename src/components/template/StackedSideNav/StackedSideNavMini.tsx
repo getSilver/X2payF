@@ -10,7 +10,6 @@ import {
 } from '@/constants/theme.constant'
 import { NAV_ITEM_TYPE_ITEM } from '@/constants/navigation.constant'
 import AuthorityCheck from '@/components/shared/AuthorityCheck'
-import navigationConfig from '@/configs/navigation.config'
 import navigationIcon from '@/configs/navigation-icon.config'
 import useMenuActive from '@/utils/hooks/useMenuActive'
 import isEmpty from 'lodash/isEmpty'
@@ -29,6 +28,7 @@ export type SelectedMenuItem = {
 interface StackedSideNavMiniProps extends CommonProps {
     className?: string
     navMode: NavMode
+    navigationConfig: NavigationTree[]
     onChange: (item: SelectedMenuItem) => void
     routeKey: string
     activeKeys: string[]
@@ -41,6 +41,7 @@ interface StackedSideNavMiniProps extends CommonProps {
 const StackedSideNavMini = (props: StackedSideNavMiniProps) => {
     const {
         navMode,
+        navigationConfig,
         onChange,
         routeKey,
         activeKeys,

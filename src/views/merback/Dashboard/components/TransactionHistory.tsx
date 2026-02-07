@@ -19,6 +19,7 @@ import Button from '@/components/ui/Button'
 import QueryInput from './QueryInput'
 import cloneDeep from 'lodash/cloneDeep'
 import { shallowEqual } from 'react-redux'
+import { HiOutlineRefresh } from 'react-icons/hi'
 
 // 懒加载表格组件 - 从transaction模块导入
 const TradeTable = lazy(() => import('./transaction').then(mod => ({ default: mod.TradeTable })))
@@ -33,15 +34,25 @@ const TransactionHistory = () => {
     // 使用useMemo合并选择器，减少多次useAppSelector调用
     const { data, loading, selectedTab, tableData } = useAppSelector(
         (state) => ({
-            data: state.cryptoWallets?.data?.transactionHistoryData ?? [],
-            loading: state.cryptoWallets?.data?.transactionHistoryLoading ?? true,
-            selectedTab: state.cryptoWallets?.data?.selectedTab ?? 'trade',
-            tableData: state.cryptoWallets?.data?.tableData ?? initialTableData,
+            data: state.appWallets?.data?.transactionHistoryData ?? [],
+            loading: state.appWallets?.data?.transactionHistoryLoading ?? true,
+            selectedTab: state.appWallets?.data?.selectedTab ?? 'trade',
+            tableData: state.appWallets?.data?.tableData ?? initialTableData,
         }),
         shallowEqual // 使用浅比较优化性能
     )
 
+    // 跟踪是否为首次渲染，首次渲染不发请求（由 Dashboard 初始化）
+    const isFirstRenderRef = useRef(true)
+
     useEffect(() => {
+        // 首次渲染跳过，由 Dashboard 的 initializeCryptoWallets 负责加载
+        if (isFirstRenderRef.current) {
+            isFirstRenderRef.current = false
+            return
+        }
+        
+        // 后续参数变化时发起请求
         dispatch(getTransctionHistoryData({ tab: selectedTab, ...tableData }))
     }, [dispatch, selectedTab, tableData])
 
@@ -69,13 +80,13 @@ const TransactionHistory = () => {
 
     return (
         <Card>
-            <h4 className="mb-4">Transaction History 交易记录</h4>
+            <h4 className="mb-4">Transaction History</h4>
             <Tabs value={selectedTab} variant="pill" onChange={handleTabChange}>
             <div className="flex lg:items-center justify-between flex-col lg:flex-row gap-4">
                 <TabList>
-                    <TabNav value="deposit">Deposit日报</TabNav>
-                    <TabNav value="trade">Trade流水记录</TabNav>
-                    <TabNav value="withdrawal">Withdraw提款记录</TabNav>
+                    <TabNav value="deposit">Deposit</TabNav>
+                    <TabNav value="trade">Trade</TabNav>
+                    <TabNav value="withdrawal">Withdraw</TabNav>
                 </TabList>
                 <div className="md:flex items-center gap-3">
                 <div className="mb-4">

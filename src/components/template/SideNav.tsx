@@ -10,10 +10,12 @@ import {
     LOGO_X_GUTTER,
 } from '@/constants/theme.constant'
 import Logo from '@/components/template/Logo'
-import navigationConfig from '@/configs/navigation.config'
+import { getNavigationConfig } from '@/configs/navigation.config'
 import VerticalMenuContent from '@/components/template/VerticalMenuContent'
 import useResponsive from '@/utils/hooks/useResponsive'
 import { useAppSelector } from '@/store'
+import { useLocation } from 'react-router-dom'
+import { useMemo } from 'react'
 
 const sideNavStyle = {
     width: SIDE_NAV_WIDTH,
@@ -26,6 +28,7 @@ const sideNavCollapseStyle = {
 }
 
 const SideNav = () => {
+    const location = useLocation()
     const themeColor = useAppSelector((state) => state.theme.themeColor)
     const primaryColorLevel = useAppSelector(
         (state) => state.theme.primaryColorLevel
@@ -42,6 +45,11 @@ const SideNav = () => {
     const userAuthority = useAppSelector((state) => state.auth.user.authority)
 
     const { larger } = useResponsive()
+
+    // 根据当前路由动态获取导航配置
+    const navigationConfig = useMemo(() => {
+        return getNavigationConfig(location.pathname)
+    }, [location.pathname])
 
     const sideNavColor = () => {
         if (navMode === NAV_MODE_THEMED) {

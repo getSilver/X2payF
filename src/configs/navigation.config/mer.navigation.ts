@@ -6,7 +6,7 @@ import {
 } from '@/constants/navigation.constant'
 import type { NavigationTree } from '@/@types/navigation'
 
-import { ADMIN, USER } from '@/constants/roles.constant'//模拟权限演示
+import { MERCHANT_ROLES, BUSINESS_ROLES } from '@/constants/roles.constant'
 
 const merNavigation: NavigationTree[] = [
     //商户后台
@@ -17,7 +17,7 @@ const merNavigation: NavigationTree[] = [
         translateKey: 'nav.merchants',
         icon: 'crm',
         type: NAV_ITEM_TYPE_TITLE,
-        authority: [ADMIN, USER],
+        authority: [...MERCHANT_ROLES, ...BUSINESS_ROLES],
         subMenu: [
             {
                 key: 'mer.merchants',
@@ -26,7 +26,7 @@ const merNavigation: NavigationTree[] = [
                 translateKey: 'nav.merMerchants.merchants',
                 icon: 'crm',
                 type: NAV_ITEM_TYPE_COLLAPSE,
-                authority: [ADMIN, USER],
+                authority: [...MERCHANT_ROLES, ...BUSINESS_ROLES],
                 subMenu: [
                     //订单
                     {
@@ -36,7 +36,7 @@ const merNavigation: NavigationTree[] = [
                         translateKey: 'nav.merOrder.dashboard',
                         icon: '',
                         type: NAV_ITEM_TYPE_ITEM,
-                        authority: [ADMIN, USER],
+                        authority: MERCHANT_ROLES,
                         subMenu: [],
                     },
                     {
@@ -46,7 +46,17 @@ const merNavigation: NavigationTree[] = [
                         translateKey: 'nav.merOrders.PayIn',
                         icon: '',
                         type: NAV_ITEM_TYPE_ITEM,
-                        authority: [ADMIN, USER],
+                        authority: MERCHANT_ROLES,
+                        subMenu: [],
+                    },
+                    {
+                        key: 'merAgents.dashboard',
+                        path: `${MER_PREFIX_PATH}/agent-dashboard`,
+                        title: 'Agent Dashboard',
+                        translateKey: 'nav.merAgents.dashboard',
+                        icon: '',
+                        type: NAV_ITEM_TYPE_ITEM,
+                        authority: [...MERCHANT_ROLES, ...BUSINESS_ROLES],
                         subMenu: [],
                     },
                     
@@ -60,7 +70,7 @@ const merNavigation: NavigationTree[] = [
             //     translateKey: 'nav.merfinances.finances',
             //     icon: 'wallet',
             //     type: NAV_ITEM_TYPE_COLLAPSE,
-            //     authority: [ADMIN, USER],
+            //     authority: MERCHANT_ROLES,
             //     subMenu: [
             //         {
             //             key: 'merfinances.dashboard',
@@ -69,7 +79,7 @@ const merNavigation: NavigationTree[] = [
             //             translateKey: 'nav.appsFinances.dashboard',
             //             icon: '',
             //             type: NAV_ITEM_TYPE_ITEM,
-            //             authority: [ADMIN, USER],
+            //             authority: MERCHANT_ROLES,
             //             subMenu: [],
             //         },
             //         {
@@ -79,7 +89,7 @@ const merNavigation: NavigationTree[] = [
             //             translateKey: 'nav.merFinances.finFlow',
             //             icon: '',
             //             type: NAV_ITEM_TYPE_ITEM,
-            //             authority: [ADMIN, USER],
+            //             authority: MERCHANT_ROLES,
             //             subMenu: [],
             //         },
             //         {
@@ -89,7 +99,7 @@ const merNavigation: NavigationTree[] = [
             //             translateKey: 'nav.merFinances.withdraw',
             //             icon: '',
             //             type: NAV_ITEM_TYPE_ITEM,
-            //             authority: [ADMIN, USER],
+            //             authority: MERCHANT_ROLES,
             //             subMenu: [],
             //         },
 

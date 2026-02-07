@@ -1,10 +1,12 @@
 import Card from '@/components/ui/Card'
 import { NumericFormat } from 'react-number-format'
+import { getCurrencySymbol } from '@/utils/currencySymbols'
 
 type PaymentInfoProps = {
     label?: string
     value?: number | null
     isLast?: boolean
+    currency?: string
 }
 
 type PaymentSummaryProps = {
@@ -12,12 +14,15 @@ type PaymentSummaryProps = {
         amount?: number | null
         settlement?: number | null
         fee?: number | null
+        currency?: string
     }
 }
 
-const PaymentInfo = ({ label, value, isLast }: PaymentInfoProps) => {
+const PaymentInfo = ({ label, value, isLast, currency }: PaymentInfoProps) => {
     const hasValue = typeof value === 'number' && Number.isFinite(value)
-    const displayValue = hasValue ? value / 100 : undefined
+    const displayValue = hasValue ? value / 100 : 0
+    const currencySymbol = getCurrencySymbol(currency, '$')
+    
     return (
         <li
             className={`flex items-center justify-between${!isLast ? ' mb-3' : ''
@@ -29,7 +34,7 @@ const PaymentInfo = ({ label, value, isLast }: PaymentInfoProps) => {
                     <NumericFormat
                         displayType="text"
                         value={(Math.round(displayValue * 100) / 100).toFixed(3)}
-                        prefix={'$'}
+                        prefix={currencySymbol}
                         thousandSeparator={true}
                     />
                 ) : (
@@ -45,10 +50,10 @@ const PaymentSummary = ({ data }: PaymentSummaryProps) => {
         <Card className="mb-4">
             <h5 className="mb-4">Payment Summary</h5>
             <ul>
-                <PaymentInfo label="Amount" value={data?.amount} />
-                <PaymentInfo label="fee(6%)费用" value={data?.fee} />
+                <PaymentInfo label="Amount" value={data?.amount} currency={data?.currency} />
+                <PaymentInfo label="fee(6%)费用" value={data?.fee} currency={data?.currency} />
                 <hr className="mb-3" />
-                <PaymentInfo isLast label="Settlement " value={data?.settlement } />
+                <PaymentInfo isLast label="Settlement " value={data?.settlement} currency={data?.currency} />
             </ul>
         </Card>
     )

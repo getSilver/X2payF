@@ -116,7 +116,7 @@ const PaymentMethods = () => {
                                                 )}
                                             </div>
                                             <span>
-                                                费率:{' '}{card.payIn || '0'}/{card.payOut || '0'}{' '}<span> | </span>单笔:{' '}{card.fixedFeeIn || '0'}/{card.fixedFeeOut || '0'}<span> | </span>汇率:{' '}{"12"}/{'6'}
+                                                费率:{' '}{card.payIn || '0'}/{card.payOut || '0'}{' '}<span> | </span>单笔:{' '}{card.fixedFeeIn || '0'}/{card.fixedFeeOut || '0'}<span> | </span>汇率:{' '}{card.exchangeRateSell || '0'}%/{card.exchangeRateBuy || '0'}%<span> | </span>手续费:{' '}{card.withdrawalFeePercent || '0'}%
                                             </span>
                                         </div>
                                     </div>

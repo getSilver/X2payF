@@ -5,7 +5,7 @@ import { useAppSelector } from '../store'
 const WalletCard = lazy(() => import('./WalletCard'))
 
 const Wallet = () => {
-    const data = useAppSelector((state) => state.cryptoWallets?.data?.walletsData || [])
+    const data = useAppSelector((state) => state.appWallets?.data?.walletsData || [])
 
     return (
         <div className="grid lg:grid-cols-3 2xl:grid-cols-3 gap-4">

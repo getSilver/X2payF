@@ -37,8 +37,8 @@ const CustomerEditContent = forwardRef<FormikRef>((_, ref) => {
         personalInfo: {
             location: '',
             title: customer.account_type || '',
-            phoneNumber: customer.id || '',
             birthday: customer.created_at || '',
+            agent: '', // UnifiedAccount 类型不包含 agent_id，此页面不支持编辑代理商
             facebook: '',
             twitter: '',
             pinterest: '',

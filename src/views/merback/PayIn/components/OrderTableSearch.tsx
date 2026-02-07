@@ -10,7 +10,7 @@ import {
 import debounce from 'lodash/debounce'
 import cloneDeep from 'lodash/cloneDeep'
 import type { TableQueries } from '@/@types/common'
-import type { ChangeEvent } from 'react'
+import type { ChangeEvent, KeyboardEvent } from 'react'
 
 const OrderTableSearch = () => {
     const dispatch = useAppDispatch()
@@ -45,6 +45,15 @@ const OrderTableSearch = () => {
         debounceFn(e.target.value)
     }
 
+    const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            // 取消 debounce，立即执行搜索
+            debounceFn.cancel()
+            const val = (e.target as HTMLInputElement).value
+            handleDebounceFn(val)
+        }
+    }
+
     return (
         <Input
             ref={searchInput}
@@ -53,6 +62,7 @@ const OrderTableSearch = () => {
             placeholder="交易ID&渠道ID"
             prefix={<HiOutlineSearch className="text-lg" />}
             onChange={onEdit}
+            onKeyDown={onKeyDown}
         />
     )
 }

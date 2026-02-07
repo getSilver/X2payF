@@ -1,7 +1,6 @@
 import Card from '@/components/ui/Card'
 import Avatar from '@/components/ui/Avatar'
 import GrowShrinkTag from '@/components/shared/GrowShrinkTag'
-import useThemeClass from '@/utils/hooks/useThemeClass'
 import { NumericFormat } from 'react-number-format'
 import type { Wallet } from '../store'
 
@@ -11,8 +10,6 @@ interface WalletCardProps {
 }
 
 const WalletCard = ({ data = {}, title }: WalletCardProps) => {
-    const { textTheme } = useThemeClass()
-
     return (
         <Card>
             <div className="flex items-center justify-between">
@@ -29,8 +26,10 @@ const WalletCard = ({ data = {}, title }: WalletCardProps) => {
                         <NumericFormat
                             displayType="text"
                             value={data.fiatValue}
-                            suffix={data.symbol}
+                            prefix={data.symbol}
                             thousandSeparator={true}
+                            decimalScale={2}
+                            fixedDecimalScale
                         />
                     </h5>
                     <GrowShrinkTag value={data.growshrink} suffix="%" />
@@ -41,8 +40,10 @@ const WalletCard = ({ data = {}, title }: WalletCardProps) => {
                     <NumericFormat
                         displayType="text"
                         value={data.coinValue}
-                        suffix={data.symbol}
+                        prefix={data.symbol}
                         thousandSeparator={true}
+                        decimalScale={2}
+                        fixedDecimalScale
                     />
                 </h5>
             </div>

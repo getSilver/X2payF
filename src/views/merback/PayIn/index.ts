@@ -1,3 +1,3 @@
-import PayIn from './PayIn'
+import Pay from './Pay'
 
-export default PayIn
+export default Pay

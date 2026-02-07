@@ -24,6 +24,10 @@ import {
     apiCreatePlatformAssociation,
     apiUpdatePlatformAssociation,
     apiDeletePlatformAssociation,
+    apiGetPlatformExchangeRates,
+    apiCreatePlatformExchangeRate,
+    apiUpdatePlatformExchangeRate,
+    apiDeletePlatformExchangeRate,
 } from '@/services/PlatformSettingsService'
 import type { ColumnDef } from '@/components/shared/DataTable'
 import { HiOutlinePencil, HiOutlineTrash, HiPlus } from 'react-icons/hi2'
@@ -60,7 +64,16 @@ type Association = {
     enabled?: boolean
 }
 
-type SettingsTab = 'currencies' | 'timezones' | 'associations'
+type ExchangeRate = {
+    id?: string
+    base_currency?: string
+    quote_currency?: string
+    rate?: number
+    is_active?: boolean
+    updated_at?: string
+}
+
+type SettingsTab = 'currencies' | 'timezones' | 'associations' | 'exchangeRates'
 
 type CurrencyForm = {
     name: string
@@ -80,6 +93,13 @@ type AssociationForm = {
     currencyId: string
     timezoneId: string
     status: string
+}
+
+type ExchangeRateForm = {
+    baseCurrency: string
+    quoteCurrency: string
+    rate: string
+    isActive: boolean
 }
 
 type DeleteTarget = {
@@ -145,10 +165,12 @@ const Settings = () => {
     const [currencies, setCurrencies] = useState<Currency[]>([])
     const [timezones, setTimezones] = useState<Timezone[]>([])
     const [associations, setAssociations] = useState<Association[]>([])
+    const [exchangeRates, setExchangeRates] = useState<ExchangeRate[]>([])
     const [loading, setLoading] = useState({
         currencies: false,
         timezones: false,
         associations: false,
+        exchangeRates: false,
     })
     const [currencyTable, setCurrencyTable] = useState({
         pageIndex: 1,
@@ -162,10 +184,15 @@ const Settings = () => {
         pageIndex: 1,
         pageSize: 10,
     })
+    const [exchangeRateTable, setExchangeRateTable] = useState({
+        pageIndex: 1,
+        pageSize: 10,
+    })
     const [saving, setSaving] = useState({
         currency: false,
         timezone: false,
         association: false,
+        exchangeRate: false,
     })
     const [currencyDialogOpen, setCurrencyDialogOpen] = useState(false)
     const [currencyEditingId, setCurrencyEditingId] = useState<string | null>(
@@ -195,6 +222,16 @@ const Settings = () => {
         currencyId: '',
         timezoneId: '',
         status: 'active',
+    })
+    const [exchangeRateDialogOpen, setExchangeRateDialogOpen] = useState(false)
+    const [exchangeRateEditingId, setExchangeRateEditingId] = useState<
+        string | null
+    >(null)
+    const [exchangeRateForm, setExchangeRateForm] = useState<ExchangeRateForm>({
+        baseCurrency: '',
+        quoteCurrency: '',
+        rate: '',
+        isActive: true,
     })
     const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -253,10 +290,29 @@ const Settings = () => {
         }
     }
 
+    const fetchExchangeRates = async () => {
+        setLoading((prev) => ({ ...prev, exchangeRates: true }))
+        try {
+            const response = await apiGetPlatformExchangeRates<ExchangeRate[], Record<string, unknown>>()
+            setExchangeRates(normalizeList<ExchangeRate>(response.data))
+        } catch (error) {
+            toast.push(
+                <Notification
+                    title="Failed to load exchange rates"
+                    type="danger"
+                />,
+                { placement: 'top-center' }
+            )
+        } finally {
+            setLoading((prev) => ({ ...prev, exchangeRates: false }))
+        }
+    }
+
     useEffect(() => {
         fetchCurrencies()
         fetchTimezones()
         fetchAssociations()
+        fetchExchangeRates()
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
@@ -328,6 +384,28 @@ const Settings = () => {
             status: getStatusValue(association.status ?? association.enabled),
         })
         setAssociationDialogOpen(true)
+    }
+
+    const openExchangeRateCreate = () => {
+        setExchangeRateEditingId(null)
+        setExchangeRateForm({
+            baseCurrency: '',
+            quoteCurrency: '',
+            rate: '',
+            isActive: true,
+        })
+        setExchangeRateDialogOpen(true)
+    }
+
+    const openExchangeRateEdit = (exchangeRate: ExchangeRate) => {
+        setExchangeRateEditingId(exchangeRate.id || null)
+        setExchangeRateForm({
+            baseCurrency: exchangeRate.base_currency || '',
+            quoteCurrency: exchangeRate.quote_currency || '',
+            rate: exchangeRate.rate?.toString() || '',
+            isActive: exchangeRate.is_active ?? true,
+        })
+        setExchangeRateDialogOpen(true)
     }
 
     const openDeleteDialog = (target: DeleteTarget) => {
@@ -518,6 +596,83 @@ const Settings = () => {
         }
     }
 
+    const handleExchangeRateSave = async () => {
+        if (!exchangeRateForm.baseCurrency || !exchangeRateForm.quoteCurrency || !exchangeRateForm.rate) {
+            toast.push(
+                <Notification
+                    title="Base currency, quote currency and rate are required"
+                    type="warning"
+                />,
+                { placement: 'top-center' }
+            )
+            return
+        }
+        const rateValue = parseFloat(exchangeRateForm.rate)
+        if (isNaN(rateValue) || rateValue <= 0) {
+            toast.push(
+                <Notification
+                    title="Rate must be a positive number"
+                    type="warning"
+                />,
+                { placement: 'top-center' }
+            )
+            return
+        }
+        setSaving((prev) => ({ ...prev, exchangeRate: true }))
+        const payload = {
+            base_currency: exchangeRateForm.baseCurrency,
+            quote_currency: exchangeRateForm.quoteCurrency,
+            rate: rateValue,
+            is_active: exchangeRateForm.isActive,
+        }
+        try {
+            if (exchangeRateEditingId) {
+                const response = await apiUpdatePlatformExchangeRate<
+                    ExchangeRate,
+                    typeof payload
+                >(exchangeRateEditingId, payload)
+                const next = response.data as ExchangeRate
+                setExchangeRates((prev) =>
+                    prev.map((item) =>
+                        item.id === exchangeRateEditingId
+                            ? { ...item, ...payload, ...next }
+                            : item
+                    )
+                )
+                toast.push(
+                    <Notification title="Exchange rate updated" type="success" />,
+                    { placement: 'top-center' }
+                )
+            } else {
+                const response = await apiCreatePlatformExchangeRate<
+                    ExchangeRate,
+                    typeof payload
+                >(payload)
+                const next =
+                    (response.data as ExchangeRate) || {
+                        id: `rate-${Date.now()}`,
+                        ...payload,
+                    }
+                setExchangeRates((prev) => [next, ...prev])
+                toast.push(
+                    <Notification title="Exchange rate created" type="success" />,
+                    { placement: 'top-center' }
+                )
+            }
+            setExchangeRateDialogOpen(false)
+        } catch (error) {
+            toast.push(
+                <Notification
+                    title="Failed to save exchange rate"
+                    type="danger"
+                />,
+                { placement: 'top-center' }
+            )
+        } finally {
+            setSaving((prev) => ({ ...prev, exchangeRate: false }))
+        }
+    }
+
     const handleDeleteConfirm = async () => {
         if (!deleteTarget) {
             return
@@ -538,6 +693,12 @@ const Settings = () => {
             if (deleteTarget.type === 'associations') {
                 await apiDeletePlatformAssociation(deleteTarget.id)
                 setAssociations((prev) =>
+                    prev.filter((item) => item.id !== deleteTarget.id)
+                )
+            }
+            if (deleteTarget.type === 'exchangeRates') {
+                await apiDeletePlatformExchangeRate(deleteTarget.id)
+                setExchangeRates((prev) =>
                     prev.filter((item) => item.id !== deleteTarget.id)
                 )
             }
@@ -848,6 +1009,91 @@ const Settings = () => {
         [currencyMap, timezoneMap, openAssociationEdit, openDeleteDialog]
     )
 
+    const exchangeRateColumns: ColumnDef<ExchangeRate>[] = useMemo(
+        () => [
+            {
+                header: 'Base Currency',
+                accessorKey: 'base_currency',
+                cell: (props) => {
+                    const row = props.row.original
+                    return (
+                        <span className="font-semibold">
+                            {row.base_currency || '-'}
+                        </span>
+                    )
+                },
+            },
+            {
+                header: 'Quote Currency',
+                accessorKey: 'quote_currency',
+                cell: (props) => props.row.original.quote_currency || '-',
+            },
+            {
+                header: 'Rate',
+                accessorKey: 'rate',
+                cell: (props) => {
+                    const rate = props.row.original.rate
+                    return rate !== undefined ? rate.toFixed(4) : '-'
+                },
+            },
+            {
+                header: 'Status',
+                accessorKey: 'is_active',
+                cell: (props) => {
+                    const row = props.row.original
+                    const status = getStatusConfig(row.is_active)
+                    return (
+                        <div className="flex items-center gap-2">
+                            <Badge className={status.dotClass} />
+                            <span
+                                className={`capitalize font-semibold ${status.textClass}`}
+                            >
+                                {status.label}
+                            </span>
+                        </div>
+                    )
+                },
+            },
+            {
+                header: 'Updated At',
+                accessorKey: 'updated_at',
+                cell: (props) => props.row.original.updated_at || '-',
+            },
+            {
+                header: '',
+                id: 'action',
+                cell: (props) => {
+                    const row = props.row.original
+                    return (
+                        <div className="flex justify-end gap-2 text-lg">
+                            <span
+                                className="cursor-pointer p-2 hover:text-blue-500"
+                                onClick={() => openExchangeRateEdit(row)}
+                            >
+                                <HiOutlinePencil />
+                            </span>
+                            <span
+                                className="cursor-pointer p-2 hover:text-red-500"
+                                onClick={() => {
+                                    if (row.id) {
+                                        openDeleteDialog({
+                                            type: 'exchangeRates',
+                                            id: row.id,
+                                            label: `${row.base_currency}/${row.quote_currency}`,
+                                        })
+                                    }
+                                }}
+                            >
+                                <HiOutlineTrash />
+                            </span>
+                        </div>
+                    )
+                },
+            },
+        ],
+        [openExchangeRateEdit, openDeleteDialog]
+    )
+
     const currencyTableData = useMemo(
         () => ({
             total: currencies.length,
@@ -879,6 +1125,19 @@ const Settings = () => {
         ]
     )
 
+    const exchangeRateTableData = useMemo(
+        () => ({
+            total: exchangeRates.length,
+            pageIndex: exchangeRateTable.pageIndex,
+            pageSize: exchangeRateTable.pageSize,
+        }),
+        [
+            exchangeRates.length,
+            exchangeRateTable.pageIndex,
+            exchangeRateTable.pageSize,
+        ]
+    )
+
     const pagedCurrencies = useMemo(() => {
         const start = (currencyTable.pageIndex - 1) * currencyTable.pageSize
         const end = start + currencyTable.pageSize
@@ -897,6 +1156,12 @@ const Settings = () => {
         return associations.slice(start, end)
     }, [associations, associationTable.pageIndex, associationTable.pageSize])
 
+    const pagedExchangeRates = useMemo(() => {
+        const start = (exchangeRateTable.pageIndex - 1) * exchangeRateTable.pageSize
+        const end = start + exchangeRateTable.pageSize
+        return exchangeRates.slice(start, end)
+    }, [exchangeRates, exchangeRateTable.pageIndex, exchangeRateTable.pageSize])
+
     return (
         <Container>
             <AdaptableCard>
@@ -908,6 +1173,7 @@ const Settings = () => {
                         <TabNav value="currencies">Currencies</TabNav>
                         <TabNav value="timezones">Timezones</TabNav>
                         <TabNav value="associations">Associations</TabNav>
+                        <TabNav value="exchangeRates">Exchange Rates</TabNav>
                     </TabList>
                 </Tabs>
                 <div className="px-4 py-6">
@@ -1009,6 +1275,41 @@ const Settings = () => {
                                 }
                                 onSelectChange={(value) =>
                                     setAssociationTable({
+                                        pageIndex: 1,
+                                        pageSize: value,
+                                    })
+                                }
+                            />
+                        </>
+                    )}
+                    {currentTab === 'exchangeRates' && (
+                        <>
+                            <div className="flex items-center justify-between mb-4">
+                                <h4>Exchange Rate Settings</h4>
+                                <Button
+                                    size="sm"
+                                    variant="solid"
+                                    onClick={openExchangeRateCreate}
+                                >
+                                    <span className="flex items-center gap-2">
+                                        <HiPlus />
+                                        Add Exchange Rate
+                                    </span>
+                                </Button>
+                            </div>
+                            <DataTable
+                                columns={exchangeRateColumns}
+                                data={pagedExchangeRates}
+                                loading={loading.exchangeRates}
+                                pagingData={exchangeRateTableData}
+                                onPaginationChange={(page) =>
+                                    setExchangeRateTable((prev) => ({
+                                        ...prev,
+                                        pageIndex: page,
+                                    }))
+                                }
+                                onSelectChange={(value) =>
+                                    setExchangeRateTable({
                                         pageIndex: 1,
                                         pageSize: value,
                                     })
@@ -1256,6 +1557,93 @@ const Settings = () => {
                             variant="solid"
                             loading={saving.association}
                             onClick={handleAssociationSave}
+                        >
+                            Save
+                        </Button>
+                    </div>
+                </Dialog>
+                <Dialog
+                    width={520}
+                    isOpen={exchangeRateDialogOpen}
+                    onClose={() => setExchangeRateDialogOpen(false)}
+                    onRequestClose={() => setExchangeRateDialogOpen(false)}
+                >
+                    <h5 className="mb-4">
+                        {exchangeRateEditingId
+                            ? 'Edit Exchange Rate'
+                            : 'Add Exchange Rate'}
+                    </h5>
+                    <div className="grid grid-cols-1 gap-4">
+                        <div>
+                            <label className="block text-sm mb-2">Base Currency</label>
+                            <Input
+                                value={exchangeRateForm.baseCurrency}
+                                onChange={(e) =>
+                                    setExchangeRateForm((prev) => ({
+                                        ...prev,
+                                        baseCurrency: e.target.value.toUpperCase(),
+                                    }))
+                                }
+                                placeholder="USD"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm mb-2">Quote Currency</label>
+                            <Input
+                                value={exchangeRateForm.quoteCurrency}
+                                onChange={(e) =>
+                                    setExchangeRateForm((prev) => ({
+                                        ...prev,
+                                        quoteCurrency: e.target.value.toUpperCase(),
+                                    }))
+                                }
+                                placeholder="BRL"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm mb-2">Rate</label>
+                            <Input
+                                type="number"
+                                step="0.0001"
+                                value={exchangeRateForm.rate}
+                                onChange={(e) =>
+                                    setExchangeRateForm((prev) => ({
+                                        ...prev,
+                                        rate: e.target.value,
+                                    }))
+                                }
+                                placeholder="5.0000"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm mb-2">Status</label>
+                            <Select
+                                options={statusOptions}
+                                value={statusOptions.find(
+                                    (option) =>
+                                        option.value ===
+                                        (exchangeRateForm.isActive ? 'active' : 'inactive')
+                                )}
+                                onChange={(option) =>
+                                    setExchangeRateForm((prev) => ({
+                                        ...prev,
+                                        isActive: option?.value === 'active',
+                                    }))
+                                }
+                            />
+                        </div>
+                    </div>
+                    <div className="mt-6 text-right">
+                        <Button
+                            className="ltr:mr-2 rtl:ml-2"
+                            onClick={() => setExchangeRateDialogOpen(false)}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="solid"
+                            loading={saving.exchangeRate}
+                            onClick={handleExchangeRateSave}
                         >
                             Save
                         </Button>

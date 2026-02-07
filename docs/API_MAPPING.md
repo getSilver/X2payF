@@ -62,13 +62,13 @@
 
 ---
 
-## 4. 退款模块 ✅ 已对接（管理后台）
+## 4. 退款模块 ✅ 已对接
 
 | 功能 | 后端 API | 前端页面/服务 | 状态 |
 |------|----------|---------------|------|
-| 创建退款| POST /api/v1/admin/refunds | PaymentInfo.tsx (RefundDialog) | ✅ 已对接 |
-| 创建退款（商户API） | POST /api/v1/refunds | src\views\merback\PaymentDetails\components\PaymentInfo.tsx | ⚠️ 待对接 |
-| 查询退款 | GET /api/v1/refunds/:id | OrderFilter | ⚠️ 待对接 |
+| 创建退款（管理后台） | POST /api/v1/admin/refunds | PaymentInfo.tsx (RefundDialog) | ✅ 已对接 |
+| 创建退款（商户API） | POST /api/v1/refunds | merback/PaymentDetails | ✅ |
+| 查询退款（商户API） | GET /api/v1/refunds/:id | merback/PaymentDetails | ❌ 待对接 |
 
 **对接完成说明**：
 - ✅ RefundApi.ts - 退款 API 服务已实现
@@ -76,7 +76,7 @@
 - ✅ RefundDialog.tsx - 退款对话框组件已实现
 - ✅ PaymentInfo.tsx - 支付详情页面已集成退款按钮
 - ✅ 管理后台退款功能已完成，只有支付成功的订单才能发起退款
-- ⚠️ 商户后台退款功能待后续对接
+- ❌ 商户后台退款功能待对接（需要使用 API Key 认证）
 
 ---
 
@@ -131,8 +131,12 @@
 | 更新状态 | PUT /api/v1/admin/accounts/:id/status | CustomerDetail.tsx | ✅ 已对接 |
 | 商户列表 | GET /api/v1/admin/merchants | Customers.tsx | ✅ 已对接 |
 | 商户详情 | GET /api/v1/admin/merchants/:id/details | CustomerDetail.tsx | ✅ 已对接 |
+| 更新商户信息 | PUT /api/v1/admin/merchants/:id | EditCustomerProfile.tsx | ✅ 已对接 |
 | 商户应用列表 | GET /api/v1/admin/merchants/:id/applications | CustomerDetail.tsx | ✅ 已对接 |
+| 代理商列表 | GET /api/v1/admin/agents | AgentBindDialog.tsx | ✅ 已对接 |
 | 代理商商户 | GET /api/v1/admin/agents/:id/merchants | Customers.tsx（筛选） | ✅ 已对接 |
+| 绑定代理商 | PUT /api/v1/admin/merchants/:id/agent | EditCustomerProfile.tsx | ✅ 已对接 |
+| 解绑代理商 | DELETE /api/v1/admin/merchants/:id/agent | EditCustomerProfile.tsx | ✅ 已对接 |
 | Dashboard | GET /api/v1/statistics/merchants/* | merchants/Dashboard.tsx | ⚠️ 需对接统计API |
 
 **对接完成说明**：
@@ -144,12 +148,23 @@
 - ✅ CustomerTableFilter.tsx - 筛选组件已适配后端状态值
 - ✅ CustomerEditContent.tsx - 编辑组件已更新
 - ✅ 类型定义已补充完整
+- ✅ **商户信息更新功能已完成**：
+  - 后端实现了 `PUT /api/v1/admin/merchants/:id` 接口
+  - 支持更新商户名称（name）和联系邮箱（contact_email）
+  - 前端 `EditCustomerProfile.tsx` 已对接真实 API
+  - 保存时调用 `apiUpdateMerchant` 更新商户信息
+  - 包含完整的错误处理和成功提示
+- ✅ **商户-代理商绑定功能已完成**：
+  - 在商户详情页的编辑表单中，通过 Agent 输入框输入代理商 ID 来绑定
+  - 输入代理商 ID 后保存，自动调用绑定 API
+  - 清空 Agent 字段后保存，自动调用解绑 API
+  - 修改代理商 ID 后保存，自动调用绑定 API 更换代理商
+  - 所有操作都有成功/失败提示
 
-注意事项
-统计数据：暂时通过商户列表计算（后端无专门统计接口）
-后端暂不支持修改商户基本信息，只支持状态更新
-商户统计数据需要后端提供专门的统计 API
-支付历史需要对接支付模块的 API
+**注意事项**：
+- 统计数据：暂时通过商户列表计算（后端无专门统计接口）
+- 商户统计数据需要后端提供专门的统计 API
+- 支付历史需要对接支付模块的 API
 ---
 
 ## 7. 统计模块 统计页面布置在各模块的仪表板中
@@ -188,21 +203,232 @@
 
 ---
 
-## 需要补充的后端接口
+## 10. 商户后台模块 ⚠️ 
 
-前端 Mock 使用但后端缺失的接口：
+### 10.1 支付管理（商户API）
 
-| Mock API | 用途 | 建议 |
-|----------|------|------|
-| GET /api/sales/dashboard | 支付 Dashboard | 用统计接口替代 |
-| GET /api/crm/dashboard | 商户 Dashboard | 用统计接口替代 |
-| GET /api/crm/customers | 商户列表 | 添加 GET /api/v1/merchants |
+| 功能 | 后端 API | 前端页面/服务 | 状态 |
+|------|----------|---------------|------|
+| 创建支付 | POST /api/v1/payments | - | ✅ 后端已实现 |
+| 支付列表 | GET /api/v1/payments | merback/PayIn/Pay.tsx | ❌ 待对接 |
+| 支付详情 | GET /api/v1/payments/:id | merback/PaymentDetails | ❌ 待对接 |
+| 取消支付 | PUT /api/v1/payments/:id/cancel | merback/PaymentDetails | ❌ 不用对接 |
+| 关闭支付 | PUT /api/v1/payments/:id/close | merback/PaymentDetails | ❌ 不用对接 |
+
+**说明**：管理后台的Bearer Token
+- 后端已实现完整的商户支付API（使用 API Key 认证）
+- 前端商户后台目前使用 Mock 数据
+- 需要对接真实API并实现 API Key 认证机制
+
+### 10.2 退款管理 
+
+| 功能 | 后端 API | 前端页面/服务 | 状态 |
+|------|----------|---------------|------|
+| 创建退款 | POST /api/v1/refunds | merback/PaymentDetails | ✅ |
+| 查询退款 | GET /api/v1/refunds/:id | merback/PaymentDetails | ✅ |
+
+### 10.3 应用管理
+
+| 功能 | 后端 API | 前端页面/服务 | 状态 |
+|------|----------|---------------|------|
+| 创建应用 | POST /api/v1/applications | ✅ |
+| 查询应用 | GET /api/v1/applications/:id | ✅ |
+
+### 10.4 统计分析
+
+| 功能 | 后端 API | 前端页面/服务 | 状态 |
+|------|----------|---------------|------|
+| 交易汇总 | GET /api/v1/statistics/transactions/summary | merback/Dashboard | ⚠️ 后端路由已定义，Handler未实现 |
+| 交易类型统计 | GET /api/v1/statistics/transactions/by-type | merback/Dashboard | ⚠️ 后端路由已定义，Handler未实现 |
+| 交易状态统计 | GET /api/v1/statistics/transactions/by-status | merback/Dashboard | ⚠️ 后端路由已定义，Handler未实现 |
+| 交易趋势 | GET /api/v1/statistics/transactions/trend | merback/Dashboard | ⚠️ 后端路由已定义，Handler未实现 |
+| 时段统计 | GET /api/v1/statistics/transactions/time-slot | merback/Dashboard | ⚠️ 后端路由已定义，Handler未实现 |
+| 峰值分析 | GET /api/v1/statistics/transactions/peak-analysis | merback/Dashboard | ⚠️ 后端路由已定义，Handler未实现 |
+| 周期性分析 | GET /api/v1/statistics/transactions/cyclical-analysis | merback/Dashboard | ⚠️ 后端路由已定义，Handler未实现 |
+| 商户概览 | GET /api/v1/statistics/merchants/overview | merback/Dashboard | ⚠️ 后端路由已定义，Handler未实现 |
+| 应用统计 | GET /api/v1/statistics/merchants/applications | merback/Dashboard | ⚠️ 后端路由已定义，Handler未实现 |
+| 商户交易统计 | GET /api/v1/statistics/merchants/transactions | merback/Dashboard | ⚠️ 后端路由已定义，Handler未实现 |
+| 日报 | GET /api/v1/statistics/reports/daily | merback/Dashboard | ⚠️ 后端路由已定义，Handler未实现 |
+| 周报 | GET /api/v1/statistics/reports/weekly | merback/Dashboard | ⚠️ 后端路由已定义，Handler未实现 | 不用实现
+| 月报 | GET /api/v1/statistics/reports/monthly | merback/Dashboard | ⚠️ 后端路由已定义，Handler未实现 | 不用实现
+| 数据导出 | GET /api/v1/statistics/export | - | ⚠️ 后端路由已定义，Handler未实现 |
+| 聚合数据 | GET /api/v1/statistics/aggregation | - | ⚠️ 后端路由已定义，Handler未实现 |
+
+### 10.5 风控管理 ✅
+
+| 功能 | 后端 API | 前端页面/服务 | 状态 |
+|------|----------|---------------|------|
+| 查询风控状态 | GET /api/v1/risk/merchant/query | - | ⚠️ 后端路由已定义，Handler未实现 |
+| 提交申诉 | POST /api/v1/risk/merchant/appeal | - | ⚠️ 后端路由已定义，Handler未实现 |
+| 获取帮助信息 | GET /api/v1/risk/merchant/help | - | ⚠️ 后端路由已定义，Handler未实现 |
+| 获取风险等级 | GET /api/v1/risk/merchant/:merchant_id/level | - | ⚠️ 后端路由已定义，Handler未实现 |
+| 获取优化建议 | GET /api/v1/risk/merchant/:merchant_id/suggestions | - | ⚠️ 后端路由已定义，Handler未实现 |
+| 风险等级历史 | GET /api/v1/risk/merchant/:merchant_id/level/history | - | ⚠️ 后端路由已定义，Handler未实现 |
+| 申诉历史 | GET /api/v1/risk/merchant/:merchant_id/appeals | - | ⚠️ 后端路由已定义，Handler未实现 |
+| 申诉状态 | GET /api/v1/risk/merchant/appeal/:appeal_id/status | - | ⚠️ 后端路由已定义，Handler未实现 |
+mch_7e9672ea6b0b
+---
+
+## 商户后台对接优先级建议
+
+### � 认证实现（第一步）
+**前端商户后台使用 Bearer Token 认证（与管理后台相同）**
+
+1. **复用现有认证逻辑**
+   - 商户管理员使用账号密码登录
+   - 登录接口：POST /api/v1/auth/login
+   - 获得会话Token后使用 `Authorization: Bearer {token}`
+   - 后端根据用户角色（APP_OWNER、APP_FINANCE等）自动过滤数据
+
+2. **数据隔离**
+   - 后端已实现基于角色的数据过滤
+   - 商户用户只能看到自己应用的数据
+   - 无需前端额外处理权限逻辑
+
+### �🔴 高优先级（核心功能）
+1. **支付列表和详情** - 商户查看自己的交易记录
+   - GET /api/v1/payments
+   - GET /api/v1/payments/:id
+   - 使用 Bearer Token 认证（已有）
+
+2. **退款功能** - 商户发起退款 
+   - POST /api/v1/refunds
+   - GET /api/v1/refunds/:id
+
+3. **基础统计** - Dashboard 核心数据
+   - GET /api/v1/statistics/transactions/summary
+   - GET /api/v1/statistics/merchants/overview
+
+### 🟡 中优先级（增强功能）
+4. **详细统计** - 多维度数据分析
+   - GET /api/v1/statistics/transactions/by-type
+   - GET /api/v1/statistics/transactions/by-status
+   - GET /api/v1/statistics/transactions/trend
+
+5. **应用管理** - 商户管理自己的应用-不对接
+   - POST /api/v1/applications
+   - GET /api/v1/applications/:id
+   - 需要实现 applicationHandler
+
+### 🟢 低优先级（辅助功能）
+6. **风控查询** - 商户查看风控状态
+   - GET /api/v1/risk/merchant/query
+   - POST /api/v1/risk/merchant/appeal
+
+7. **高级统计** - 深度数据分析
+   - GET /api/v1/statistics/transactions/peak-analysis
+   - GET /api/v1/statistics/transactions/cyclical-analysis
+
+---
+
+## 后端待实现的 Handler
+
+### 必须实现
+1. **statisticsHandler** - 统计分析处理器
+   - 所有 `/api/v1/statistics/*` 路由的处理函数
+   - 需要实现商户级别的数据隔离和权限控制
+
+2. **applicationHandler** - 应用管理处理器
+   - CreateApplication - 创建应用
+   - GetApplication - 查询应用信息
+
+3. **riskHandler（商户部分）** - 风控查询处理器
+   - QueryMerchantRiskStatus - 查询风控状态
+   - SubmitMerchantAppeal - 提交申诉
+   - 其他风控查询接口
+
+### 实现要点
+- 必须实现商户级别的数据隔离（只能查看自己的数据）
+- 统计数据需要根据商户的应用ID进行过滤
+- 需要实现适当的缓存策略提升性能
+
+---
+
+## 前端待实现的功能
+
+### 商户后台认证 ✅ 无需额外实现
+**好消息**：商户后台可以复用管理后台的认证机制！
+
+- ✅ 使用现有的 Bearer Token 认证
+- ✅ 使用现有的 AuthService
+- ✅ 使用现有的 ApiService
+- ✅ 后端自动根据用户角色过滤数据
+- ✅ 无需实现 API Key 签名算法
+
+**唯一区别**：
+- API路径前缀：`/api/v1/merchant/*`（而不是 `/api/v1/admin/*`）
+- 商户后台用户角色：APP_OWNER、APP_FINANCE、APP_CUSTOMER_SERVICE
+- 管理后台用户角色：PLATFORM_SUPER_ADMIN、PLATFORM_OPERATIONS_ADMIN等
+- 后端会根据角色自动返回对应的数据
+
+### API常量更新
+需要在 `api.constant.ts` 中添加商户后台的API常量：
+
+```typescript
+// 商户后台端点
+export const MERCHANT_BACKEND_API = {
+    // 支付管理
+    PAYMENTS: '/api/v1/merchant/payments',
+    PAYMENT_DETAIL: (id: string) => `/api/v1/merchant/payments/${id}`,
+    PAYMENT_CANCEL: (id: string) => `/api/v1/merchant/payments/${id}/cancel`,
+    PAYMENT_CLOSE: (id: string) => `/api/v1/merchant/payments/${id}/close`,
+    
+    // 退款管理
+    REFUNDS: '/api/v1/merchant/refunds',
+    REFUND_DETAIL: (id: string) => `/api/v1/merchant/refunds/${id}`,
+    
+    // 统计分析
+    STATISTICS_OVERVIEW: '/api/v1/merchant/statistics/overview',
+    STATISTICS_SUMMARY: '/api/v1/merchant/statistics/transactions/summary',
+} as const
+```
+
+### 页面对接
+1. **支付列表页面** (merback/PayIn/Pay.tsx)
+   - 对接 GET /api/v1/payments
+   - 实现分页、筛选、排序
+
+2. **支付详情页面** (merback/PaymentDetails)
+   - 对接 GET /api/v1/payments/:id
+   - 实现退款功能（POST /api/v1/refunds）
+   - 实现取消/关闭支付
+
+3. **Dashboard** (merback/Dashboard)
+   - 对接统计API
+   - 实现数据可视化
+   - 实现时间范围筛选
 
 ---
 
 ## 切换建议
 
-1. **第一阶段**：先对接已有的后端接口（认证、渠道管理）
-2. **第二阶段**：后端补充列表查询接口（支付列表、商户列表）
-3. **第三阶段**：前端补充管理页面（MFA、风控、平台设置）
-4. **第四阶段**：Dashboard 对接统计接口
+### 阶段一：基础功能对接（1周）
+1. ✅ 认证机制已完成（复用管理后台的 Bearer Token）
+2. 🔧 后端创建 `/api/v1/merchant` 路由组
+3. 对接支付列表和详情API
+4. 实现基础统计Handler
+
+### 阶段二：核心功能完善（2-3周）
+4. 实现退款功能
+5. 实现应用管理Handler
+6. 对接详细统计API
+
+### 阶段三：高级功能（2-3周）
+7. 实现风控查询功能
+8. 实现高级统计分析
+9. 优化性能和用户体验
+
+ 后端路由已定义但Handler未实现
+应用管理（路由存在，Handler缺失）
+
+POST /api/v1/applications
+GET /api/v1/applications/:id
+统计分析（15个路由，全部Handler缺失）
+
+交易统计：summary, by-type, by-status, trend, time-slot, peak-analysis, cyclical-analysis
+商户统计：overview, applications, transactions
+报表：daily, weekly, monthly
+数据：export, aggregation
+风控管理（8个路由，全部Handler缺失）
+
+风控查询、申诉、帮助、风险等级、优化建议等

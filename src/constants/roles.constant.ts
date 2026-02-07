@@ -1,2 +1,37 @@
-export const ADMIN = 'ADMIN'
-export const USER = 'USER'
+// 平台级角色
+export const PLATFORM_SUPER_ADMIN = 'PLATFORM_SUPER_ADMIN'
+export const PLATFORM_OPERATIONS_ADMIN = 'PLATFORM_OPERATIONS_ADMIN'
+export const PLATFORM_FINANCE_ADMIN = 'PLATFORM_FINANCE_ADMIN'
+
+// 商户级角色
+export const APP_OWNER = 'APP_OWNER'
+export const APP_FINANCE = 'APP_FINANCE'
+export const APP_CUSTOMER_SERVICE = 'APP_CUSTOMER_SERVICE'
+
+// 业务级角色
+export const AGENT = 'AGENT'
+export const CHANNEL_PARTNER = 'CHANNEL_PARTNER'
+
+// 角色组（方便批量使用）
+export const PLATFORM_ROLES = [
+    PLATFORM_SUPER_ADMIN,
+    PLATFORM_OPERATIONS_ADMIN,
+    PLATFORM_FINANCE_ADMIN
+]
+
+export const MERCHANT_ROLES = [
+    APP_OWNER,
+    APP_FINANCE,
+    APP_CUSTOMER_SERVICE
+]
+
+export const BUSINESS_ROLES = [
+    AGENT,
+    CHANNEL_PARTNER
+]
+
+export const ALL_ROLES = [
+    ...PLATFORM_ROLES,
+    ...MERCHANT_ROLES,
+    ...BUSINESS_ROLES
+]

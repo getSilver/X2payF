@@ -4,6 +4,7 @@ import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import { NumericFormat } from 'react-number-format'
 import RefundDialog from './RefundDialog'
+import { getCurrencySymbol } from '@/utils/currencySymbols'
 
 type PaymentInfoProps = {
     data?: {
@@ -30,6 +31,10 @@ const PaymentInfo = ({ data, onRefresh }: PaymentInfoProps) => {
         }
     }
 
+    const hasAmount = typeof data?.amount === 'number' && Number.isFinite(data.amount)
+    const displayAmount = hasAmount && data?.amount ? data.amount / 100 : 0
+    const currencySymbol = getCurrencySymbol(data?.currency, '$')
+
     return (
         <>
             <Card className="mb-4">
@@ -44,14 +49,16 @@ const PaymentInfo = ({ data, onRefresh }: PaymentInfoProps) => {
                         </div>
                     </div>
                     <span className="font-semibold">
-                        <NumericFormat
-                            displayType="text"
-                            value={(
-                                Math.round((data?.amount || 0) * 100) / 100
-                            ).toFixed(3)}
-                            prefix={'$'}
-                            thousandSeparator={true}
-                        />
+                        {hasAmount ? (
+                            <NumericFormat
+                                displayType="text"
+                                value={(Math.round(displayAmount * 100) / 100).toFixed(3)}
+                                prefix={currencySymbol}
+                                thousandSeparator={true}
+                            />
+                        ) : (
+                            '-'
+                        )}
                     </span>
                 </div>
                 <div className="grid grid-cols-3 gap-2">

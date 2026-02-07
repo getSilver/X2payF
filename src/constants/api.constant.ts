@@ -123,3 +123,67 @@ export const REFUND_API = {
     CREATE: merchantPath(MERCHANT_RESOURCES.REFUNDS),
     detail: (id: string) => merchantPath(MERCHANT_RESOURCES.REFUNDS, id),
 } as const
+
+// ==================== 商户后台端点（Bearer Token 认证） ====================
+
+/** 构建商户后台 API 路径 */
+export const merchantBackendPath = (...segments: (string | number)[]) => {
+    const base = `${API_VERSION}/merchant`
+    const tail = joinSegments(...segments)
+    return tail ? `${base}/${tail}` : base
+}
+
+// 商户后台 - 支付管理
+export const MERCHANT_BACKEND_PAYMENT_API = {
+    LIST: merchantBackendPath('payments'),
+    detail: (id: string) => merchantBackendPath('payments', id),
+    cancel: (id: string) => merchantBackendPath('payments', id, 'cancel'),
+    close: (id: string) => merchantBackendPath('payments', id, 'close'),
+    notify: (id: string) => merchantBackendPath('payments', id, 'notify'),
+} as const
+
+// 商户后台 - 退款管理
+export const MERCHANT_BACKEND_REFUND_API = {
+    CREATE: merchantBackendPath('refunds'),
+    detail: (id: string) => merchantBackendPath('refunds', id),
+} as const
+
+// 商户后台 - 应用管理
+export const MERCHANT_BACKEND_APPLICATION_API = {
+    LIST: merchantBackendPath('applications'),
+    CREATE: merchantBackendPath('applications'),
+    detail: (id: string) => merchantBackendPath('applications', id),
+    update: (id: string) => merchantBackendPath('applications', id),
+} as const
+
+// 商户后台 - 统计分析
+export const MERCHANT_BACKEND_STATISTICS_API = {
+    OVERVIEW: merchantBackendPath('statistics', 'overview'),
+    TRANSACTIONS: {
+        SUMMARY: merchantBackendPath('statistics', 'transactions', 'summary'),
+        BY_TYPE: merchantBackendPath('statistics', 'transactions', 'by-type'),
+        BY_STATUS: merchantBackendPath('statistics', 'transactions', 'by-status'),
+        TREND: merchantBackendPath('statistics', 'transactions', 'trend'),
+        TIME_SLOT: merchantBackendPath('statistics', 'transactions', 'time-slot'),
+        PEAK_ANALYSIS: merchantBackendPath('statistics', 'transactions', 'peak-analysis'),
+        CYCLICAL_ANALYSIS: merchantBackendPath('statistics', 'transactions', 'cyclical-analysis'),
+    },
+    APPLICATIONS: merchantBackendPath('statistics', 'applications'),
+    REPORTS: {
+        DAILY: merchantBackendPath('statistics', 'reports', 'daily'),
+        WEEKLY: merchantBackendPath('statistics', 'reports', 'weekly'),
+        MONTHLY: merchantBackendPath('statistics', 'reports', 'monthly'),
+    },
+} as const
+
+// 商户后台 - 风控查询
+export const MERCHANT_BACKEND_RISK_API = {
+    STATUS: merchantBackendPath('risk', 'status'),
+    APPEAL: merchantBackendPath('risk', 'appeal'),
+    HELP: merchantBackendPath('risk', 'help'),
+    LEVEL: merchantBackendPath('risk', 'level'),
+    SUGGESTIONS: merchantBackendPath('risk', 'suggestions'),
+    LEVEL_HISTORY: merchantBackendPath('risk', 'level', 'history'),
+    APPEALS: merchantBackendPath('risk', 'appeals'),
+    appealStatus: (id: string) => merchantBackendPath('risk', 'appeal', id, 'status'),
+} as const

@@ -3,11 +3,12 @@ import Badge from '@/components/ui/Badge'
 import Tooltip from '@/components/ui/Tooltip'
 import DataTable from '@/components/shared/DataTable'
 import Avatar from '@/components/ui/Avatar'
-import {    HiOutlineArrowsRightLeft,
+import {
     HiOutlineArrowUp,
     HiOutlineArrowDown,
     HiOutlineEye,
-    HiOutlineNoSymbol } from 'react-icons/hi2'
+    HiOutlineNoSymbol
+} from 'react-icons/hi2'
 import { NumericFormat } from 'react-number-format'
 import {
     setSelectedRows,
@@ -17,6 +18,7 @@ import {
     useAppSelector,
     Order,
 } from '../store'
+import { getCurrencySymbol } from '@/utils/currencySymbols'
 import useThemeClass from '@/utils/hooks/useThemeClass'
 import { useNavigate } from 'react-router-dom'
 import cloneDeep from 'lodash/cloneDeep'
@@ -26,49 +28,7 @@ import type {
     DataTableResetHandle,
     OnSortParam,
     ColumnDef,
-    
 } from '@/components/shared/DataTable'
-
-
-
-const ActionIcon = ({ type }: { type: number }) => {
-    switch (type) {
-        case 0:
-            return (
-                <Avatar
-                    size="sm"
-                    className="bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-100"
-                    icon={
-                        <HiOutlineArrowDown
-                            style={{ transform: 'rotate(45deg)' }}
-                        />
-                    }
-                />
-            )
-        case 1:
-            return (
-                <Avatar
-                    size="sm"
-                    className="bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-100"
-                    icon={
-                        <HiOutlineArrowUp
-                            style={{ transform: 'rotate(45deg)' }}
-                        />
-                    }
-                />
-            )
-        case 2:
-            return (
-                <Avatar
-                    size="sm"
-                    className="bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-100"
-                    icon={<HiOutlineNoSymbol />}
-                />
-            )
-        default:
-            return <Avatar />
-    }
-}
 
 const orderStatusColor: Record<
     PaymentStatus,
@@ -94,9 +54,9 @@ const orderStatusColor: Record<
         textClass: 'text-amber-500',
     },
     FAILED: {
-        label: 'Unpaid',
-        dotClass: 'bg-green-500',
-        textClass: 'text-green-500',
+        label: 'Failed',
+        dotClass: 'bg-red-500',
+        textClass: 'text-red-500',
     },
     CANCELLED: {
         label: 'Cancelled',
@@ -108,7 +68,6 @@ const orderStatusColor: Record<
         dotClass: 'bg-gray-500',
         textClass: 'text-gray-500',
     },
-    //退�?
     REFUNDED: {
         label: 'Refund',
         dotClass: 'bg-red-500',
@@ -126,35 +85,19 @@ const PaymentMethodImage = ({
     switch (paymentMethod) {
         case 'visa':
             return (
-                <img
-                    className={className}
-                src="/img/others/img-8.png"
-                alt={paymentMethod}
-                />
+                <img className={className} src="/img/others/img-8.png" alt={paymentMethod} />
             )
         case 'master':
             return (
-                <img
-                    className={className}
-                src="/img/others/img-9.png"
-                alt={paymentMethod}
-                />
+                <img className={className} src="/img/others/img-9.png" alt={paymentMethod} />
             )
         case 'paypal':
             return (
-                <img
-                    className={className}
-                src="/img/others/img-10.png"
-                alt={paymentMethod}
-                />
+                <img className={className} src="/img/others/img-10.png" alt={paymentMethod} />
             )
         case 'pix':
             return (
-                <img
-                    className={className}
-                src="/img/others/img-12.png"
-                alt={paymentMethod}
-                />
+                <img className={className} src="/img/others/img-12.png" alt={paymentMethod} />
             )
         default:
             return <></>
@@ -166,7 +109,7 @@ const OrderColumn = ({ row }: { row: Order }) => {
     const navigate = useNavigate()
 
     const onView = useCallback(() => {
-        navigate(`/mer/merback/payment-details/${row.id}`)
+        navigate(`/mer/merback/payment-details/${row.payment_id}`)
     }, [navigate, row])
 
     return (
@@ -174,7 +117,7 @@ const OrderColumn = ({ row }: { row: Order }) => {
             className={`cursor-pointer select-none font-semibold hover:${textTheme}`}
             onClick={onView}
         >
-            #{row.id}
+            #{row.payment_id}
         </span>
     )
 }
@@ -182,9 +125,9 @@ const OrderColumn = ({ row }: { row: Order }) => {
 const ActionColumn = ({ row }: { row: Order }) => {
     const { textTheme } = useThemeClass()
     const navigate = useNavigate()
-   
+
     const onView = useCallback(() => {
-        navigate(`/mer/merback/payment-details/${row.id}`)
+        navigate(`/mer/merback/payment-details/${row.payment_id}`)
     }, [navigate, row])
 
     return (
@@ -203,23 +146,15 @@ const ActionColumn = ({ row }: { row: Order }) => {
 
 const OrdersTable = () => {
     const tableRef = useRef<DataTableResetHandle>(null)
-
     const dispatch = useAppDispatch()
 
     const { pageIndex, pageSize, sort, query, total } = useAppSelector(
         (state) => state.salesOrderList.data.tableData
     )
     const loading = useAppSelector((state) => state.salesOrderList.data.loading)
-
     const data = useAppSelector((state) => state.salesOrderList.data.orderList)
 
     const fetchData = useCallback(() => {
-        console.log('{ pageIndex, pageSize, sort, query }', {
-            pageIndex,
-            pageSize,
-            sort,
-            query,
-        })
         dispatch(getOrders({ pageIndex, pageSize, sort, query }))
     }, [dispatch, pageIndex, pageSize, sort, query])
 
@@ -242,57 +177,63 @@ const OrdersTable = () => {
     const columns: ColumnDef<Order>[] = useMemo(
         () => [
             {
-                header: 'Action info',
-                accessorKey: 'action',
+                header: 'Transaction Type',
+                accessorKey: 'transaction_type',
                 cell: (props) => {
                     const row = props.row.original
+                    const isPay_In = row.transaction_type === 'PAY_IN'
                     return (
                         <div className="flex items-center gap-2">
-                            <div>
-                                <ActionIcon type={row.actionType} />
-                            </div>
+                            <Avatar
+                                size="sm"
+                                className={isPay_In
+                                    ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-100"
+                                    : "bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-100"
+                                }
+                                icon={isPay_In
+                                    ? <HiOutlineArrowDown style={{ transform: 'rotate(45deg)' }} />
+                                    : <HiOutlineArrowUp style={{ transform: 'rotate(45deg)' }} />
+                                }
+                            />
                             <span className="font-semibold heading-text whitespace-nowrap">
-                                {row.action}
+                                {row.transaction_type === 'PAY_IN' ? 'Pay In' : 'Pay Out'}
                             </span>
                         </div>
                     )
                 },
             },
             {
-                header: 'PaymentID',
-                accessorKey: 'id',
+                header: 'Payment ID',
+                accessorKey: 'payment_id',
                 cell: (props) => <OrderColumn row={props.row.original} />,
             },
-
             {
-                header: 'Date创建时间',
-                accessorKey: 'date',
+                header: 'Date',
+                accessorKey: 'created_at',
                 cell: (props) => {
                     const row = props.row.original
-                    return (
-                        <span>{dayjs.unix(row.date).format('DD/MM/YYYY THH:mm:sssZ[Z]')}</span>
-                    )
-
+                    return <span>{dayjs(row.created_at).format('DD/MM/YYYY HH:mm:ss')}</span>
                 },
             },
             {
-                header: 'Customer商户',
-                accessorKey: 'customer',
+                header: 'Merchant TX ID',
+                accessorKey: 'merchant_tx_id',
+                cell: (props) => {
+                    const { merchant_tx_id } = props.row.original
+                    return <span className="text-sm">{merchant_tx_id}</span>
+                },
             },
             {
                 header: 'Status',
                 accessorKey: 'status',
                 cell: (props) => {
                     const { status } = props.row.original
+                    const statusInfo = orderStatusColor[status] || orderStatusColor.PENDING
                     return (
                         <div className="flex items-center">
-                            <Badge
-                                className={orderStatusColor[status].dotClass}
-                            />
-                            <span
-                                className={`ml-2 rtl:mr-2 capitalize font-semibold ${orderStatusColor[status].textClass}`}
-                            >
-                                {orderStatusColor[status].label}
+                            <Badge className={statusInfo.dotClass} />
+                            <span className={`ml-2 rtl:mr-2 capitalize font-semibold ${statusInfo.textClass}`}>
+                                {statusInfo.label}
                             </span>
                         </div>
                     )
@@ -300,18 +241,17 @@ const OrdersTable = () => {
             },
             {
                 header: 'Payment Method',
-                accessorKey: 'paymentMethod',
+                accessorKey: 'payment_method',
                 cell: (props) => {
-                    const { paymentMethod, paymentIdentifier } =
-                        props.row.original
+                    const { payment_method, end_to_end } = props.row.original
                     return (
                         <span className="flex items-center">
                             <PaymentMethodImage
                                 className="max-h-[20px]"
-                                paymentMethod={paymentMethod}
+                                paymentMethod={payment_method?.toLowerCase() || ''}
                             />
                             <span className="ltr:ml-2 rtl:mr-2">
-                                {paymentIdentifier}
+                                {end_to_end || payment_method}
                             </span>
                         </span>
                     )
@@ -319,16 +259,14 @@ const OrdersTable = () => {
             },
             {
                 header: 'Amount',
-                accessorKey: 'Amount',
+                accessorKey: 'amount',
                 cell: (props) => {
-                    const { amount } = props.row.original
+                    const { amount, currency } = props.row.original
                     return (
                         <NumericFormat
                             displayType="text"
-                            value={(
-                                Math.round(amount * 100) / 100
-                            ).toFixed(2)}
-                            prefix={'$'}
+                            value={(Math.round(amount * 100) / 100).toFixed(2)}
+                            prefix={getCurrencySymbol(currency, '$')}
                             thousandSeparator={true}
                         />
                     )
@@ -362,8 +300,6 @@ const OrdersTable = () => {
         dispatch(setTableData(newTableData))
     }
 
-
-
     return (
         <DataTable
             ref={tableRef}
@@ -378,13 +314,8 @@ const OrdersTable = () => {
             onPaginationChange={onPaginationChange}
             onSelectChange={onSelectChange}
             onSort={onSort}
-          
         />
     )
 }
 
 export default OrdersTable
-
-
-
-

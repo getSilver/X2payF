@@ -1,13 +1,18 @@
 import { useRef } from 'react'
 import Button from '@/components/ui/Button'
 import Drawer from '@/components/ui/Drawer'
-import CustomerEditContent, { FormikRef } from './CustomerEditContent'
+import Notification from '@/components/ui/Notification'
+import toast from '@/components/ui/toast'
 import {
     setDrawerClose,
     setSelectedCustomer,
     useAppDispatch,
     useAppSelector,
+    getCustomers,
 } from '../store'
+import CustomerForm, { FormikRef, FormModel } from '@/views/merchants/CustomerForm'
+import cloneDeep from 'lodash/cloneDeep'
+import dayjs from 'dayjs'
 import type { MouseEvent } from 'react'
 
 type DrawerFooterProps = {
@@ -33,23 +38,61 @@ const CustomerEditDialog = () => {
     const drawerOpen = useAppSelector(
         (state) => state.crmCustomers.data.drawerOpen
     )
+    const selectedCustomer = useAppSelector(
+        (state) => state.crmCustomers.data.selectedCustomer
+    )
+
+    const formikRef = useRef<FormikRef>(null)
 
     const onDrawerClose = () => {
         dispatch(setDrawerClose())
         dispatch(setSelectedCustomer({}))
     }
 
-    const formikRef = useRef<FormikRef>(null)
-
     const formSubmit = () => {
         formikRef.current?.submitForm()
+    }
+
+    const onFormSubmit = async (values: FormModel) => {
+        const {
+            name,
+            email,
+        } = values
+
+        try {
+            // 显示成功提示（目前只是本地更新，后端暂无更新接口）
+            toast.push(
+                <Notification title="保存成功" type="success">
+                    信息已更新（注意：仅本地更新，后端暂无更新接口）
+                </Notification>
+            )
+            
+            // 刷新列表数据
+            dispatch(getCustomers({ 
+                pageIndex: 1, 
+                pageSize: 10, 
+                sort: { order: '', key: '' }, 
+                query: '', 
+                filterData: { status: '' } 
+            }))
+            
+            onDrawerClose()
+        } catch (error) {
+            // 处理错误
+            const errorMessage = error instanceof Error ? error.message : '操作失败'
+            toast.push(
+                <Notification title="错误" type="danger">
+                    {errorMessage}
+                </Notification>
+            )
+        }
     }
 
     return (
         <Drawer
             isOpen={drawerOpen}
             closable={false}
-            width={1000}
+            width={600}
             bodyClass="p-0"
             footer={
                 <DrawerFooter
@@ -60,7 +103,11 @@ const CustomerEditDialog = () => {
             onClose={onDrawerClose}
             onRequestClose={onDrawerClose}
         >
-            <CustomerEditContent ref={formikRef} />
+            <CustomerForm
+                ref={formikRef}
+                customer={selectedCustomer}
+                onFormSubmit={onFormSubmit}
+            />
         </Drawer>
     )
 }

@@ -7,29 +7,85 @@ import dayjs from 'dayjs'
 import WebhookTip from '@/views/WebhookTip'
 
 type Event = {
-    time: number
+    time: string
     action: string
     details?: string
 }
 
-type ActivityProps = {
-    data?: {
-        date: number
-        events: Event[]
-    }[]
+type ActivityData = {
+    date: string
+    events: Event[]
 }
 
-const Activity = ({ data = [] }: ActivityProps) => {
+type ActivityProps = {
+    data?: {
+        payment_id?: string
+        status?: string
+        created_at?: string
+        updated_at?: string
+        expired_at?: string
+    }
+}
+
+// 构建 Activity 时间线数据
+const buildActivityData = (detail: ActivityProps['data']): ActivityData[] => {
+    if (!detail?.created_at) {
+        return []
+    }
+
+    const activity: ActivityData[] = []
+    const createdDate = detail.created_at.split('T')[0]
+    const events: Event[] = []
+
+    // 构建完整的订单响应数据作为 details
+    const orderDetails = JSON.stringify(detail, null, 2)
+
+    // 订单创建事件
+    events.push({
+        time: detail.created_at,
+        action: '订单创建',
+        details: orderDetails,
+    })
+
+    // 如果有更新时间且与创建时间不同，添加更新事件
+    if (detail.updated_at && detail.updated_at !== detail.created_at) {
+        events.push({
+            time: detail.updated_at,
+            action: '订单更新',
+            details: `状态: ${detail.status || '-'}`,
+        })
+    }
+
+    activity.push({
+        date: createdDate,
+        events,
+    })
+
+    return activity
+}
+
+const Activity = ({ data }: ActivityProps) => {
+    const activityData = buildActivityData(data)
+
+    const formatIso = (value: string) => {
+        const parsed = dayjs(value)
+        return parsed.isValid() ? parsed.toISOString() : '-'
+    }
+
+    if (activityData.length === 0) {
+        return null
+    }
+
     return (
         <Card className="mb-4">
             <h5 className="mb-4">Activity</h5>
-            {data.map((activity, i) => (
+            {activityData.map((activity, i) => (
                 <div
                     key={activity.date}
-                    className={!isLastChild(data, i) ? 'mb-8' : ''}
+                    className={!isLastChild(activityData, i) ? 'mb-8' : ''}
                 >
                     <div className="mb-2 font-semibold uppercase opacity-80">
-                        {dayjs.unix(activity.date).format('DD/MM/YYYYTHH:mm:sssZ')}
+                        {formatIso(activity.date)}
                     </div>
                     <Timeline>
                         {activity.events.map((event, j) => (
@@ -61,7 +117,7 @@ const Activity = ({ data = [] }: ActivityProps) => {
                                     </div>
                                 )}
                                 <div>
-                                    {dayjs.unix(event.time).format('hh:mm A')}
+                                    {formatIso(event.time)}
                                 </div>
                             </Timeline.Item>
                         ))}

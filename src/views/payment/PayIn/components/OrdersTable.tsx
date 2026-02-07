@@ -21,6 +21,7 @@ import {
     useAppSelector,
     Order,
 } from '../store'
+import { getCurrencySymbol } from '@/utils/currencySymbols'
 import useThemeClass from '@/utils/hooks/useThemeClass'
 import { useNavigate } from 'react-router-dom'
 import cloneDeep from 'lodash/cloneDeep'
@@ -321,13 +322,13 @@ const OrdersTable = () => {
                 header: 'Amount',
                 accessorKey: 'amount',
                 cell: (props) => {
-                    const { amount } = props.row.original
+                    const { amount, currency } = props.row.original
                     const displayValue = amount / 100
                     return (
                         <NumericFormat
                             displayType="text"
                             value={(Math.round(displayValue * 100) / 100).toFixed(2)}
-                            prefix={'$'}
+                            prefix={getCurrencySymbol(currency, '$')}
                             thousandSeparator={true}
                             />
                     )

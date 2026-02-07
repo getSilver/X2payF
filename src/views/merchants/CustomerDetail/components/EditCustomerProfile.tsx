@@ -1,10 +1,14 @@
 import { useRef } from 'react'
 import Button from '@/components/ui/Button'
 import Drawer from '@/components/ui/Drawer'
+import Notification from '@/components/ui/Notification'
+import toast from '@/components/ui/toast'
 import {
     closeEditCustomerDetailDialog,
     updateProfileData,
     putCustomer,
+    bindMerchantAgent,
+    unbindMerchantAgent,
     useAppDispatch,
     useAppSelector,
     Customer,
@@ -51,7 +55,7 @@ const EditCustomerProfile = () => {
         formikRef.current?.submitForm()
     }
 
-    const onFormSubmit = (values: FormModel) => {
+    const onFormSubmit = async (values: FormModel) => {
         const clonedData = cloneDeep(customer)
         const {
             name,
@@ -60,37 +64,98 @@ const EditCustomerProfile = () => {
             img,
             location,
             title,
-            phoneNumber,
             facebook,
             twitter,
             pinterest,
             linkedIn,
+            agent,
         } = values
 
-        const basicInfo = { name, email, img }
-        const personalInfo = {
-            location,
-            title,
-            birthday: dayjs(birthday).format('DD/MM/YYYY'),
-            phoneNumber,
-            facebook,
-            twitter,
-            pinterest,
-            linkedIn,
-            agent:clonedData.personalInfo?.agent || '',
+        // 处理代理商绑定/解绑逻辑
+        const oldAgentId = customer.personalInfo?.agent || customer.agent_id || ''
+        const newAgentId = agent || ''
+        
+        try {
+            let agentChanged = false
+            
+            // 如果代理商ID发生变化，先处理绑定/解绑
+            if (oldAgentId !== newAgentId) {
+                if (newAgentId) {
+                    // 绑定或更换代理商
+                    await dispatch(bindMerchantAgent({
+                        merchantId: customer.id || '',
+                        agentId: newAgentId,
+                    })).unwrap()
+                    
+                    agentChanged = true
+                } else {
+                    // 解绑代理商
+                    await dispatch(unbindMerchantAgent({
+                        merchantId: customer.id || '',
+                    })).unwrap()
+                    
+                    agentChanged = true
+                }
+            }
+            
+            // 更新本地状态（使用合并而不是覆盖）
+            const updatedData = {
+                ...clonedData,
+                name,
+                email,
+                img,
+                personalInfo: {
+                    ...clonedData.personalInfo, // 保留原有字段
+                    location,
+                    title,
+                    birthday: dayjs(birthday).format('DD/MM/YYYY'),
+                    facebook,
+                    twitter,
+                    pinterest,
+                    linkedIn,
+                    agent: newAgentId,
+                },
+            }
+            
+            // 更新本地状态
+            dispatch(updateProfileData(updatedData))
+            dispatch(putCustomer(updatedData as Customer))
+            
+            // 显示成功提示
+            if (agentChanged) {
+                toast.push(
+                    <Notification title="保存成功" type="success">
+                        {newAgentId 
+                            ? (oldAgentId ? '代理商更换成功' : '代理商绑定成功')
+                            : '代理商解绑成功'
+                        }
+                    </Notification>
+                )
+            } else {
+                toast.push(
+                    <Notification title="保存成功" type="success">
+                        信息已更新（注意：部分字段仅本地更新，后端暂无更新接口）
+                    </Notification>
+                )
+            }
+            
+            onDrawerClose()
+        } catch (error) {
+            // 处理错误
+            const errorMessage = error instanceof Error ? error.message : '操作失败'
+            toast.push(
+                <Notification title="错误" type="danger">
+                    {errorMessage}
+                </Notification>
+            )
         }
-        clonedData.personalInfo = personalInfo
-        const newData = { ...clonedData, ...basicInfo }
-        dispatch(updateProfileData(newData))
-        dispatch(putCustomer(newData as Customer))
-        onDrawerClose()
     }
 
     return (
         <Drawer
             isOpen={dialogOpen}
             closable={false}
-            width={800}
+            width={600}
             bodyClass="p-0"
             footer={
                 <DrawerFooter

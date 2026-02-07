@@ -94,23 +94,39 @@ function useAuth() {
                         })
                     )
 
-                    // 设置用户信息
+                    // 设置用户信息，使用后端返回的角色
+                    const userRoles = loginData.roles || []
                     dispatch(
                         setUser({
                             userId: user_id,
-                            userName: values.username,
+                            userName: loginData.username || values.username,
+                            email: loginData.email || '',
                             avatar: '',
-                            authority: ['ADMIN', 'USER'],
+                            authority: userRoles,
                         })
                     )
 
-                    // 跳转到目标页面
+                    // 根据用户角色决定跳转路径
                     const redirectUrl = query.get(REDIRECT_URL_KEY)
-                    navigate(
-                        redirectUrl
-                            ? redirectUrl
-                            : appConfig.authenticatedEntryPath
-                    )
+                    if (redirectUrl) {
+                        navigate(redirectUrl)
+                    } else {
+                        // 判断用户角色，跳转到对应后台
+                        const hasPlatformRole = userRoles.some((role: string) => 
+                            ['PLATFORM_SUPER_ADMIN', 'PLATFORM_OPERATIONS_ADMIN', 'PLATFORM_FINANCE_ADMIN'].includes(role)
+                        )
+                        const hasMerchantRole = userRoles.some((role: string) => 
+                            ['APP_OWNER', 'APP_FINANCE', 'APP_CUSTOMER_SERVICE'].includes(role)
+                        )
+                        
+                        if (hasPlatformRole) {
+                            navigate('/app/payment/dashboard')
+                        } else if (hasMerchantRole) {
+                            navigate('/mer/dashboard')
+                        } else {
+                            navigate(appConfig.authenticatedEntryPath)
+                        }
+                    }
 
                     return {
                         status: 'success',
@@ -220,21 +236,39 @@ function useAuth() {
                     })
                 )
 
-                // 设置用户信息
+                // 设置用户信息，使用后端返回的角色
+                const userRoles = sessionData.roles || []
                 dispatch(
                     setUser({
                         userId: user_id,
-                        userName: '',
+                        userName: sessionData.username || '',
+                        email: sessionData.email || '',
                         avatar: '',
-                        authority: ['ADMIN', 'USER'],
+                        authority: userRoles,
                     })
                 )
 
-                // 跳转到目标页面
+                // 根据用户角色决定跳转路径
                 const redirectUrl = query.get(REDIRECT_URL_KEY)
-                navigate(
-                    redirectUrl ? redirectUrl : appConfig.authenticatedEntryPath
-                )
+                if (redirectUrl) {
+                    navigate(redirectUrl)
+                } else {
+                    // 判断用户角色，跳转到对应后台
+                    const hasPlatformRole = userRoles.some((role: string) => 
+                        ['PLATFORM_SUPER_ADMIN', 'PLATFORM_OPERATIONS_ADMIN', 'PLATFORM_FINANCE_ADMIN'].includes(role)
+                    )
+                    const hasMerchantRole = userRoles.some((role: string) => 
+                        ['APP_OWNER', 'APP_FINANCE', 'APP_CUSTOMER_SERVICE'].includes(role)
+                    )
+                    
+                    if (hasPlatformRole) {
+                        navigate('/app/payment/dashboard')
+                    } else if (hasMerchantRole) {
+                        navigate('/mer/dashboard')
+                    } else {
+                        navigate(appConfig.authenticatedEntryPath)
+                    }
+                }
 
                 return {
                     status: 'success',

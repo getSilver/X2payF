@@ -73,9 +73,17 @@ const Settings = () => {
         location.pathname.lastIndexOf('/') + 1
     )
 
+    // 根据当前路径获取基础路径，支持商户(/mer)和平台(/account)两种路由
+    const getBasePath = () => {
+        if (location.pathname.startsWith('/mer/')) {
+            return '/mer/account/settings'
+        }
+        return '/account/settings'
+    }
+
     const onTabChange = (val: string) => {
         setCurrentTab(val)
-        navigate(`/account/settings/${val}`)
+        navigate(`${getBasePath()}/${val}`)
     }
 
     useEffect(() => {

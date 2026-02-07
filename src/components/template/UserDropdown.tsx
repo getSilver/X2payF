@@ -6,7 +6,7 @@ import { useAppSelector } from '@/store'
 import { Link } from 'react-router-dom'
 import classNames from 'classnames'
 import { HiOutlineUser, HiOutlineCog, HiOutlineLogout } from 'react-icons/hi'
-//import { FiActivity } from 'react-icons/fi'
+import { MERCHANT_ROLES } from '@/constants/roles.constant'
 import type { CommonProps } from '@/@types/common'
 
 type DropdownList = {
@@ -15,19 +15,27 @@ type DropdownList = {
     icon: JSX.Element
 }
 
-const dropdownItemList: DropdownList[] = [
-    {
-        label: 'Profile',
-        path: '/account/settings/profile',
-        icon: <HiOutlineUser />,
-    },
-    {
-        label: 'Account Setting',
-        path: '/account/settings/profile',
-        icon: <HiOutlineCog />,
-    },
+// 根据用户角色获取设置页面路径
+const getSettingsPath = (authority: string[] = []) => {
+    const isMerchant = authority.some(role => MERCHANT_ROLES.includes(role))
+    return isMerchant ? '/mer/account/settings/profile' : '/account/settings/profile'
+}
 
-]
+const getDropdownItemList = (authority: string[] = []): DropdownList[] => {
+    const settingsPath = getSettingsPath(authority)
+    return [
+        {
+            label: 'Profile',
+            path: settingsPath,
+            icon: <HiOutlineUser />,
+        },
+        {
+            label: 'Account Setting',
+            path: settingsPath,
+            icon: <HiOutlineCog />,
+        },
+    ]
+}
 
 const _UserDropdown = ({ className }: CommonProps) => {
     const { avatar, userName, authority, email } = useAppSelector(
@@ -35,6 +43,9 @@ const _UserDropdown = ({ className }: CommonProps) => {
     )
 
     const { signOut } = useAuth()
+
+    // 根据用户角色动态生成下拉菜单
+    const dropdownItemList = getDropdownItemList(authority)
 
     const UserAvatar = (
         <div className={classNames(className, 'flex items-center gap-2')}>

@@ -6,7 +6,7 @@ import {
 } from '@/constants/navigation.constant'
 import type { NavigationTree } from '@/@types/navigation'
 
-import { ADMIN, USER } from '@/constants/roles.constant'//模拟权限演示
+import { PLATFORM_ROLES } from '@/constants/roles.constant'
 
 const appsNavigation: NavigationTree[] = [
     //管理后台
@@ -17,7 +17,7 @@ const appsNavigation: NavigationTree[] = [
         translateKey: 'nav.apps',
         icon: 'apps',
         type: NAV_ITEM_TYPE_TITLE,
-        authority: [ADMIN, USER],
+        authority: PLATFORM_ROLES,
         subMenu: [
             //订单导航
             {
@@ -27,7 +27,7 @@ const appsNavigation: NavigationTree[] = [
                 translateKey: 'nav.appsOrders.orders',
                 icon: 'sales',
                 type: NAV_ITEM_TYPE_COLLAPSE,
-                authority: [ADMIN, USER],
+                authority: PLATFORM_ROLES,
                 subMenu: [
                     //订单
                     {
@@ -37,7 +37,7 @@ const appsNavigation: NavigationTree[] = [
                         translateKey: 'nav.appsOrders.dashboard',
                         icon: '',
                         type: NAV_ITEM_TYPE_ITEM,
-                        authority: [ADMIN, USER],
+                        authority: PLATFORM_ROLES,
                         subMenu: [],
                     },
                     {
@@ -47,7 +47,7 @@ const appsNavigation: NavigationTree[] = [
                         translateKey: 'nav.appsOrders.payIn',
                         icon: '',
                         type: NAV_ITEM_TYPE_ITEM,
-                        authority: [ADMIN, USER],
+                        authority: PLATFORM_ROLES,
                         subMenu: [],
                     },
                 ],
@@ -60,7 +60,7 @@ const appsNavigation: NavigationTree[] = [
                 translateKey: 'nav.appsMer.merchants',
                 icon: 'crm',
                 type: NAV_ITEM_TYPE_COLLAPSE,
-                authority: [ADMIN, USER],
+                authority: PLATFORM_ROLES,
                 subMenu: [
                     {
                         key: 'appsMerchants.dashboard',
@@ -69,7 +69,7 @@ const appsNavigation: NavigationTree[] = [
                         translateKey: 'nav.appsMer.dashboard',
                         icon: '',
                         type: NAV_ITEM_TYPE_ITEM,
-                        authority: [ADMIN, USER],
+                        authority: PLATFORM_ROLES,
                         subMenu: [],
                     },
                     {
@@ -79,7 +79,7 @@ const appsNavigation: NavigationTree[] = [
                         translateKey: 'nav.appsMer.mgmt',
                         icon: '',
                         type: NAV_ITEM_TYPE_ITEM,
-                        authority: [ADMIN, USER],
+                        authority: PLATFORM_ROLES,
                         subMenu: [],
                     },
                     {
@@ -89,7 +89,7 @@ const appsNavigation: NavigationTree[] = [
                         translateKey: 'nav.appsMer.merDetails',
                         icon: '',
                         type: NAV_ITEM_TYPE_ITEM,
-                        authority: [ADMIN, USER],
+                        authority: PLATFORM_ROLES,
                         subMenu: [],
                     },
                 ],
@@ -102,7 +102,7 @@ const appsNavigation: NavigationTree[] = [
                 translateKey: 'nav.appsChannel.channel',
                 icon: 'channel',
                 type: NAV_ITEM_TYPE_COLLAPSE,
-                authority: [ADMIN, USER],
+                authority: PLATFORM_ROLES,
                 subMenu: [
                     {
                         key: 'appsChannel.dashboard',
@@ -111,7 +111,7 @@ const appsNavigation: NavigationTree[] = [
                         translateKey: 'nav.appsChannel.dashboard',
                         icon: '',
                         type: NAV_ITEM_TYPE_ITEM,
-                        authority: [ADMIN, USER],
+                        authority: PLATFORM_ROLES,
                         subMenu: [],
                     },
                     {
@@ -121,7 +121,7 @@ const appsNavigation: NavigationTree[] = [
                         translateKey: 'nav.appsChannel.paymentSet',
                         icon: '',
                         type: NAV_ITEM_TYPE_ITEM,
-                        authority: [ADMIN, USER],
+                        authority: PLATFORM_ROLES,
                         subMenu: [],
                     },
                     {
@@ -131,7 +131,7 @@ const appsNavigation: NavigationTree[] = [
                         translateKey: 'nav.appsChannel.mgmt',
                         icon: '',
                         type: NAV_ITEM_TYPE_ITEM,
-                        authority: [ADMIN, USER],
+                        authority: PLATFORM_ROLES,
                         subMenu: [],
                     },
 
@@ -145,7 +145,7 @@ const appsNavigation: NavigationTree[] = [
                 translateKey: 'nav.appsFinances.finances',
                 icon: 'wallet',
                 type: NAV_ITEM_TYPE_COLLAPSE,
-                authority: [ADMIN, USER],
+                authority: PLATFORM_ROLES,
                 subMenu: [
                     {
                         key: 'appsFinances.dashboard',
@@ -154,7 +154,7 @@ const appsNavigation: NavigationTree[] = [
                         translateKey: 'nav.appsFinances.dashboard',
                         icon: '',
                         type: NAV_ITEM_TYPE_ITEM,
-                        authority: [ADMIN, USER],
+                        authority: PLATFORM_ROLES,
                         subMenu: [],
                     },
                     {
@@ -164,7 +164,7 @@ const appsNavigation: NavigationTree[] = [
                         translateKey: 'nav.appsFinances.financialFlow',
                         icon: '',
                         type: NAV_ITEM_TYPE_ITEM,
-                        authority: [ADMIN, USER],
+                        authority: PLATFORM_ROLES,
                         subMenu: [],
                     },
                     {
@@ -174,7 +174,7 @@ const appsNavigation: NavigationTree[] = [
                         translateKey: 'nav.appsFinances.withdraw',
                         icon: '',
                         type: NAV_ITEM_TYPE_ITEM,
-                        authority: [ADMIN, USER],
+                        authority: PLATFORM_ROLES,
                         subMenu: [],
                     },
                 ],
@@ -187,7 +187,7 @@ const appsNavigation: NavigationTree[] = [
                 translateKey: 'nav.appsPlatform.platform',
                 icon: 'account',
                 type: NAV_ITEM_TYPE_COLLAPSE,
-                authority: [ADMIN, USER],
+                authority: PLATFORM_ROLES,
                 subMenu: [
                     {
                         key: 'appsPlatform.settings',
@@ -196,7 +196,7 @@ const appsNavigation: NavigationTree[] = [
                         translateKey: 'nav.appsPlatform.settings',
                         icon: '',
                         type: NAV_ITEM_TYPE_ITEM,
-                        authority: [ADMIN, USER],
+                        authority: PLATFORM_ROLES,
                         subMenu: [],
                     },
                     // {
@@ -206,7 +206,7 @@ const appsNavigation: NavigationTree[] = [
                     //     translateKey: 'nav.appsAccount.invoice',
                     //     icon: '',
                     //     type: NAV_ITEM_TYPE_ITEM,
-                    //     authority: [ADMIN, USER],
+                    //     authority: PLATFORM_ROLES,
                     //     subMenu: [],
                     // },
                     // {
@@ -216,7 +216,7 @@ const appsNavigation: NavigationTree[] = [
                     //     translateKey: 'nav.appsAccount.activityLog',
                     //     icon: '',
                     //     type: NAV_ITEM_TYPE_ITEM,
-                    //     authority: [ADMIN, USER],
+                    //     authority: PLATFORM_ROLES,
                     //     subMenu: [],
                     // },
                     // {
@@ -226,7 +226,7 @@ const appsNavigation: NavigationTree[] = [
                     //     translateKey: 'nav.appsAccount.kycForm',
                     //     icon: '',
                     //     type: NAV_ITEM_TYPE_ITEM,
-                    //     authority: [ADMIN, USER],
+                    //     authority: PLATFORM_ROLES,
                     //     subMenu: [],
                     // },
                 ],
@@ -239,7 +239,7 @@ const appsNavigation: NavigationTree[] = [
                 translateKey: 'nav.appsRisk.risk',
                 icon: 'risk',
                 type: NAV_ITEM_TYPE_COLLAPSE,
-                authority: [ADMIN, USER],
+                authority: PLATFORM_ROLES,
                 subMenu: [
                     {
                         key: 'appsRisk.rules',
@@ -248,7 +248,7 @@ const appsNavigation: NavigationTree[] = [
                         translateKey: 'nav.appsRisk.rules',
                         icon: '',
                         type: NAV_ITEM_TYPE_ITEM,
-                        authority: [ADMIN, USER],
+                        authority: PLATFORM_ROLES,
                         subMenu: [],
                     },
                 ],

@@ -21,6 +21,7 @@ import {
 } from '../store'
 import EditCustomerProfile from './EditCustomerProfile'
 
+
 type CustomerInfoFieldProps = {
     title?: string
     value?: string
@@ -118,19 +119,19 @@ const CustomerProfile = ({ data = {} }: CustomerProfileProps) => {
                     <CustomerInfoField title="Email" value={data.contact_email} />
                     <CustomerInfoField
                         title="商户ID"
-                        value={data.personalInfo?.phoneNumber}
+                        value={data.personalInfo?.merchantID}
                     />
                     <CustomerInfoField
                         title="Location时区"
                         value={data.personalInfo?.location}
                     />
                     <CustomerInfoField
-                        title="birthday注册时间"
-                        value={data.personalInfo?.birthday}
+                        title="Agent代理"
+                        value={data.personalInfo?.agent}
                     />
                     <CustomerInfoField
-                        title="agent代理id"
-                        value={data.personalInfo?.agent}
+                        title="birthday注册时间"
+                        value={data.personalInfo?.birthday}
                     />
                     <div className="mb-7">
                         <span>Social</span>

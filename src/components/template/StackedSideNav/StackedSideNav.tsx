@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import {
     NAV_MODE_THEMED,
     SPLITTED_SIDE_NAV_MINI_WIDTH,
@@ -13,6 +13,8 @@ import useResponsive from '@/utils/hooks/useResponsive'
 import isEmpty from 'lodash/isEmpty'
 import { useAppSelector } from '@/store'
 import { useTranslation } from 'react-i18next'
+import { useLocation } from 'react-router-dom'
+import { getNavigationConfig } from '@/configs/navigation.config'
 
 const stackedSideNavDefaultStyle = {
     width: SPLITTED_SIDE_NAV_MINI_WIDTH,
@@ -20,6 +22,7 @@ const stackedSideNavDefaultStyle = {
 
 const StackedSideNav = () => {
     const { t } = useTranslation()
+    const location = useLocation()
 
     const [selectedMenu, setSelectedMenu] = useState<SelectedMenuItem>({})
     const [activeKeys, setActiveKeys] = useState<string[]>([])
@@ -37,6 +40,11 @@ const StackedSideNav = () => {
     const userAuthority = useAppSelector((state) => state.auth.user.authority)
 
     const { larger } = useResponsive()
+
+    // 根据当前路由动态获取导航配置
+    const navigationConfig = useMemo(() => {
+        return getNavigationConfig(location.pathname)
+    }, [location.pathname])
 
     const navColor = (navType: string, mode: string, ableTheme = true) => {
         if (navMode === NAV_MODE_THEMED && ableTheme) {
@@ -82,6 +90,7 @@ const StackedSideNav = () => {
                             navMode
                         )}`}
                         style={stackedSideNavDefaultStyle}
+                        navigationConfig={navigationConfig}
                         routeKey={currentRouteKey}
                         activeKeys={activeKeys}
                         navMode={navMode}

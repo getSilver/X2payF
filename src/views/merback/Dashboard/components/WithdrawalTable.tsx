@@ -7,11 +7,25 @@ import cloneDeep from 'lodash/cloneDeep'
 import dayjs from 'dayjs'
 import type { TableQueries } from '@/@types/common'
 import type { OnSortParam, ColumnDef } from '@/components/shared'
+import { formatCurrencyAmount } from '@/utils/currencySymbols'
 
 type WithdrawalTableProps = {
     data: Withdraw[]
     loading?: boolean
     tableData: TableQueries
+}
+
+// 提款状态类型定义
+type WithdrawalStatus = 'PENDING' | 'APPROVED' | 'COMPLETED' | 'REJECTED' | 'CANCELLED' | 'CLOSED'
+
+// 状态映射：后端状态 -> 前端状态码
+const statusMap: Record<WithdrawalStatus, number> = {
+    PENDING: 0,      // 待审核
+    APPROVED: 1,     // 已批准
+    COMPLETED: 2,    // 已完成
+    REJECTED: 3,     // 已拒绝
+    CANCELLED: 4,    // 已取消
+    CLOSED: 5,       // 已关闭
 }
 
 const WithdrawalTable = ({ data, loading, tableData }: WithdrawalTableProps) => {
@@ -20,28 +34,35 @@ const WithdrawalTable = ({ data, loading, tableData }: WithdrawalTableProps) => 
     const columns: ColumnDef<Withdraw>[] = useMemo(
         () => [
             {
-                header: 'Action',
+                header: '',
                 accessorKey: 'action',
                 cell: (props) => {
                     const row = props.row.original
                     return (
                         <div className="flex items-center gap-2">
                             <div>
-                                <SharedActionIcon type={row.actionType} />
+                                <SharedActionIcon type={row.actionType ?? 2} />
                             </div>
-                            <span className="font-semibold heading-text whitespace-nowrap">
-                                {row.action}
-                            </span>
+                            {/* <span className="font-semibold heading-text whitespace-nowrap">
+                                {row.action || '提款'}
+                            </span> */}
                         </div>
                     )
                 },
             },
             {
-                header: 'Transaction Id',
+                header: 'ID',
                 accessorKey: 'id',
                 cell: (props) => {
                     const row = props.row.original
-                    return <span>TxID-{row.id}</span>
+                    const displayId = row.withdrawal_id || row.id
+                    return (
+                        <div className="max-w-[200px]">
+                            <div className="truncate" title={displayId}>
+                                {displayId}
+                            </div>
+                        </div>
+                    )
                 },
             },
             {
@@ -49,58 +70,81 @@ const WithdrawalTable = ({ data, loading, tableData }: WithdrawalTableProps) => 
                 accessorKey: 'date',
                 cell: (props) => {
                     const row = props.row.original
+                    const dateValue = row.created_at 
+                        ? dayjs(row.created_at).format('MM/DD/YYYY HH:mm')
+                        : row.date 
+                        ? dayjs.unix(row.date).format('MM/DD/YYYY')
+                        : '-'
+                    
                     return (
-                        <div className="flex items-center">
-                            {dayjs.unix(row.date).format('MM/DD/YYYY')}
+                        <div className="flex items-center whitespace-nowrap">
+                            {dateValue}
                         </div>
                     )
                 },
             },
             {
-                header: 'SubAmount提交金',
-                accessorKey: 'subAmount',
-                cell: (props) => {
-                    const row = props.row.original
-                    return (
-                        <span>
-                            {row.subAmount} {row.symbol}
-                        </span>
-                    )
-                },
-            },
-            {
-                header: 'Amount实收金额',
+                header: 'Amount',
                 accessorKey: 'amount',
                 cell: (props) => {
                     const row = props.row.original
+                    const currencyCode = row.currency || row.symbol
+                    // 后端返回的金额单位是"分"，转换为"元"显示
+                    const amountInYuan = row.amount / 100
                     return (
-                        <span>
-                            {row.amount} {row.symbol}
+                        <span className="font-semibold">
+                            {formatCurrencyAmount(amountInYuan, currencyCode)}
                         </span>
                     )
                 },
             },
             {
-                header: 'Fee汇率',
+                header: 'Fee',
                 accessorKey: 'fee',
                 cell: (props) => {
                     const row = props.row.original
+                    const currencyCode = row.currency || row.symbol
+                    // 后端返回的金额单位是"分"，转换为"元"显示
+                    const feeInYuan = (row.fee ?? 0) / 100
+                    return <span>{formatCurrencyAmount(feeInYuan, currencyCode)}</span>
+                },
+            },
+            {
+                header: 'USDT',
+                accessorKey: 'bank_account',
+                cell: (props) => {
+                    const row = props.row.original
+                    // 从 extra 字段解析提款收款地址
+                    let withdrawalAddress = ''
+                    if (row.extra) {
+                        try {
+                            const extraData = typeof row.extra === 'string' ? JSON.parse(row.extra) : row.extra
+                            withdrawalAddress = extraData.withdrawal_address || ''
+                        } catch {
+                            // 解析失败，忽略
+                        }
+                    }
+                    const displayValue = withdrawalAddress || row.bank_account || '-'
                     return (
-                        <span>
-                            {row.fee} {row.symbol}
-                        </span>
+                        <div className="max-w-[150px]">
+                            <div className="truncate" title={displayValue}>
+                                {displayValue}
+                            </div>
+                        </div>
                     )
                 },
             },
             {
-                header: 'Refund退款金额',
-                accessorKey: 'refund',
+                header: 'Note',
+                accessorKey: 'note',
                 cell: (props) => {
                     const row = props.row.original
                     return (
-                        <span>
-                            {row.refund} {row.symbol}
-                        </span>
+                        <div className="max-w-[150px]">
+                            <div className="truncate" title={row.note || ''}>
+                                {row.note || '-'}
+                            </div>
+                        </div>
                     )
                 },
             },
@@ -108,12 +152,22 @@ const WithdrawalTable = ({ data, loading, tableData }: WithdrawalTableProps) => 
                 header: 'Status',
                 accessorKey: 'status',
                 cell: (props) => {
-                    const { status } = props.row.original
+                    const row = props.row.original
+                    // 如果有后端状态字符串，转换为状态码
+                    let statusCode: number = 0
+                    if (typeof row.status === 'string') {
+                        statusCode = statusMap[row.status as WithdrawalStatus] ?? 0
+                    } else if (typeof row.status === 'number') {
+                        statusCode = row.status
+                    }
+                    
+                    const statusInfo = statusColor[statusCode] || statusColor[0]
+                    
                     return (
                         <div className="flex items-center gap-2">
-                            <div className={`w-2 h-2 rounded-full ${statusColor[status].dotClass}`} />
-                            <span className={`capitalize font-semibold ${statusColor[status].textClass}`}>
-                                {statusColor[status].label}
+                            <div className={`w-2 h-2 rounded-full ${statusInfo.dotClass}`} />
+                            <span className={`capitalize font-semibold ${statusInfo.textClass}`}>
+                                {statusInfo.label}
                             </span>
                         </div>
                     )

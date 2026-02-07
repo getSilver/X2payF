@@ -10,6 +10,9 @@ import {
 import { FormModel } from '@/views/merback/TradeForm'
 import { useNavigate } from 'react-router-dom'
 import isEmpty from 'lodash/isEmpty'
+import { apiCreateWithdrawal, CreateWithdrawalRequest } from '@/services/MerchantService'
+import createUID from '@/components/ui/utils/createUid'
+
 
 // 懒加载步骤组件 - 从trade模块导入
 const TradeFormStep = lazy(() => import('./trade').then(mod => ({ default: mod.TradeFormStep })))
@@ -21,13 +24,13 @@ const TradeDialog = () => {
     const navigate = useNavigate()
 
     const tradeDialogOpen = useAppSelector(
-        (state) => state.cryptoWallets.data.tradeDialogOpen
+        (state) => state.appWallets.data.tradeDialogOpen
     )
     const selectedRow = useAppSelector(
-        (state) => state.cryptoWallets.data.selectedRow
+        (state) => state.appWallets.data.selectedRow
     )
 
-    const [showProceed, setShowProceed] = useState({})
+    const [showProceed, setShowProceed] = useState<Record<string, unknown>>({})
     const [confirmLoading, setConfirmLoading] = useState(false)
     const [status, setStatus] = useState<'SUCCESS' | 'FAILED' | ''>('')
 
@@ -54,11 +57,71 @@ const TradeDialog = () => {
         }, 500)
     }
 
-    const hadleConfirm = () => {
+    const handleConfirm = async () => {
         setConfirmLoading(true)
-        setTimeout(() => {
-            setStatus('SUCCESS')
-        }, 1000)
+        
+        const tradeType = showProceed.type as string
+        const isAppCurrency = showProceed.isAppCurrency as boolean
+        
+        // 如果是应用币种的 SELL 操作，调用提款 API
+        if (tradeType === 'SELL' && isAppCurrency) {
+            try {
+                const appId = showProceed.appId as string
+                const currency = (showProceed.currency as string || '').toUpperCase()
+                const price = showProceed.price as number
+                
+                // 参数验证
+                if (!appId) {
+                    console.error('提款失败: appId 为空')
+                    setStatus('FAILED')
+                    setConfirmLoading(false)
+                    return
+                }
+                if (!currency || currency.length !== 3) {
+                    console.error('提款失败: currency 无效', currency)
+                    setStatus('FAILED')
+                    setConfirmLoading(false)
+                    return
+                }
+                if (!price || price <= 0) {
+                    console.error('提款失败: price 无效', price)
+                    setStatus('FAILED')
+                    setConfirmLoading(false)
+                    return
+                }
+                
+                // 金额转换为分（后端使用分为单位）
+                const amountInCents = Math.round(price * 100)
+                
+                const request: CreateWithdrawalRequest = {
+                    request_id: createUID(16),
+                    app_id: appId,
+                    amount: amountInCents,
+                    currency: currency,
+                    note: `Sell ${price} ${currency} for USD`,
+                }
+                
+                console.log('提款请求:', request)
+                
+                await apiCreateWithdrawal(request)
+                setStatus('SUCCESS')
+            } catch (error: any) {
+                console.error('提款申请失败:', error)
+                // 打印详细错误信息
+                if (error.response) {
+                    console.error('错误响应:', error.response.data)
+                    console.error('错误状态:', error.response.status)
+                }
+                setStatus('FAILED')
+            }
+        } else {
+            // 非应用币种交易，模拟成功
+            setTimeout(() => {
+                setStatus('SUCCESS')
+            }, 1000)
+        }
+        
+        setConfirmLoading(false)
     }
 
     const handleDone = (shouldRedirect?: boolean) => {
@@ -94,7 +157,7 @@ const TradeDialog = () => {
                     <TradeConfirmationStep
                         loading={confirmLoading}
                         status={status as 'SUCCESS' | 'FAILED' | ''}
-                        onConfirm={hadleConfirm}
+                        onConfirm={handleConfirm}
                         onDone={handleDone}
                         {...showProceed}
                     />

@@ -120,3 +120,66 @@ export async function apiDeletePlatformAssociation<T>(id: string) {
         method: 'delete',
     })
 }
+
+// Exchange Rate APIs
+export async function apiGetPlatformExchangeRates<T, U extends Record<string, unknown>>(
+    params?: U
+) {
+    return ApiService.fetchData<T>({
+        url: `${API_BASE}/exchange-rates`,
+        method: 'get',
+        params,
+    })
+}
+
+// 汇率响应类型
+export type ExchangeRateResponse = {
+    id: string
+    base_currency: string
+    quote_currency: string
+    rate: number  // 实际汇率值（如 5.0）
+    is_active: boolean
+    updated_at: string
+}
+
+// 商户端获取汇率（根据报价币种获取对 USD 的汇率）
+// 使用商户端接口，不需要平台管理员权限
+export async function apiGetExchangeRateByQuoteCurrency(quoteCurrency: string) {
+    return ApiService.fetchData<ExchangeRateResponse>({
+        url: '/api/v1/merchant/exchange-rates/by-pair',
+        method: 'get',
+        params: {
+            base_currency: 'USD',
+            quote_currency: quoteCurrency,
+        },
+    })
+}
+
+export async function apiCreatePlatformExchangeRate<
+    T,
+    U extends Record<string, unknown>
+>(data: U) {
+    return ApiService.fetchData<T>({
+        url: `${API_BASE}/exchange-rates`,
+        method: 'post',
+        data,
+    })
+}
+
+export async function apiUpdatePlatformExchangeRate<
+    T,
+    U extends Record<string, unknown>
+>(id: string, data: U) {
+    return ApiService.fetchData<T>({
+        url: `${API_BASE}/exchange-rates/${id}`,
+        method: 'put',
+        data,
+    })
+}
+
+export async function apiDeletePlatformExchangeRate<T>(id: string) {
+    return ApiService.fetchData<T>({
+        url: `${API_BASE}/exchange-rates/${id}`,
+        method: 'delete',
+    })
+}

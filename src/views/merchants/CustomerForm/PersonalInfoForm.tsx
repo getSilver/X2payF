@@ -98,7 +98,7 @@ const PersonalInfoForm = (props: PersonalInfoFormProps) => {
                 </Field>
             </FormItem>
             <FormItem
-                label="Name标注产品"
+                label="Name"
                 invalid={errors.name && touched.name}
                 errorMessage={errors.name}
             >

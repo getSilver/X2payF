@@ -15,6 +15,7 @@ import {
     useAppDispatch,
     useAppSelector,
 } from '../store'
+import { getCurrencySymbol } from '@/utils/currencySymbols'
 import useThemeClass from '@/utils/hooks/useThemeClass'
 import { useNavigate } from 'react-router-dom'
 import cloneDeep from 'lodash/cloneDeep'

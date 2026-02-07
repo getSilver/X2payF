@@ -1,10 +1,9 @@
-import { useEffect } from 'react'
 import Card from '@/components/ui/Card'
 import Avatar from '@/components/ui/Avatar'
 import GrowShrinkTag from '@/components/shared/GrowShrinkTag'
 import MediaSkeleton from '@/components/shared/loaders/MediaSkeleton'
 import Loading from '@/components/shared/Loading'
-import { getCustomerStatistic, useAppDispatch, useAppSelector } from '../store'
+import { useAppSelector } from '../store'
 import {
     HiOutlineUserGroup,
     HiOutlineUserAdd,
@@ -12,6 +11,7 @@ import {
 } from 'react-icons/hi'
 import { NumericFormat } from 'react-number-format'
 import type { ReactNode } from 'react'
+import type { AccountStatus } from '@/@types/account'
 
 type StatisticCardProps = {
     icon: ReactNode
@@ -67,19 +67,25 @@ const StatisticCard = (props: StatisticCardProps) => {
 }
 
 const CustomerStatistic = () => {
-    const dispatch = useAppDispatch()
-
-    const statisticData = useAppSelector(
-        (state) => state.crmCustomers.data.statisticData
+    const customerList = useAppSelector(
+        (state) => state.crmCustomers.data.customerList
+    )
+    const total = useAppSelector(
+        (state) => state.crmCustomers.data.tableData.total
     )
     const loading = useAppSelector(
-        (state) => state.crmCustomers.data.statisticLoading
+        (state) => state.crmCustomers.data.loading
     )
 
-    useEffect(() => {
-        dispatch(getCustomerStatistic())
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
+    const activeCount = customerList.filter(
+        (customer) => customer.status === ('Normal' as AccountStatus)
+    ).length
+
+    const statisticData = {
+        totalCustomers: { value: total, growShrink: 0 },
+        activeCustomers: { value: activeCount, growShrink: 0 },
+        newCustomers: { value: 0, growShrink: 0 },
+    }
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">

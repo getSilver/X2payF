@@ -1,60 +1,100 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
 import {
-    apiGetWalletData,
-    apiGetTransctionHistoryData,
-} from '@/services/CryptoService'
+    apiGetMerchantDailyReport,
+    apiGetMerchantOrders,
+    apiGetMerchantWithdrawals,
+    apiGetMerchantOverview,
+    apiGetMerchantApplications,
+} from '@/services/MerchantService'
 import type { TableQueries } from '@/@types/common'
+import { getCurrencySymbol } from '@/utils/currencySymbols'
 
+// 商户订单数据类型（Trade）
 export type Trade = {
+    // 前端字段（兼容旧数据）
     id: string
-    actionType: number
-    status: number
-    action: string
-    date: number
-    sdate: number    //成功时间Successful time
-    symbol: string
-    fee: number
+    actionType?: number
+    status: number | string // 支持数字状态码或字符串状态
+    action?: string
+    date?: number
+    sdate?: number
+    symbol?: string
+    fee?: number
     amount: number
-    settlement: number
+    settlement?: number
+    
+    // 后端字段映射
+    payment_id?: string
+    merchant_tx_id?: string
+    currency?: string
+    transaction_type?: string
+    created_at?: string
+    updated_at?: string
 }
 
+// 商户日报数据类型（TransactionDetails）
 export type TransactionDetails = {
+    // 前端字段（兼容旧数据）
     id: string
-    actionType: number
-    action: string
+    actionType?: number
+    action?: string
     date: number
-    symbol: string
-    subAmount: number
-    amount: number
-    fee: number
-    refund: number
-    feeRefund: number
-    refundNo: number
-    unitTotal: number
-    rate: number
+    symbol?: string
+    subAmount?: number
+    amount?: number
+    fee?: number
+    refund?: number
+    feeRefund?: number
+    refundNo?: number
+    unitTotal?: number
+    rate?: number
+    
+    // 后端字段映射
+    total_amount?: number
+    total_count?: number
+    success_amount?: number
+    success_count?: number
+    failed_amount?: number
+    failed_count?: number
+    pending_amount?: number
+    pending_count?: number
 }
 
+// 商户提款数据类型（Withdraw）
 export type Withdraw = {
+    // 前端字段（兼容旧数据）
     id: string
-    actionType: number
-    status: number
-    action: string
-    date: number
-    symbol: string
-    subAmount: number
+    actionType?: number
+    status: number | string // 支持数字状态码或字符串状态
+    action?: string
+    date?: number
+    symbol?: string
     amount: number
-    refund: number
-    fee: number
-    note: string
+    refund?: number
+    fee?: number
+    note?: string
+    
+    // 后端字段映射
+    withdrawal_id?: string
+    currency?: string
+    bank_account?: string
+    created_at?: string
+    processed_at?: string
+    approval_note?: string      // 审核备注
+    completion_note?: string    // 完成备注
+    extra?: string | {          // 扩展信息（JSON 格式）
+        withdrawal_address?: string  // 提款收款地址
+    }
 }
 
+// 钱包数据类型（用于Dashboard卡片显示）
 export type Wallet = {
     icon: string
-    symbol: string
-    name: string
-    fiatValue: number
-    coinValue: number
-    growshrink: number
+    symbol: string      // 币种
+    name: string        // 卡片标题
+    fiatValue: number   // 主要显示金额
+    coinValue: number   // 次要显示金额
+    growshrink: number  // 增长/冻结金额
 }
 
 export type Transaction = Trade[] | TransactionDetails[] | Withdraw[]
@@ -81,30 +121,87 @@ export type CryptoWalletsState = {
     transactionHistoryCache: Record<string, { data: GetTransctionHistoryDataResponse; timestamp: number }>
 }
 
-export const SLICE_NAME = 'cryptoWallets'
+export const SLICE_NAME = 'appWallets'
 
 export const getWalletData = createAsyncThunk(
     SLICE_NAME + '/getWalletData',
     async (_, { getState }) => {
-        const state = getState() as { cryptoWallets: { data: CryptoWalletsState } }
-        const { startDate, endDate } = state.cryptoWallets.data
-        const params =
-            startDate != null && endDate != null ? { startDate, endDate } : undefined
-        const response = await apiGetWalletData<GetWalletDataResponse>(params)
-        return response.data
+        const state = getState() as { appWallets: { data: CryptoWalletsState } }
+        
+        // 只获取应用余额数据
+        const applicationsRes = await apiGetMerchantApplications().catch(() => null)
+        
+        // 解析应用余额数据（汇总所有应用的余额）
+        // 注意：后端返回的金额单位是"分"，需要转换为"元"显示
+        let totalBalance = 0
+        let totalAvailable = 0
+        let totalFrozen = 0
+        let currency = ''  // 不设置默认值，从应用数据中获取
+        if (applicationsRes?.data) {
+            const appData = (applicationsRes.data as any).data || applicationsRes.data
+            const applications = appData.data || appData || []
+            applications.forEach((app: any) => {
+                // 将分转换为元（除以100）
+                totalBalance += (app.balance ?? 0) / 100
+                totalAvailable += (app.available_amount ?? 0) / 100
+                totalFrozen += (app.frozen_amount ?? 0) / 100
+                // 使用第一个应用的币种（假设所有应用使用相同币种）
+                if (!currency && app.currency) {
+                    currency = app.currency
+                }
+            })
+        }
+        
+        // 如果没有获取到币种，使用默认值 USD
+        if (!currency) {
+            currency = 'USD'
+        }
+        
+        // 构建三张卡片的数据：代收、代付、余额
+        // 注意：代收和代付数据暂时设为 0，等后端提供正确的 API
+        // 使用 getCurrencySymbol 将货币代码转换为符号（如 BRL -> R$）
+        const currencySymbol = getCurrencySymbol(currency, currency)
+        const wallets: Wallet[] = [
+            {
+                icon: '/img/others/pay-in.png',
+                symbol: currencySymbol,
+                name: '代收',
+                fiatValue: 0,            // 待后端提供 API
+                coinValue: 0,
+                growshrink: 0,
+            },
+            {
+                icon: '/img/others/pay-out.png',
+                symbol: currencySymbol,
+                name: '代付',
+                fiatValue: 0,            // 待后端提供 API
+                coinValue: 0,
+                growshrink: 0,
+            },
+            {
+                icon: '/img/others/wallet-icon.png',
+                symbol: currencySymbol,
+                name: '余额',
+                fiatValue: totalAvailable,   // 可用余额
+                coinValue: totalBalance,     // 总余额
+                growshrink: totalFrozen,     // 冻结金额
+            },
+        ]
+        
+        return wallets
     }
 )
 
 export const getTransctionHistoryData = createAsyncThunk(
     SLICE_NAME + '/getTransctionHistoryData',
     async (data: { tab: string } & TableQueries, { getState, rejectWithValue }) => {
-        const state = getState() as { cryptoWallets: { data: CryptoWalletsState } }
+        const state = getState() as { appWallets: { data: CryptoWalletsState } }
         const { tab, pageIndex = 1, pageSize = 10, query = '', sort = { order: '', key: '' } } = data
-        const { startDate, endDate } = state.cryptoWallets.data
+        const { startDate, endDate } = state.appWallets.data
 
         // 创建缓存key（包含时间范围）
         const cacheKey = `${tab}_${pageIndex}_${pageSize}_${query}_${sort.order}_${sort.key}_${startDate ?? ''}_${endDate ?? ''}`
-        const cachedData = state.cryptoWallets.data.transactionHistoryCache[cacheKey]
+        const cachedData = state.appWallets.data.transactionHistoryCache[cacheKey]
 
         // 检查缓存是否有效（5分钟内有效）
         const CACHE_DURATION = 5 * 60 * 1000 // 5分钟
@@ -113,15 +210,48 @@ export const getTransctionHistoryData = createAsyncThunk(
         }
 
         try {
-            const requestData =
-                startDate != null && endDate != null
-                    ? { ...data, startDate, endDate }
-                    : data
-            const response = await apiGetTransctionHistoryData<
-                GetTransctionHistoryDataResponse,
-                typeof requestData
-            >(requestData)
-            return response.data
+            // 构建查询参数
+            const params = {
+                page: pageIndex,
+                page_size: pageSize,
+                query: query || undefined,
+                start_date: startDate ? new Date(startDate).toISOString() : undefined,
+                end_date: endDate ? new Date(endDate).toISOString() : undefined,
+            }
+
+            let response
+            // 根据 tab 调用不同的 API
+            if (tab === 'deposit') {
+                // 日报数据
+                response = await apiGetMerchantDailyReport(params)
+                // 后端响应结构: { code, message, data: { data: [...], total } }
+                const outerData = (response.data as any).data || response.data
+                return {
+                    total: outerData.total || 0,
+                    data: outerData.data || outerData || [],
+                }
+            } else if (tab === 'trade') {
+                // 订单列表
+                response = await apiGetMerchantOrders(params)
+                // 后端响应结构: { code, message, data: { list: [...], total } }
+                const responseData = (response.data as any).data || response.data
+                return {
+                    total: responseData.total || 0,
+                    data: responseData.list || [],
+                }
+            } else if (tab === 'withdrawal') {
+                // 提款记录 
+               response = await apiGetMerchantWithdrawals(params)
+
+                // 后端响应结构: { code, message, data: { list: [...], total } }
+                const responseData = (response.data as any).data || response.data
+                return {
+                    total: responseData.total || 0,
+                    data: responseData.list || [],
+                }
+            } else {
+                throw new Error(`Unknown tab: ${tab}`)
+            }
         } catch (error) {
             return rejectWithValue(error)
         }
@@ -131,20 +261,16 @@ export const getTransctionHistoryData = createAsyncThunk(
     export const initializeCryptoWallets = createAsyncThunk(
         SLICE_NAME + '/initialize',
         async (_: void, { dispatch, getState }) => {
-            const state = getState() as { cryptoWallets: { data: CryptoWalletsState } }
-            const { walletsData, transactionHistoryData, selectedTab, tableData } = state.cryptoWallets.data
+            const state = getState() as { appWallets: { data: CryptoWalletsState } }
+            const { selectedTab, tableData } = state.appWallets.data
 
-            if (!walletsData || walletsData.length === 0) {
-                // 等待完成以避免并发问题
-                // eslint-disable-next-line @typescript-eslint/return-await
-                await dispatch(getWalletData())
-            }
+            // 每次都重新加载钱包数据（代收/代付/余额统计）
+            await dispatch(getWalletData())
 
-            if (!transactionHistoryData || transactionHistoryData.length === 0) {
-                await dispatch(
-                    getTransctionHistoryData({ tab: selectedTab || 'trade', ...(tableData || initialTableData) })
-                )
-            }
+            // 加载交易历史数据
+            await dispatch(
+                getTransctionHistoryData({ tab: selectedTab || 'trade', ...(tableData || initialTableData) })
+            )
         }
     )
 
@@ -171,7 +297,6 @@ const initialState: CryptoWalletsState = {
     tradeDialogOpen: false,
     selectedRow: {},
     transactionHistoryCache: {},
-
 }
 
 const walletsSlice = createSlice({

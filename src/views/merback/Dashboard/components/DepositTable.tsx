@@ -6,6 +6,7 @@ import cloneDeep from 'lodash/cloneDeep'
 import dayjs from 'dayjs'
 import type { TableQueries } from '@/@types/common'
 import type { OnSortParam, ColumnDef } from '@/components/shared'
+import { formatCurrencyAmount } from '@/utils/currencySymbols'
 
 type DepositTableProps = {
     data: TransactionDetails[]
@@ -19,18 +20,18 @@ const DepositTable = ({ data, loading, tableData }: DepositTableProps) => {
     const columns: ColumnDef<TransactionDetails>[] = useMemo(
         () => [
             {
-                header: 'Action',
+                header: '',
                 accessorKey: 'action',
                 cell: (props) => {
                     const row = props.row.original
                     return (
                         <div className="flex items-center gap-2">
-                            <div>
-                                <SharedActionIcon type={row.actionType} />
-                            </div>
-                            <span className="font-semibold heading-text whitespace-nowrap">
-                                {row.action}
-                            </span>
+                            
+                                <SharedActionIcon type={row.actionType ?? 2} />
+                            
+                            {/* <span className="font-semibold heading-text whitespace-nowrap">
+                                {row.action || '日报'}
+                            </span> */}
                         </div>
                     )
                 },
@@ -40,87 +41,80 @@ const DepositTable = ({ data, loading, tableData }: DepositTableProps) => {
                 accessorKey: 'date',
                 cell: (props) => {
                     const row = props.row.original
+                    // 后端返回的 date 是字符串格式 (如 "2024-01-15")
+                    // 兼容旧的 Unix 时间戳格式
+                    const dateValue = typeof row.date === 'string' 
+                        ? dayjs(row.date).format('MM/DD/YYYY')
+                        : dayjs.unix(row.date).format('MM/DD/YYYY')
                     return (
                         <div className="flex items-center">
-                            {dayjs.unix(row.date).format('MM/DD/YYYY')}
+                            {dateValue}
                         </div>
                     )
                 },
             },
             {
-                header: 'SubAmount提交金额',
-                accessorKey: 'subAmount',
+                header: 'Total',
+                accessorKey: 'total_amount',
                 cell: (props) => {
                     const row = props.row.original
+                    // 后端返回的金额单位是"分"，转换为"元"显示
+                    const amount = (row.total_amount ?? row.amount ?? 0) / 100
+                    const count = row.total_count ?? row.unitTotal ?? 0
+                    const currencyCode = row.symbol
                     return (
-                        <span>
-                            {row.subAmount} {row.symbol}
+                        <span className="font-semibold">
+                            {formatCurrencyAmount(amount, currencyCode)} / {count}
                         </span>
                     )
                 },
             },
             {
-                header: 'Amount实收金额',
-                accessorKey: 'amount',
+                header: 'Success',
+                accessorKey: 'success_amount',
                 cell: (props) => {
                     const row = props.row.original
+                    // 后端返回的金额单位是"分"，转换为"元"显示
+                    const amount = (row.success_amount ?? 0) / 100
+                    const count = row.success_count ?? 0
+                    const currencyCode = row.symbol
                     return (
-                        <span>
-                            {row.amount} {row.symbol}
+                        <span className="text-emerald-600 font-semibold">
+                            {formatCurrencyAmount(amount, currencyCode)} / {count}
                         </span>
                     )
                 },
             },
             {
-                header: 'Fee手续费',
-                accessorKey: 'fee',
+                header: 'Failed',
+                accessorKey: 'failed_amount',
                 cell: (props) => {
                     const row = props.row.original
+                    // 后端返回的金额单位是"分"，转换为"元"显示
+                    const amount = (row.failed_amount ?? 0) / 100
+                    const count = row.failed_count ?? 0
+                    const currencyCode = row.symbol
                     return (
-                        <span>
-                            {row.fee} {row.symbol}
+                        <span className="text-red-600 font-semibold">
+                            {formatCurrencyAmount(amount, currencyCode)} / {count}
                         </span>
                     )
                 },
             },
             {
-                header: 'Refund退款金额',
-                accessorKey: 'refund',
+                header: 'Pending',
+                accessorKey: 'pending_amount',
                 cell: (props) => {
                     const row = props.row.original
+                    // 后端返回的金额单位是"分"，转换为"元"显示
+                    const amount = (row.pending_amount ?? 0) / 100
+                    const count = row.pending_count ?? 0
+                    const currencyCode = row.symbol
                     return (
-                        <span>
-                            {row.refund} {row.symbol}
+                        <span className="text-amber-600 font-semibold">
+                            {formatCurrencyAmount(amount, currencyCode)} / {count}
                         </span>
                     )
-                },
-            },
-            {
-                header: 'FeeRefund手续费回退',
-                accessorKey: 'feeRefund',
-                cell: (props) => {
-                    const row = props.row.original
-                    return (
-                        <span>
-                            {row.feeRefund} {row.symbol}
-                        </span>
-                    )
-                },
-            },
-            {
-                header: 'RefundNo退款笔数',
-                accessorKey: 'refundNo',
-                cell: (props) => {
-                    const row = props.row.original
-                    return <span>{row.refundNo}</span>
-                },
-            },
-            {
-                header: 'Unit/Total成交/总笔数',
-                accessorKey: 'unitTotal',
-                cell: (props) => {
-                    const row = props.row.original
-                    return <span>{row.unitTotal}</span>
                 },
             },
         ],

@@ -3,6 +3,13 @@ export type Currency = {
     img: string
     value: string
     rate: number
+    // 应用币种扩展字段
+    isAppCurrency?: boolean
+    appId?: string
+    availableBalance?: number
+    // 汇率计算相关字段
+    baseRate?: number        // 平台基础汇率
+    markupPercent?: number   // 加点百分比
 }
 
 export type Payment = {
@@ -10,6 +17,23 @@ export type Payment = {
     label: string
     value: string
     img: string
+}
+
+// 法币图标映射
+export const fiatCurrencyIcons: Record<string, string> = {
+    BRL: '/img/thumbs/brl.png',
+    USD: '/img/thumbs/usd.png',
+    CNY: '/img/thumbs/cny.png',
+    EUR: '/img/thumbs/eur.png',
+    GBP: '/img/thumbs/gbp.png',
+    JPY: '/img/thumbs/jpy.png',
+    // 默认图标
+    DEFAULT: '/img/thumbs/currency-default.png',
+}
+
+// 获取币种图标
+export const getCurrencyIcon = (currency: string): string => {
+    return fiatCurrencyIcons[currency] || fiatCurrencyIcons.DEFAULT
 }
 
 export const currencyList: Currency[] = [
@@ -91,48 +115,7 @@ export const currencyList: Currency[] = [
         value: 'XRP',
         rate: 0.34,
     },
-    {
-        label: 'LINK',
-        img: '/img/thumbs/chainlink.png',
-        value: 'LINK',
-        rate: 6.62,
-    },
-    {
-        label: 'BCH',
-        img: '/img/thumbs/bitcoin-cash.png',
-        value: 'BCH',
-        rate: 149,
-    },
-    {
-        label: 'LTC',
-        img: '/img/thumbs/litecoin.png',
-        value: 'LTC',
-        rate: 49.5,
-    },
-    {
-        label: 'BSV',
-        img: '/img/thumbs/bitcoin-sv.png',
-        value: 'BSV',
-        rate: 50.54,
-    },
-    {
-        label: 'ADA',
-        img: '/img/thumbs/cardano.png',
-        value: 'ADA',
-        rate: 0.508,
-    },
-    {
-        label: 'XMR',
-        img: '/img/thumbs/monero.png',
-        value: 'XMR',
-        rate: 160.2,
-    },
-    {
-        label: 'IOTA',
-        img: '/img/thumbs/miota.png',
-        value: 'IOTA',
-        rate: 0.28,
-    },
+
 ]
 
 export const paymentList: Payment[] = [

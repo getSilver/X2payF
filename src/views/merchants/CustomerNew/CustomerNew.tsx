@@ -20,7 +20,7 @@ import {
 import {
     apiGetPlatformAssociations,
 } from '@/services/PlatformSettingsService'
-import { generateRequestId } from '@/services/MerchantService'
+import createUID from '@/components/ui/utils/createUid'
 import type { AccountType } from '@/@types/account'
 import type { LocationOption } from '@/views/merchants/CustomerForm/PersonalInfoForm'
 import { HiLockClosed } from 'react-icons/hi2'
@@ -105,12 +105,13 @@ const CustomerNew = () => {
     }, [])
 
     const createAccount = async (type: AccountType, data: ExtendedFormModel) => {
-        const requestId = generateRequestId('merchant')
+        const requestId = createUID(16)
         
         switch (type) {
             case 'MERCHANT':
                 return apiCreateMerchant({
                     request_id: requestId,
+                    name: data.name,
                     username: data.name,
                     password: data.password,
                     email: data.email,
@@ -118,6 +119,9 @@ const CustomerNew = () => {
             case 'AGENT':
                 return apiCreateAgent({
                     request_id: requestId,
+                    username: data.name,
+                    password: data.password,
+                    email: data.email,
                     name: data.name,
                     profit_share_rate: 0.05,
                     fee_rate: 0.02,
@@ -126,6 +130,9 @@ const CustomerNew = () => {
             case 'CHANNEL_PARTNER':
                 return apiCreateChannelPartner({
                     request_id: requestId,
+                    username: data.name,
+                    password: data.password,
+                    email: data.email,
                     name: data.name,
                     profit_share_rate: 0.03,
                     fee_rate: 0.015,

@@ -5,6 +5,9 @@ import {
     apiUpdateAccountStatus,
     apiCreateApplication,
     apiDeleteApplication,
+    apiBindMerchantAgent,
+    apiUnbindMerchantAgent,
+    apiUpdateMerchant,
 } from '@/services/api/AccountApi'
 import type { CreateApplicationRequest } from '@/services/api/AccountApi'
 import type {
@@ -56,6 +59,10 @@ export type PaymentMethod = {
     balanceAmount: number  // 总余额（分）
     frozenAmount: number   // 冻结金额（分）
     availableAmount: number // 可用余额（分）
+    // 提款手续费和汇率加点
+    withdrawalFeePercent: number  // 提款手续费百分比
+    exchangeRateSell: number      // 汇率卖出加点百分比（商户卖出本币换外币）
+    exchangeRateBuy: number       // 汇率买入加点百分比（商户买入本币）
 }
 
 /**
@@ -73,6 +80,8 @@ export type Subscription = {
  * 商户详情（扩展自后端Merchant）
  */
 export type Customer = Merchant & {
+    email?: string  // 映射自 contact_email，用于表单显示
+    name?: string   // 商户名称
     img?: string
     role?: string
     lastOnline?: number
@@ -81,7 +90,7 @@ export type Customer = Merchant & {
         title: string
         agent: string
         birthday: string
-        phoneNumber: string
+        merchantID: string
         facebook: string
         twitter: string
         pinterest: string
@@ -99,6 +108,7 @@ export type CustomerDetailState = {
     deletePaymentMethodDialog: boolean
     editPaymentMethodDialog: boolean
     editCustomerDetailDialog: boolean
+    agentBindDialog: boolean
     selectedCard: Partial<PaymentMethod>
 }
 
@@ -160,12 +170,18 @@ export const getCustomer = createAsyncThunk(
                 balanceAmount: app.balance ?? app.balance_amount ?? 0,
                 frozenAmount: app.frozen_amount ?? 0,
                 availableAmount: app.available_amount ?? app.balance_amount ?? 0,
+                // 提款手续费和汇率加点
+                withdrawalFeePercent: (config.withdrawal_fee_percent as number) || 0,
+                exchangeRateSell: (config.exchange_rate_sell as number) || 0,
+                exchangeRateBuy: (config.exchange_rate_buy as number) || 0,
             }
         })
         
         // 构建商户详情数据
         const customerData: Customer = {
             ...merchant,
+            email: merchant.contact_email, // 映射 contact_email 为 email
+            name: merchant.name,
             img: '', // 后端无头像字段
             role: merchant.account_type,
             lastOnline: new Date(merchant.updated_at).getTime() / 1000,
@@ -174,7 +190,7 @@ export const getCustomer = createAsyncThunk(
                 title: merchant.account_type,
                 agent: merchant.agent_id || '',
                 birthday: merchant.created_at,
-                phoneNumber: merchant.id,
+                merchantID: merchant.id,
                 facebook: '',
                 twitter: '',
                 pinterest: '',
@@ -223,14 +239,23 @@ export const updateCustomerStatus = createAsyncThunk(
 
 /**
  * 更新商户信息
- * 注意：后端暂无更新商户详情的 API，这里只更新本地状态
  */
 export const putCustomer = createAsyncThunk(
     SLICE_NAME + '/putCustomer',
     async (data: Customer) => {
-        // TODO: 后端需要实现更新商户详情的 API
-        // const response = await apiUpdateMerchant(data.id, data)
-        // return response.data
+        // 调用后端 API 更新商户信息
+        const updateData: { name?: string; contact_email?: string } = {}
+        if (data.name) {
+            updateData.name = data.name
+        }
+        if (data.email) {
+            updateData.contact_email = data.email
+        }
+        
+        const response = await apiUpdateMerchant(data.id, updateData)
+        const backendData = response.data as unknown as BackendResponse<{ merchant_id: string; message: string }>
+        
+        // 返回更新后的商户数据
         return data
     }
 )
@@ -267,6 +292,30 @@ export const deleteApplication = createAsyncThunk(
     }
 )
 
+/**
+ * 绑定商户到代理商
+ */
+export const bindMerchantAgent = createAsyncThunk(
+    SLICE_NAME + '/bindMerchantAgent',
+    async (data: { merchantId: string; agentId: string }) => {
+        const response = await apiBindMerchantAgent(data.merchantId, data.agentId)
+        const backendData = response.data as unknown as BackendResponse<{ merchant_id: string; agent_id: string; message: string }>
+        return backendData.data
+    }
+)
+
+/**
+ * 解绑商户与代理商
+ */
+export const unbindMerchantAgent = createAsyncThunk(
+    SLICE_NAME + '/unbindMerchantAgent',
+    async (data: { merchantId: string }) => {
+        const response = await apiUnbindMerchantAgent(data.merchantId)
+        const backendData = response.data as unknown as BackendResponse<{ merchant_id: string; message: string }>
+        return backendData.data
+    }
+)
+
 // ==================== 初始状态 ====================
 
 const initialState: CustomerDetailState = {
@@ -279,6 +328,7 @@ const initialState: CustomerDetailState = {
     deletePaymentMethodDialog: false,
     editPaymentMethodDialog: false,
     editCustomerDetailDialog: false,
+    agentBindDialog: false,
     selectedCard: {},
 }
 
@@ -311,6 +361,12 @@ const customerDetailSlice = createSlice({
         },
         closeEditCustomerDetailDialog: (state) => {
             state.editCustomerDetailDialog = false
+        },
+        openAgentBindDialog: (state) => {
+            state.agentBindDialog = true
+        },
+        closeAgentBindDialog: (state) => {
+            state.agentBindDialog = false
         },
         updateSelectedCard: (state, action) => {
             state.selectedCard = action.payload
@@ -356,6 +412,22 @@ const customerDetailSlice = createSlice({
                 state.applicationsData = state.applicationsData.filter(app => app.id !== deletedAppId)
                 state.paymentMethodData = state.paymentMethodData.filter(pm => pm.id !== deletedAppId)
             })
+            .addCase(bindMerchantAgent.fulfilled, (state, action) => {
+                // 绑定代理商成功，更新 profileData
+                const agentId = action.payload?.agent_id || action.meta.arg.agentId
+                state.profileData.agent_id = agentId
+                if (state.profileData.personalInfo) {
+                    state.profileData.personalInfo.agent = agentId
+                }
+                state.agentBindDialog = false
+            })
+            .addCase(unbindMerchantAgent.fulfilled, (state) => {
+                // 解绑代理商成功，清空 agent_id
+                state.profileData.agent_id = ''
+                if (state.profileData.personalInfo) {
+                    state.profileData.personalInfo.agent = ''
+                }
+            })
     },
 })
 
@@ -368,6 +440,8 @@ export const {
     closeEditPaymentMethodDialog,
     openEditCustomerDetailDialog,
     closeEditCustomerDetailDialog,
+    openAgentBindDialog,
+    closeAgentBindDialog,
     updateSelectedCard,
 } = customerDetailSlice.actions
 

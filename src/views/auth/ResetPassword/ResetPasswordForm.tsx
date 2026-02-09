@@ -44,9 +44,10 @@ const ResetPasswordForm = (props: ResetPasswordFormProps) => {
         setSubmitting: (isSubmitting: boolean) => void
     ) => {
         const { password } = values
+        const token = new URLSearchParams(window.location.search).get('token') || ''
         setSubmitting(true)
         try {
-            const resp = await apiResetPassword({ password })
+            const resp = await apiResetPassword({ token, password })
             if (resp.data) {
                 setSubmitting(false)
                 setResetComplete(true)

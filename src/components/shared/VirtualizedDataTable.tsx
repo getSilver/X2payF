@@ -15,8 +15,6 @@ import {
     SortingState,
 } from '@tanstack/react-table'
 import type { SkeletonProps } from '@/components/ui/Skeleton'
-import type { ChangeEvent } from 'react'
-import type { CheckboxProps } from '@/components/ui/Checkbox'
 
 export type OnSortParam = { order: 'asc' | 'desc' | ''; key: string | number }
 
@@ -35,8 +33,6 @@ type VirtualizedDataTableProps<T> = {
     virtualHeight?: number // 虚拟容器高度
     rowHeight?: number // 每行高度
 }
-
-type CheckBoxChangeEvent = ChangeEvent<HTMLInputElement>
 
 const { Tr, Th, Td, THead, TBody } = Table
 
@@ -89,7 +85,7 @@ function VirtualizedDataTable<T>(props: VirtualizedDataTableProps<T>) {
             return [
                 {
                     id: 'select',
-                    header: ({ table }) => (
+                    header: ({ table }: { table: any }) => (
                         <Checkbox
                             checked={table.getIsAllRowsSelected()}
                             onChange={(checked) =>
@@ -100,7 +96,7 @@ function VirtualizedDataTable<T>(props: VirtualizedDataTableProps<T>) {
                             }
                         />
                     ),
-                    cell: ({ row }) => (
+                    cell: ({ row }: { row: any }) => (
                         <Checkbox
                             checked={row.getIsSelected()}
                             disabled={!row.getCanSelect()}

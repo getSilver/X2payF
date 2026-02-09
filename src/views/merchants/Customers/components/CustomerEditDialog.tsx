@@ -10,14 +10,19 @@ import {
     useAppSelector,
     getCustomers,
 } from '../store'
+import {
+    bindMerchantAgent,
+    unbindMerchantAgent,
+    putCustomer,
+    Customer,
+} from '@/views/merchants/CustomerDetail/store'
 import CustomerForm, { FormikRef, FormModel } from '@/views/merchants/CustomerForm'
 import cloneDeep from 'lodash/cloneDeep'
 import dayjs from 'dayjs'
-import type { MouseEvent } from 'react'
 
 type DrawerFooterProps = {
-    onSaveClick: (event: MouseEvent<HTMLButtonElement>) => void
-    onCancel: (event: MouseEvent<HTMLButtonElement>) => void
+    onSaveClick?: () => void
+    onCancel?: () => void
 }
 
 const DrawerFooter = ({ onSaveClick, onCancel }: DrawerFooterProps) => {
@@ -54,18 +59,69 @@ const CustomerEditDialog = () => {
     }
 
     const onFormSubmit = async (values: FormModel) => {
+        const clonedData = cloneDeep(selectedCustomer)
         const {
             name,
+            birthday,
             email,
+            img,
+            location,
+            title,
+            facebook,
+            twitter,
+            pinterest,
+            linkedIn,
+            agent,
         } = values
 
+        // 处理代理商绑定/解绑逻辑
+        const oldAgentId = (selectedCustomer as Customer).personalInfo?.agent || (selectedCustomer as Customer).agent_id || ''
+        const newAgentId = agent || ''
+        
         try {
-            // 显示成功提示（目前只是本地更新，后端暂无更新接口）
-            toast.push(
-                <Notification title="保存成功" type="success">
-                    信息已更新（注意：仅本地更新，后端暂无更新接口）
-                </Notification>
-            )
+            let agentChanged = false
+            
+            // 如果代理商ID发生变化，先处理绑定/解绑
+            if (oldAgentId !== newAgentId) {
+                if (newAgentId) {
+                    // 绑定或更换代理商
+                    await dispatch(bindMerchantAgent({
+                        merchantId: selectedCustomer.id || '',
+                        agentId: newAgentId,
+                    })).unwrap()
+                    
+                    agentChanged = true
+                } else {
+                    // 解绑代理商
+                    await dispatch(unbindMerchantAgent({
+                        merchantId: selectedCustomer.id || '',
+                    })).unwrap()
+                    
+                    agentChanged = true
+                }
+            }
+            
+            // 更新本地状态（使用合并而不是覆盖）
+            const updatedData = {
+                ...clonedData,
+                name,
+                email,
+                img,
+                personalInfo: {
+                    ...(clonedData as Customer).personalInfo, // 保留原有字段
+                    location,
+                    title,
+                    birthday: dayjs(birthday).format('DD/MM/YYYY'),
+                    facebook,
+                    twitter,
+                    pinterest,
+                    linkedIn,
+                    agent: newAgentId,
+                },
+            }
+            
+            // 调用后端更新商户信息
+            dispatch(putCustomer(updatedData as Customer))
             
             // 刷新列表数据
             dispatch(getCustomers({ 
@@ -75,6 +131,24 @@ const CustomerEditDialog = () => {
                 query: '', 
                 filterData: { status: '' } 
             }))
+            
+            // 显示成功提示
+            if (agentChanged) {
+                toast.push(
+                    <Notification title="保存成功" type="success">
+                        {newAgentId 
+                            ? (oldAgentId ? '代理商更换成功' : '代理商绑定成功')
+                            : '代理商解绑成功'
+                        }
+                    </Notification>
+                )
+            } else {
+                toast.push(
+                    <Notification title="保存成功" type="success">
+                        信息已更新
+                    </Notification>
+                )
+            }
             
             onDrawerClose()
         } catch (error) {

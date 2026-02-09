@@ -54,7 +54,9 @@
             "finances": "财务",
             "dashboard": "仪表板",
             "financialFlow": "资金流",
-            "withdraw": "提款管理"
+            "withdraw": "提款管理",
+            "profitSharing": "分润管理",
+            "settlement": "结算管理"
         },
         "appsDemo": {
             "demo": "演示卡片"

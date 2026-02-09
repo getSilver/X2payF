@@ -151,7 +151,7 @@ const mapMerchantApps = (
             app_name: app.name,
             app_status: app.status,
             currency: app.currency,
-            balance: app.balance ?? app.balance_amount,
+            balance: app.balance ?? 0,
             available_amount: app.available_amount,
             frozen_amount: app.frozen_amount,
             created_at: app.created_at,

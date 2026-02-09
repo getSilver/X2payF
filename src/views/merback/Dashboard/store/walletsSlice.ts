@@ -128,26 +128,36 @@ export const getWalletData = createAsyncThunk(
     async (_, { getState }) => {
         const state = getState() as { appWallets: { data: CryptoWalletsState } }
         
-        // 只获取应用余额数据
+        // 获取应用余额数据
         const applicationsRes = await apiGetMerchantApplications().catch(() => null)
         
         // 解析应用余额数据（汇总所有应用的余额）
+        // 后端响应格式: { code, message, request_id, data: [...应用列表] }
+        // Axios 会将响应包装在 response.data 中
         // 注意：后端返回的金额单位是"分"，需要转换为"元"显示
         let totalBalance = 0
         let totalAvailable = 0
         let totalFrozen = 0
-        let currency = ''  // 不设置默认值，从应用数据中获取
+        let currency = ''
+        
         if (applicationsRes?.data) {
-            const appData = (applicationsRes.data as any).data || applicationsRes.data
-            const applications = appData.data || appData || []
+            // 提取应用列表: applicationsRes.data.data
+            const responseData = applicationsRes.data as any
+            const applications = Array.isArray(responseData.data) ? responseData.data : []
+            
             applications.forEach((app: any) => {
                 // 将分转换为元（除以100）
                 totalBalance += (app.balance ?? 0) / 100
                 totalAvailable += (app.available_amount ?? 0) / 100
                 totalFrozen += (app.frozen_amount ?? 0) / 100
-                // 使用第一个应用的币种（假设所有应用使用相同币种）
-                if (!currency && app.currency) {
-                    currency = app.currency
+                
+                // 提取货币信息（优先从 config 中获取）
+                if (!currency) {
+                    // config 可能是对象或 JSON 字符串
+                    const appConfig = typeof app.config === 'string' 
+                        ? JSON.parse(app.config) 
+                        : app.config
+                    currency = appConfig?.currency || app.currency || ''
                 }
             })
         }

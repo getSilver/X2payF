@@ -2,9 +2,14 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import {
     apiGetMerchant,
     apiGetMerchantApplications,
+    apiGetAgentAppRelations,
     apiUpdateAccountStatus,
     apiCreateApplication,
     apiDeleteApplication,
+    apiCreateAppAgentRelation,
+    apiUpdateAppAgentRelation,
+    apiDeactivateAppAgentRelation,
+    apiDeleteAppAgentRelation,
     apiBindMerchantAgent,
     apiUnbindMerchantAgent,
     apiUpdateMerchant,
@@ -18,11 +23,8 @@ import type {
 
 export const SLICE_NAME = 'crmCustomerDetails'
 
-// ==================== 类型定义 ====================
 
-/**
- * 后端响应包装格式
- */
+// 后端统一响应结构
 interface BackendResponse<T> {
     code: string
     message: string
@@ -30,10 +32,6 @@ interface BackendResponse<T> {
     data: T
 }
 
-/**
- * 订单历史（用于支付记录展示）
- * 注意：后端暂无此接口，保留类型以便后续对接
- */
 export type OrderHistory = {
     id: string
     item: string
@@ -42,11 +40,8 @@ export type OrderHistory = {
     date: number
 }
 
-/**
- * 支付方式/渠道配置（映射自商户应用）
- */
 export type PaymentMethod = {
-    id: string          // 应用ID（用于删除等操作）
+    id: string
     channelName: string
     cardType: string
     payIn: string
@@ -55,33 +50,33 @@ export type PaymentMethod = {
     fixedFeeOut: string
     number: string
     primary: boolean
-    // 余额信息
-    balanceAmount: number  // 总余额（分）
-    frozenAmount: number   // 冻结金额（分）
-    availableAmount: number // 可用余额（分）
-    // 提款手续费和汇率加点
-    withdrawalFeePercent: number  // 提款手续费百分比
-    exchangeRateSell: number      // 汇率卖出加点百分比（商户卖出本币换外币）
-    exchangeRateBuy: number       // 汇率买入加点百分比（商户买入本币）
+    balanceAmount: number
+    frozenAmount: number
+    availableAmount: number
+    withdrawalFeePercent: number
+    exchangeRateSell: number
+    exchangeRateBuy: number
+    configType?: 'application' | 'agent_rate'
+    entityId?: string
+    appId?: string
+    agentId?: string
+    relationStatus?: string
+    feeRate?: number
+    profitShareRate?: number
+    supportedCurrencies?: string[]
 }
 
-/**
- * 订阅/应用信息
- */
 export type Subscription = {
     plan: string
     status: string
     amount: number
-    funds: number   // 账户资金
-    freeze: number  // 冻结资金
+    funds: number
+    freeze: number
 }
 
-/**
- * 商户详情（扩展自后端Merchant）
- */
 export type Customer = Merchant & {
-    email?: string  // 映射自 contact_email，用于表单显示
-    name?: string   // 商户名称
+    email?: string
+    name?: string
     img?: string
     role?: string
     lastOnline?: number
@@ -112,81 +107,164 @@ export type CustomerDetailState = {
     selectedCard: Partial<PaymentMethod>
 }
 
-// ==================== 异步操作 ====================
 
-/**
- * 获取商户详情（包含应用列表）
- */
+// 获取账户详情（商户/代理商）
 export const getCustomer = createAsyncThunk(
     SLICE_NAME + '/getCustomer',
     async (data: { id: string }) => {
-        // 并行获取商户详情和应用列表
-        const [merchantResponse, applicationsResponse] = await Promise.all([
-            apiGetMerchant(data.id),
-            apiGetMerchantApplications(data.id),
-        ])
-        
-        // 解析后端响应格式
-        const merchantBackend = merchantResponse.data as unknown as BackendResponse<Merchant>
-        const applicationsBackend = applicationsResponse.data as unknown as BackendResponse<MerchantApplication[]>
-        
+        const merchantResponse = await apiGetMerchant(data.id)
+        const merchantBackend = merchantResponse.data as unknown as BackendResponse<Merchant & {
+            fee_rate?: number
+            profit_share_rate?: number
+            supported_currencies?: string[]
+            relation_id?: string
+            app_id?: string
+            relation_status?: string
+        }>
         const merchant = merchantBackend.data
-        const applications = applicationsBackend.data || []
-        
-        // 将应用数据转换为订阅格式
-        const subscriptions: Subscription[] = applications.map(app => ({
+        const isAgentAccount = data.id.startsWith('agent_')
+        let relationFromList:
+            | {
+                  id: string
+                  app_id: string
+                  agent_id: string
+                  commission_rate?: number
+                  fixed_amount?: number
+                  status?: string
+              }
+            | undefined
+
+        let applications: MerchantApplication[] = []
+        if (data.id.startsWith('mch_')) {
+            try {
+                const applicationsResponse = await apiGetMerchantApplications(data.id)
+                const applicationsBackend = applicationsResponse.data as unknown as BackendResponse<MerchantApplication[]>
+                applications = applicationsBackend.data || []
+            } catch (error) {
+                console.warn('获取应用列表失败，可能不是商户账户', error)
+            }
+        }
+        if (isAgentAccount && !merchant.relation_id) {
+            try {
+                const relationResponse = await apiGetAgentAppRelations(data.id)
+                const relationBackend = relationResponse.data as unknown as BackendResponse<
+                    Array<{
+                        id: string
+                        app_id: string
+                        agent_id: string
+                        commission_rate?: number
+                        fixed_amount?: number
+                        status?: string
+                    }>
+                >
+                const relationList = relationBackend.data || []
+                relationFromList =
+                    relationList.find((item) => item.status === 'active') ||
+                    relationList[0]
+            } catch (error) {
+                console.warn('获取代理分润关联列表失败', error)
+            }
+        }
+
+        const subscriptions: Subscription[] = applications.map((app) => ({
             plan: app.name,
             status: app.status,
-            amount: app.balance_amount,
-            funds: app.balance_amount,
-            freeze: 0, // 后端暂无冻结金额字段
+            amount: app.balance ?? 0,
+            funds: app.balance ?? 0,
+            freeze: app.frozen_amount ?? 0,
         }))
-        
-        // 将应用数据转换为支付方式格式（用于渠道配置展示）
-        const paymentMethods: PaymentMethod[] = applications.map(app => {
-            // 解析应用配置
-            let config: Record<string, unknown> = {}
-            if (typeof app.config === 'string') {
-                try {
-                    config = JSON.parse(app.config)
-                } catch (e) {
-                    console.error('解析应用配置失败:', e)
-                }
-            } else if (app.config) {
-                config = app.config as unknown as Record<string, unknown>
-            }
-            
-            return {
-                id: app.id,  // 保存应用ID，用于删除等操作
-                channelName: app.name,
-                cardType: (config.currency as string) || 'CNY',
-                payIn: String((config.pay_in_percentage_fee as number) || 0),
-                payOut: String((config.pay_out_percentage_fee as number) || 0),
-                fixedFeeIn: String((config.pay_in_fixed_fee as number) || 0),
-                fixedFeeOut: String((config.pay_out_fixed_fee as number) || 0),
-                number: app.api_key,
-                primary: app.status === 'active',
-                // 余额信息（优先使用后端返回的详细余额字段）
-                balanceAmount: app.balance ?? app.balance_amount ?? 0,
-                frozenAmount: app.frozen_amount ?? 0,
-                availableAmount: app.available_amount ?? app.balance_amount ?? 0,
-                // 提款手续费和汇率加点
-                withdrawalFeePercent: (config.withdrawal_fee_percent as number) || 0,
-                exchangeRateSell: (config.exchange_rate_sell as number) || 0,
-                exchangeRateBuy: (config.exchange_rate_buy as number) || 0,
-            }
-        })
-        
-        // 构建商户详情数据
+
+        const paymentMethods: PaymentMethod[] = isAgentAccount
+            ? (() => {
+                  const feeRate = merchant.fee_rate ?? 0
+                  const profitShareRate = merchant.profit_share_rate ?? 0
+                  const supportedCurrencies = merchant.supported_currencies ?? []
+                  const hasAgentRateConfig =
+                      feeRate > 0 ||
+                      profitShareRate > 0 ||
+                      supportedCurrencies.length > 0
+
+                  if (!hasAgentRateConfig) {
+                      return []
+                  }
+
+                  return [
+                      {
+                          id:
+                              merchant.relation_id ||
+                              relationFromList?.id ||
+                              `${merchant.id}_rate_config`,
+                          channelName: 'Agent Rate Config',
+                          cardType: supportedCurrencies.join(', '),
+                          payIn: String(feeRate),
+                          payOut: '',
+                          fixedFeeIn: String(profitShareRate),
+                          fixedFeeOut: '',
+                          number: merchant.app_id || relationFromList?.app_id || '',
+                          primary: true,
+                          balanceAmount: 0,
+                          frozenAmount: 0,
+                          availableAmount: 0,
+                          withdrawalFeePercent: 0,
+                          exchangeRateSell: 0,
+                          exchangeRateBuy: 0,
+                          configType: 'agent_rate',
+                          entityId: merchant.relation_id || relationFromList?.id || '',
+                          appId: merchant.app_id || relationFromList?.app_id || '',
+                          agentId: merchant.id,
+                          relationStatus:
+                              merchant.relation_status ||
+                              relationFromList?.status ||
+                              'active',
+                          feeRate,
+                          profitShareRate,
+                          supportedCurrencies,
+                      },
+                  ]
+              })()
+            : applications.map((app) => {
+                  let config: Record<string, unknown> = {}
+                  if (typeof app.config === 'string') {
+                      try {
+                          config = JSON.parse(app.config)
+                      } catch (e) {
+                          console.error('解析应用配置失败:', e)
+                      }
+                  } else if (app.config) {
+                      config = app.config as unknown as Record<string, unknown>
+                  }
+
+                  return {
+                      id: app.id,
+                      channelName: app.name,
+                      cardType: (config.currency as string) || 'CNY',
+                      payIn: String((config.pay_in_percentage_fee as number) || 0),
+                      payOut: String((config.pay_out_percentage_fee as number) || 0),
+                      fixedFeeIn: String((config.pay_in_fixed_fee as number) || 0),
+                      fixedFeeOut: String((config.pay_out_fixed_fee as number) || 0),
+                      number: app.api_key,
+                      primary: app.status === 'active',
+                      balanceAmount: app.balance ?? 0,
+                      frozenAmount: app.frozen_amount ?? 0,
+                      availableAmount: app.available_amount ?? 0,
+                      withdrawalFeePercent:
+                          (config.withdrawal_fee_percent as number) || 0,
+                      exchangeRateSell: (config.exchange_rate_sell as number) || 0,
+                      exchangeRateBuy: (config.exchange_rate_buy as number) || 0,
+                      configType: 'application',
+                      entityId: app.id,
+                  }
+              })
+
         const customerData: Customer = {
             ...merchant,
-            email: merchant.contact_email, // 映射 contact_email 为 email
+            email: merchant.contact_email,
             name: merchant.name,
-            img: '', // 后端无头像字段
+            img: '',
             role: merchant.account_type,
             lastOnline: new Date(merchant.updated_at).getTime() / 1000,
             personalInfo: {
-                location: '', // 需要从应用配置获取时区
+                location: '',
                 title: merchant.account_type,
                 agent: merchant.agent_id || '',
                 birthday: merchant.created_at,
@@ -197,24 +275,21 @@ export const getCustomer = createAsyncThunk(
                 linkedIn: '',
             },
         }
-        
+
         return {
             profile: customerData,
             subscription: subscriptions,
             paymentMethod: paymentMethods,
             applications: applications,
-            orderHistory: [] as OrderHistory[], // 后端暂无支付历史接口
+            orderHistory: [] as OrderHistory[],
         }
     }
 )
 
-/**
- * 禁用/删除商户
- */
+// 禁用账户
 export const deleteCustomer = createAsyncThunk(
     SLICE_NAME + '/deleteCustomer',
     async (data: { id: string }) => {
-        // 将商户状态设置为 Disabled
         const response = await apiUpdateAccountStatus(data.id, {
             status: 'Disabled',
             reason: '用户请求禁用账户',
@@ -223,9 +298,7 @@ export const deleteCustomer = createAsyncThunk(
     }
 )
 
-/**
- * 更新商户状态
- */
+// 更新账户状态
 export const updateCustomerStatus = createAsyncThunk(
     SLICE_NAME + '/updateCustomerStatus',
     async (data: { id: string; status: AccountStatus; reason: string }) => {
@@ -237,13 +310,10 @@ export const updateCustomerStatus = createAsyncThunk(
     }
 )
 
-/**
- * 更新商户信息
- */
+// 更新账户基础信息
 export const putCustomer = createAsyncThunk(
     SLICE_NAME + '/putCustomer',
     async (data: Customer) => {
-        // 调用后端 API 更新商户信息
         const updateData: { name?: string; contact_email?: string } = {}
         if (data.name) {
             updateData.name = data.name
@@ -251,18 +321,14 @@ export const putCustomer = createAsyncThunk(
         if (data.email) {
             updateData.contact_email = data.email
         }
-        
-        const response = await apiUpdateMerchant(data.id, updateData)
-        const backendData = response.data as unknown as BackendResponse<{ merchant_id: string; message: string }>
-        
-        // 返回更新后的商户数据
+
+        await apiUpdateMerchant(data.id, updateData)
+
         return data
     }
 )
 
-/**
- * 创建应用
- */
+// 创建商户应用
 export const createApplication = createAsyncThunk(
     SLICE_NAME + '/createApplication',
     async (data: { merchantId: string; name: string; config: CreateApplicationRequest['config'] }) => {
@@ -273,28 +339,150 @@ export const createApplication = createAsyncThunk(
             name: data.name,
             config: data.config,
         })
-        // 解析后端响应
         const backendData = response.data as unknown as BackendResponse<MerchantApplication>
         return backendData.data
     }
 )
 
-/**
- * 删除应用
- */
+// 删除商户应用
 export const deleteApplication = createAsyncThunk(
     SLICE_NAME + '/deleteApplication',
     async (data: { appId: string }) => {
         const response = await apiDeleteApplication(data.appId)
-        // 解析后端响应
         const backendData = response.data as unknown as BackendResponse<{ app_id: string; message: string }>
         return backendData.data?.app_id || data.appId
     }
 )
 
-/**
- * 绑定商户到代理商
- */
+
+// 创建应用与代理商分润关联
+export const createAgentRateConfig = createAsyncThunk(
+    SLICE_NAME + '/createAgentRateConfig',
+    async (data: {
+        agentId: string
+        app_id: string
+        fee_rate: number
+        profit_share_rate: number
+        supported_currencies: string[]
+    }) => {
+        const response = await apiCreateAppAgentRelation({
+            app_id: data.app_id,
+            agent_id: data.agentId,
+            commission_rate: data.profit_share_rate,
+            fixed_amount: 0,
+            fee_rate: data.fee_rate,
+            supported_currencies: data.supported_currencies,
+        })
+        const backendData = response.data as unknown as BackendResponse<{
+            id: string
+            app_id: string
+            agent_id: string
+            commission_rate?: number
+            profit_share_rate: number
+            fixed_amount?: number
+            fee_rate?: number
+            supported_currencies?: string[]
+            status?: string
+        }>
+        const relation = backendData.data
+
+        return {
+            relationId: relation?.id || '',
+            agentId: relation?.agent_id || data.agentId,
+            appId: relation?.app_id || data.app_id,
+            fee_rate: relation?.fee_rate ?? data.fee_rate,
+            profit_share_rate:
+                relation?.commission_rate ??
+                relation?.profit_share_rate ??
+                data.profit_share_rate,
+            supported_currencies: relation?.supported_currencies ?? data.supported_currencies,
+            status: relation?.status || 'active',
+        }
+    }
+)
+
+// 更新分润关联（当前仅更新 profit_share_rate）
+export const updateAgentRateConfig = createAsyncThunk(
+    SLICE_NAME + '/updateAgentRateConfig',
+    async (data: {
+        relationId: string
+        app_id?: string
+        fee_rate?: number
+        profit_share_rate?: number
+        supported_currencies?: string[]
+        agentId: string
+    }) => {
+        const updatePayload: { commission_rate?: number } = {}
+        if (typeof data.profit_share_rate === 'number') {
+            updatePayload.commission_rate = data.profit_share_rate
+        }
+
+        let relation: {
+            id?: string
+            app_id?: string
+            agent_id?: string
+            commission_rate?: number
+            profit_share_rate?: number
+            fixed_amount?: number
+            status?: string
+        } = {}
+
+        if (!data.relationId) {
+            throw new Error('缺少 relationId，无法更新分润关联')
+        }
+
+        if (Object.keys(updatePayload).length > 0) {
+            const response = await apiUpdateAppAgentRelation(
+                data.relationId,
+                updatePayload
+            )
+            const backendData = response.data as unknown as BackendResponse<{
+                id: string
+                app_id?: string
+                agent_id?: string
+                commission_rate?: number
+                profit_share_rate?: number
+                fixed_amount?: number
+                status?: string
+            }>
+            relation = backendData.data || {}
+        }
+
+        return {
+            relationId: relation?.id || data.relationId,
+            appId: relation?.app_id || data.app_id || '',
+            agentId: relation?.agent_id || data.agentId,
+            fee_rate: data.fee_rate,
+            profit_share_rate:
+                relation?.commission_rate ??
+                relation?.profit_share_rate ??
+                data.profit_share_rate,
+            supported_currencies: data.supported_currencies,
+            status: relation?.status || 'active',
+        }
+    }
+)
+
+// 停用分润关联
+export const deactivateAgentRateConfig = createAsyncThunk(
+    SLICE_NAME + '/deactivateAgentRateConfig',
+    async (data: { relationId: string }) => {
+        await apiDeactivateAppAgentRelation(data.relationId)
+        return data.relationId
+    }
+)
+
+// 删除分润关联
+export const deleteAgentRateConfig = createAsyncThunk(
+    SLICE_NAME + '/deleteAgentRateConfig',
+    async (data: { relationId: string }) => {
+        await apiDeleteAppAgentRelation(data.relationId)
+        return data.relationId
+    }
+)
+
+
+// 绑定商户到代理商
 export const bindMerchantAgent = createAsyncThunk(
     SLICE_NAME + '/bindMerchantAgent',
     async (data: { merchantId: string; agentId: string }) => {
@@ -304,9 +492,7 @@ export const bindMerchantAgent = createAsyncThunk(
     }
 )
 
-/**
- * 解绑商户与代理商
- */
+// 解绑商户与代理商
 export const unbindMerchantAgent = createAsyncThunk(
     SLICE_NAME + '/unbindMerchantAgent',
     async (data: { merchantId: string }) => {
@@ -316,8 +502,8 @@ export const unbindMerchantAgent = createAsyncThunk(
     }
 )
 
-// ==================== 初始状态 ====================
 
+// 初始状态
 const initialState: CustomerDetailState = {
     loading: true,
     profileData: {},
@@ -332,7 +518,6 @@ const initialState: CustomerDetailState = {
     selectedCard: {},
 }
 
-// ==================== Slice ====================
 
 const customerDetailSlice = createSlice({
     name: `${SLICE_NAME}/state`,
@@ -389,31 +574,150 @@ const customerDetailSlice = createSlice({
                 state.loading = false
             })
             .addCase(deleteCustomer.fulfilled, (state) => {
-                // 删除成功后更新状态
                 state.profileData.status = 'Disabled'
             })
             .addCase(updateCustomerStatus.fulfilled, (state, action) => {
-                // 更新状态成功
                 state.profileData.status = action.meta.arg.status
             })
             .addCase(putCustomer.fulfilled, (state, action) => {
-                // 更新商户信息成功
                 state.profileData = action.payload
             })
             .addCase(createApplication.fulfilled, (state, action) => {
-                // 创建应用成功，添加到列表
                 if (action.payload) {
                     state.applicationsData.push(action.payload)
                 }
             })
             .addCase(deleteApplication.fulfilled, (state, action) => {
-                // 删除应用成功，从列表中移除
                 const deletedAppId = action.payload
                 state.applicationsData = state.applicationsData.filter(app => app.id !== deletedAppId)
                 state.paymentMethodData = state.paymentMethodData.filter(pm => pm.id !== deletedAppId)
             })
+            .addCase(createAgentRateConfig.fulfilled, (state, action) => {
+                const {
+                    relationId,
+                    appId,
+                    agentId,
+                    fee_rate,
+                    profit_share_rate,
+                    supported_currencies,
+                    status,
+                } = action.payload
+                const profile = state.profileData as Record<string, unknown>
+                profile.fee_rate = fee_rate
+                profile.profit_share_rate = profit_share_rate
+                profile.supported_currencies = supported_currencies
+                state.paymentMethodData = [
+                    {
+                        id: relationId || `${agentId}_rate_config`,
+                        channelName: 'Agent Rate Config',
+                        cardType: supported_currencies.join(', '),
+                        payIn: String(fee_rate),
+                        payOut: '',
+                        fixedFeeIn: String(profit_share_rate),
+                        fixedFeeOut: '',
+                        number: appId,
+                        primary: true,
+                        balanceAmount: 0,
+                        frozenAmount: 0,
+                        availableAmount: 0,
+                        withdrawalFeePercent: 0,
+                        exchangeRateSell: 0,
+                        exchangeRateBuy: 0,
+                        configType: 'agent_rate',
+                        entityId: relationId,
+                        appId,
+                        agentId,
+                        relationStatus: status || 'active',
+                        feeRate: fee_rate,
+                        profitShareRate: profit_share_rate,
+                        supportedCurrencies: supported_currencies,
+                    },
+                ]
+            })
+            .addCase(updateAgentRateConfig.fulfilled, (state, action) => {
+                const {
+                    relationId,
+                    appId,
+                    agentId,
+                    fee_rate,
+                    profit_share_rate,
+                    supported_currencies,
+                    status,
+                } = action.payload
+                const previous = state.paymentMethodData[0]
+                const resolvedAppId =
+                    appId || previous?.appId || previous?.number || ''
+                const resolvedFeeRate =
+                    typeof fee_rate === 'number'
+                        ? fee_rate
+                        : Number(previous?.feeRate ?? previous?.payIn ?? 0)
+                const resolvedProfitShareRate =
+                    typeof profit_share_rate === 'number'
+                        ? profit_share_rate
+                        : Number(
+                              previous?.profitShareRate ??
+                                  previous?.fixedFeeIn ??
+                                  0
+                          )
+                const resolvedSupportedCurrencies =
+                    supported_currencies ??
+                    previous?.supportedCurrencies ??
+                    []
+                const profile = state.profileData as Record<string, unknown>
+                profile.fee_rate = resolvedFeeRate
+                profile.profit_share_rate = resolvedProfitShareRate
+                profile.supported_currencies = resolvedSupportedCurrencies
+                profile.relation_id = relationId || previous?.entityId || ''
+                profile.app_id = resolvedAppId
+                profile.relation_status =
+                    status || previous?.relationStatus || 'active'
+                state.paymentMethodData = [
+                    {
+                        id: relationId || `${agentId}_rate_config`,
+                        channelName: 'Agent Rate Config',
+                        cardType: resolvedSupportedCurrencies.join(', '),
+                        payIn: String(resolvedFeeRate),
+                        payOut: '',
+                        fixedFeeIn: String(resolvedProfitShareRate),
+                        fixedFeeOut: '',
+                        number: resolvedAppId,
+                        primary: true,
+                        balanceAmount: 0,
+                        frozenAmount: 0,
+                        availableAmount: 0,
+                        withdrawalFeePercent: 0,
+                        exchangeRateSell: 0,
+                        exchangeRateBuy: 0,
+                        configType: 'agent_rate',
+                        entityId: relationId,
+                        appId: resolvedAppId,
+                        agentId,
+                        relationStatus: status || 'active',
+                        feeRate: resolvedFeeRate,
+                        profitShareRate: resolvedProfitShareRate,
+                        supportedCurrencies: resolvedSupportedCurrencies,
+                    },
+                ]
+            })
+            .addCase(deactivateAgentRateConfig.fulfilled, (state, action) => {
+                const relationId = action.payload
+                state.paymentMethodData = state.paymentMethodData.map((item) =>
+                    item.entityId === relationId || item.id === relationId
+                        ? { ...item, relationStatus: 'inactive', primary: false }
+                        : item
+                )
+            })
+            .addCase(deleteAgentRateConfig.fulfilled, (state, action) => {
+                const relationId = action.payload
+                const profile = state.profileData as Record<string, unknown>
+                profile.fee_rate = 0
+                profile.profit_share_rate = 0
+                profile.supported_currencies = []
+                state.paymentMethodData = state.paymentMethodData.filter(
+                    (item) => item.entityId !== relationId && item.id !== relationId
+                )
+            })
             .addCase(bindMerchantAgent.fulfilled, (state, action) => {
-                // 绑定代理商成功，更新 profileData
                 const agentId = action.payload?.agent_id || action.meta.arg.agentId
                 state.profileData.agent_id = agentId
                 if (state.profileData.personalInfo) {
@@ -422,7 +726,6 @@ const customerDetailSlice = createSlice({
                 state.agentBindDialog = false
             })
             .addCase(unbindMerchantAgent.fulfilled, (state) => {
-                // 解绑代理商成功，清空 agent_id
                 state.profileData.agent_id = ''
                 if (state.profileData.personalInfo) {
                     state.profileData.personalInfo.agent = ''

@@ -116,10 +116,22 @@ const appsRoute: Routes = [
         component: lazy(() => import('@/views/finances/Withdraw')),
         authority: PLATFORM_ROLES,
     },
-     {
+    {
         key: 'appsFinances.financialFlow',
         path: `${APP_PREFIX_PATH}/finances/financial-flow`,
         component: lazy(() => import('@/views/finances/FinancialFlow')),
+        authority: PLATFORM_ROLES,
+    },
+    {
+        key: 'appsFinances.profitSharing',
+        path: `${APP_PREFIX_PATH}/finances/profit-sharing`,
+        component: lazy(() => import('@/views/finances/ProfitSharing')),
+        authority: PLATFORM_ROLES,
+    },
+    {
+        key: 'appsFinances.settlement',
+        path: `${APP_PREFIX_PATH}/finances/settlement`,
+        component: lazy(() => import('@/views/finances/Settlement')),
         authority: PLATFORM_ROLES,
     },
 

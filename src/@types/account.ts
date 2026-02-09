@@ -59,6 +59,9 @@ export interface Merchant extends Account {
 export interface CreateAgentRequest {
     request_id: string
     name: string
+    username?: string
+    password?: string
+    email?: string
     profit_share_rate: number
     fee_rate: number
     supported_currencies: string[]
@@ -83,6 +86,9 @@ export interface Agent extends Account {
 export interface CreateChannelPartnerRequest {
     request_id: string
     name: string
+    username?: string
+    password?: string
+    email?: string
     profit_share_rate: number
     fee_rate: number
     supported_currencies: string[]
@@ -173,7 +179,6 @@ export interface MerchantApplication {
     status: MerchantAppStatus // 状态
     ip_whitelist: string // IP白名单（JSON数组）
     config: string | MerchantAppConfig // 应用配置（JSON或对象）
-    balance_amount: number // 余额（分）- 兼容旧字段
     balance: number // 总余额（分）
     frozen_amount: number // 冻结金额（分）
     available_amount: number // 可用余额（分）

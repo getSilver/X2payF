@@ -1,6 +1,6 @@
 /**
- * 后端账户 API 服务
- * 等后端 API 准备好后切换使用
+ * 鍚庣璐︽埛 API 鏈嶅姟
+ * 绛夊悗绔?API 鍑嗗濂藉悗鍒囨崲浣跨敤
  */
 import ApiService from '../ApiService'
 import type {
@@ -19,13 +19,13 @@ import type {
 } from '@/@types/account'
 
 const ACCOUNT_API = {
-    // 账户管理
+    // 璐︽埛绠＄悊
     ACCOUNTS: '/api/v1/admin/accounts',
     ACCOUNT_DETAIL: (id: string) => `/api/v1/admin/accounts/${id}`,
     ACCOUNT_STATUS: (id: string) => `/api/v1/admin/accounts/${id}/status`,
     ACCOUNT_UNLOCK: (id: string) => `/api/v1/admin/accounts/${id}/unlock`,
     
-    // 商户管理
+    // 鍟嗘埛绠＄悊
     CREATE_MERCHANT: '/api/v1/admin/accounts/merchants',
     MERCHANT_LIST: '/api/v1/admin/merchants',
     MERCHANT_DETAIL: (id: string) => `/api/v1/admin/merchants/${id}/details`,
@@ -33,20 +33,27 @@ const ACCOUNT_API = {
     MERCHANT_APPLICATIONS: (id: string) => `/api/v1/admin/merchants/${id}/applications`,
     MERCHANT_AGENT: (id: string) => `/api/v1/admin/merchants/${id}/agent`,
     
-    // 应用管理
+    // 搴旂敤绠＄悊
     APPLICATIONS: '/api/v1/admin/applications',
     APPLICATION_DETAIL: (id: string) => `/api/v1/admin/applications/${id}`,
     APPLICATION_CONFIG: (id: string) => `/api/v1/admin/applications/${id}/config`,
     APPLICATION_STATUS: (id: string) => `/api/v1/admin/applications/${id}/status`,
     
-    // 代理商管理
+    // 浠ｇ悊鍟嗙鐞?
     CREATE_AGENT: '/api/v1/admin/accounts/agents',
     AGENT_LIST: '/api/v1/admin/agents',
+    AGENT_DETAIL: (id: string) => `/api/v1/admin/agents/${id}/details`,
+    AGENT_UPDATE: (id: string) => `/api/v1/admin/agents/${id}`,
     AGENT_MERCHANTS: (id: string) => `/api/v1/admin/agents/${id}/merchants`,
+    AGENT_APP_RELATIONS: (id: string) => `/api/v1/admin/agents/${id}/app-relations`,
+    APP_AGENT_RELATIONS: '/api/v1/admin/app-agent-relations',
+    APP_AGENT_RELATION_DETAIL: (id: string) => `/api/v1/admin/app-agent-relations/${id}`,
+    APP_AGENT_RELATION_DEACTIVATE: (id: string) => `/api/v1/admin/app-agent-relations/${id}/deactivate`,
     
-    // 渠道合作商管理
+    // 娓犻亾鍚堜綔鍟嗙鐞?
     CREATE_CHANNEL_PARTNER: '/api/v1/admin/accounts/channel-partners',
     CHANNEL_PARTNER_LIST: '/api/v1/admin/channel-partners',
+    CHANNEL_PARTNER_DETAIL: (id: string) => `/api/v1/admin/channel-partners/${id}/details`,
 }
 
 export async function apiGetAccount(accountId: string) {
@@ -72,9 +79,28 @@ export async function apiCreateMerchant(data: CreateMerchantRequest) {
     })
 }
 
-export async function apiGetMerchant(merchantId: string) {
+/**
+ * 鑾峰彇璐︽埛璇︽儏锛堟櫤鑳借瘑鍒处鎴风被鍨嬶級
+ * 鏍规嵁 ID 鍓嶇紑鑷姩閫夋嫨鍚堥€傜殑 API锛?
+ * - mch_ 寮€澶达細璋冪敤鍟嗘埛璇︽儏鎺ュ彛
+ * - agent_ 寮€澶达細璋冪敤浠ｇ悊鍟嗚鎯呮帴鍙?
+ * - cp_ 寮€澶达細璋冪敤娓犻亾鍚堜綔鍟嗚鎯呮帴鍙?
+ */
+export async function apiGetMerchant(accountId: string) {
+    let url: string
+    
+    // 鏍规嵁 ID 鍓嶇紑鍒ゆ柇璐︽埛绫诲瀷
+    if (accountId.startsWith('agent_')) {
+        url = ACCOUNT_API.AGENT_DETAIL(accountId)
+    } else if (accountId.startsWith('cp_')) {
+        url = ACCOUNT_API.CHANNEL_PARTNER_DETAIL(accountId)
+    } else {
+        // 榛樿浣跨敤鍟嗘埛璇︽儏鎺ュ彛锛堝寘鎷?mch_ 鍓嶇紑鍜屽叾浠栨儏鍐碉級
+        url = ACCOUNT_API.MERCHANT_DETAIL(accountId)
+    }
+    
     return ApiService.fetchData<Merchant>({
-        url: ACCOUNT_API.MERCHANT_DETAIL(merchantId),
+        url,
         method: 'get',
     })
 }
@@ -88,7 +114,7 @@ export async function apiGetMerchants(params?: AccountListParams) {
 }
 
 /**
- * 查询商户列表（支持分页和筛选）
+ * 鏌ヨ鍟嗘埛鍒楄〃锛堟敮鎸佸垎椤靛拰绛涢€夛級
  */
 export async function apiListMerchants(params?: ListMerchantsParams) {
     return ApiService.fetchData<ListMerchantsResponse>({
@@ -99,18 +125,18 @@ export async function apiListMerchants(params?: ListMerchantsParams) {
 }
 
 /**
- * 查询所有账户列表参数
+ * 鏌ヨ鎵€鏈夎处鎴峰垪琛ㄥ弬鏁?
  */
 export interface ListAllAccountsParams {
-    account_type?: string  // 账户类型：MERCHANT, AGENT, CHANNEL_PARTNER
-    status?: string        // 账户状态
-    name?: string          // 名称（模糊搜索）
-    page?: number          // 页码
-    page_size?: number     // 每页数量
+    account_type?: string  // 璐︽埛绫诲瀷锛歁ERCHANT, AGENT, CHANNEL_PARTNER
+    status?: string        // 璐︽埛鐘舵€?
+    name?: string          // 鍚嶇О锛堟ā绯婃悳绱級
+    page?: number          // 椤电爜
+    page_size?: number     // 姣忛〉鏁伴噺
 }
 
 /**
- * 统一账户信息
+ * 缁熶竴璐︽埛淇℃伅
  */
 export interface UnifiedAccount {
     id: string
@@ -124,7 +150,7 @@ export interface UnifiedAccount {
 }
 
 /**
- * 查询所有账户列表响应
+ * 鏌ヨ鎵€鏈夎处鎴峰垪琛ㄥ搷搴?
  */
 export interface ListAllAccountsResponse {
     total: number
@@ -134,7 +160,7 @@ export interface ListAllAccountsResponse {
 }
 
 /**
- * 查询所有账户列表（商户、代理商、渠道合作商）
+ * 鏌ヨ鎵€鏈夎处鎴峰垪琛紙鍟嗘埛銆佷唬鐞嗗晢銆佹笭閬撳悎浣滃晢锛?
  */
 export async function apiListAllAccounts(params?: ListAllAccountsParams) {
     return ApiService.fetchData<ListAllAccountsResponse>({
@@ -145,7 +171,7 @@ export async function apiListAllAccounts(params?: ListAllAccountsParams) {
 }
 
 /**
- * 查询商户应用列表
+ * 鏌ヨ鍟嗘埛搴旂敤鍒楄〃
  */
 export async function apiGetMerchantApplications(merchantId: string) {
     return ApiService.fetchData<MerchantApplication[]>({
@@ -155,20 +181,20 @@ export async function apiGetMerchantApplications(merchantId: string) {
 }
 
 /**
- * 创建应用请求参数
+ * 鍒涘缓搴旂敤璇锋眰鍙傛暟
  */
 export interface CreateApplicationRequest {
     request_id: string
     merchant_id: string
     name: string
     config: {
-        // 代收费率
-        pay_in_percentage_fee?: number   // 代收百分比费率（如 0.5 表示 0.5%）
-        pay_in_fixed_fee?: number        // 代收固定费用（分）
-        // 代付费率
-        pay_out_percentage_fee?: number  // 代付百分比费率（如 5 表示 5%）
-        pay_out_fixed_fee?: number       // 代付固定费用（分）
-        // 其他配置
+        // 浠ｆ敹璐圭巼
+        pay_in_percentage_fee?: number   // 浠ｆ敹鐧惧垎姣旇垂鐜囷紙濡?0.5 琛ㄧず 0.5%锛?
+        pay_in_fixed_fee?: number        // 浠ｆ敹鍥哄畾璐圭敤锛堝垎锛?
+        // 浠ｄ粯璐圭巼
+        pay_out_percentage_fee?: number  // 浠ｄ粯鐧惧垎姣旇垂鐜囷紙濡?5 琛ㄧず 5%锛?
+        pay_out_fixed_fee?: number       // 浠ｄ粯鍥哄畾璐圭敤锛堝垎锛?
+        // 鍏朵粬閰嶇疆
         channels?: string[]
         payment_methods?: string[]
         default_payment_method?: string
@@ -179,15 +205,15 @@ export interface CreateApplicationRequest {
         daily_limit?: number
         monthly_limit?: number
         settlement_limit?: number
-        // 提款手续费和汇率加点
-        withdrawal_fee_percent?: number   // 提款手续费百分比
-        exchange_rate_sell?: number       // 卖出汇率加点百分比（商户卖出本币换外币）
-        exchange_rate_buy?: number        // 买入汇率加点百分比（商户买入本币）
+        // 鎻愭鎵嬬画璐瑰拰姹囩巼鍔犵偣
+        withdrawal_fee_percent?: number   // 鎻愭鎵嬬画璐圭櫨鍒嗘瘮
+        exchange_rate_sell?: number       // 鍗栧嚭姹囩巼鍔犵偣鐧惧垎姣旓紙鍟嗘埛鍗栧嚭鏈竵鎹㈠甯侊級
+        exchange_rate_buy?: number        // 涔板叆姹囩巼鍔犵偣鐧惧垎姣旓紙鍟嗘埛涔板叆鏈竵锛?
     }
 }
 
 /**
- * 创建应用
+ * 鍒涘缓搴旂敤
  */
 export async function apiCreateApplication(data: CreateApplicationRequest) {
     return ApiService.fetchData<MerchantApplication, CreateApplicationRequest>({
@@ -198,7 +224,7 @@ export async function apiCreateApplication(data: CreateApplicationRequest) {
 }
 
 /**
- * 更新应用配置
+ * 鏇存柊搴旂敤閰嶇疆
  */
 export async function apiUpdateApplicationConfig(appId: string, config: CreateApplicationRequest['config']) {
     return ApiService.fetchData<{ app_id: string; message: string }>({
@@ -209,7 +235,7 @@ export async function apiUpdateApplicationConfig(appId: string, config: CreateAp
 }
 
 /**
- * 删除应用
+ * 鍒犻櫎搴旂敤
  */
 export async function apiDeleteApplication(appId: string) {
     return ApiService.fetchData<{ app_id: string; message: string }>({
@@ -233,11 +259,116 @@ export async function apiGetAgentMerchants(agentId: string) {
     })
 }
 
+export async function apiGetAgentAppRelations(agentId: string) {
+    return ApiService.fetchData<
+        Array<{
+            id: string
+            app_id: string
+            agent_id: string
+            commission_rate?: number
+            fixed_amount?: number
+            status?: string
+            created_at?: string
+            updated_at?: string
+        }>
+    >({
+        url: ACCOUNT_API.AGENT_APP_RELATIONS(agentId),
+        method: 'get',
+    })
+}
+
 export async function apiGetAgents(params?: AccountListParams) {
     return ApiService.fetchData<Agent[]>({
         url: ACCOUNT_API.AGENT_LIST,
         method: 'get',
         params,
+    })
+}
+
+export interface UpdateAgentConfigRequest {
+    fee_rate: number
+    profit_share_rate: number
+    supported_currencies: string[]
+}
+
+export async function apiUpdateAgentConfig(agentId: string, data: UpdateAgentConfigRequest) {
+    return ApiService.fetchData<{ agent_id: string; message: string }, UpdateAgentConfigRequest>({
+        url: ACCOUNT_API.AGENT_UPDATE(agentId),
+        method: 'put',
+        data,
+    })
+}
+
+export interface CreateAppAgentRelationRequest {
+    app_id: string
+    agent_id: string
+    commission_rate?: number
+    fixed_amount?: number
+    // backward compatibility
+    profit_share_rate?: number
+    fee_rate?: number
+    supported_currencies?: string[]
+}
+
+export interface UpdateAppAgentRelationRequest {
+    commission_rate?: number
+    fixed_amount?: number
+    // backward compatibility
+    profit_share_rate?: number
+}
+
+export async function apiCreateAppAgentRelation(data: CreateAppAgentRelationRequest) {
+    return ApiService.fetchData<{
+        id: string
+        app_id: string
+        agent_id: string
+        commission_rate?: number
+        fixed_amount?: number
+        // backward compatibility
+        profit_share_rate?: number
+        fee_rate?: number
+        supported_currencies?: string[]
+        status?: string
+        message?: string
+    }, CreateAppAgentRelationRequest>({
+        url: ACCOUNT_API.APP_AGENT_RELATIONS,
+        method: 'post',
+        data,
+    })
+}
+
+export async function apiUpdateAppAgentRelation(
+    relationId: string,
+    data: UpdateAppAgentRelationRequest
+) {
+    return ApiService.fetchData<{
+        id: string
+        app_id?: string
+        agent_id?: string
+        commission_rate?: number
+        fixed_amount?: number
+        // backward compatibility
+        profit_share_rate?: number
+        status?: string
+        message?: string
+    }, UpdateAppAgentRelationRequest>({
+        url: ACCOUNT_API.APP_AGENT_RELATION_DETAIL(relationId),
+        method: 'put',
+        data,
+    })
+}
+
+export async function apiDeactivateAppAgentRelation(relationId: string) {
+    return ApiService.fetchData<{ id: string; message?: string }>({
+        url: ACCOUNT_API.APP_AGENT_RELATION_DEACTIVATE(relationId),
+        method: 'put',
+    })
+}
+
+export async function apiDeleteAppAgentRelation(relationId: string) {
+    return ApiService.fetchData<{ id: string; message?: string }>({
+        url: ACCOUNT_API.APP_AGENT_RELATION_DETAIL(relationId),
+        method: 'delete',
     })
 }
 
@@ -258,7 +389,7 @@ export async function apiGetChannelPartners(params?: AccountListParams) {
 }
 
 /**
- * 绑定商户到代理商
+ * 缁戝畾鍟嗘埛鍒颁唬鐞嗗晢
  */
 export async function apiBindMerchantAgent(merchantId: string, agentId: string) {
     return ApiService.fetchData<{ merchant_id: string; agent_id: string; message: string }>({
@@ -269,7 +400,7 @@ export async function apiBindMerchantAgent(merchantId: string, agentId: string) 
 }
 
 /**
- * 解绑商户与代理商
+ * 瑙ｇ粦鍟嗘埛涓庝唬鐞嗗晢
  */
 export async function apiUnbindMerchantAgent(merchantId: string) {
     return ApiService.fetchData<{ merchant_id: string; message: string }>({
@@ -279,7 +410,7 @@ export async function apiUnbindMerchantAgent(merchantId: string) {
 }
 
 /**
- * 更新商户信息
+ * 鏇存柊鍟嗘埛淇℃伅
  */
 export async function apiUpdateMerchant(merchantId: string, data: { name?: string; contact_email?: string }) {
     return ApiService.fetchData<{ merchant_id: string; message: string }>({

@@ -91,7 +91,7 @@ export default function cryptoFakeApi(server: Server, apiPrefix: string) {
             key: request.queryParams['sort[key]'] || '',
         }
 
-        return getHistoryResponse(schema as HistorySchema, {
+        return getHistoryResponse(schema as unknown as HistorySchema, {
             tab,
             pageIndex,
             pageSize,
@@ -102,7 +102,7 @@ export default function cryptoFakeApi(server: Server, apiPrefix: string) {
     server.post(`${apiPrefix}/crypto/wallets/history`, (schema, { requestBody }) => {
         const { tab, pageIndex, pageSize, sort } = JSON.parse(requestBody)
 
-        return getHistoryResponse(schema as HistorySchema, {
+        return getHistoryResponse(schema as unknown as HistorySchema, {
             tab,
             pageIndex,
             pageSize,

@@ -11,10 +11,12 @@ import {
     FaLinkedinIn,
     FaPinterestP,
 } from 'react-icons/fa'
-import { HiPencilSquare, HiOutlineTrash } from 'react-icons/hi2'
+import { HiPencilSquare, HiOutlineTrash, HiOutlineCheckCircle } from 'react-icons/hi2'
 import { useNavigate } from 'react-router-dom'
 import {
     deleteCustomer,
+    updateCustomerStatus,
+    getCustomer,
     openEditCustomerDetailDialog,
     useAppDispatch,
     Customer,
@@ -42,9 +44,10 @@ const CustomerInfoField = ({ title, value }: CustomerInfoFieldProps) => {
     )
 }
 
-const CustomerProfileAction = ({ id }: { id?: string }) => {
+const CustomerProfileAction = ({ id, status }: { id?: string; status?: string }) => {
     const dispatch = useAppDispatch()
     const [dialogOpen, setDialogOpen] = useState(false)
+    const [actionType, setActionType] = useState<'disable' | 'enable'>('disable')
 
     const navigate = useNavigate()
 
@@ -52,32 +55,79 @@ const CustomerProfileAction = ({ id }: { id?: string }) => {
         setDialogOpen(false)
     }
 
-    const onDialogOpen = () => {
+    const onDialogOpen = (type: 'disable' | 'enable') => {
+        setActionType(type)
         setDialogOpen(true)
     }
 
-    const onDelete = () => {
+    const onStatusChange = async () => {
         setDialogOpen(false)
         if (id) {
-            dispatch(deleteCustomer({ id }))
+            try {
+                if (actionType === 'disable') {
+                    await dispatch(deleteCustomer({ id })).unwrap()
+                    toast.push(
+                        <Notification title={'禁用成功'} type="success">
+                            账户已成功禁用
+                        </Notification>
+                    )
+                } else {
+                    await dispatch(
+                        updateCustomerStatus({
+                            id,
+                            status: 'Normal',
+                            reason: '管理员启用账户',
+                        })
+                    ).unwrap()
+                    toast.push(
+                        <Notification title={'启用成功'} type="success">
+                            账户已成功启用
+                        </Notification>
+                    )
+                }
+                // 状态更新成功，Redux 会自动更新 profileData.status
+                // 不需要重新获取数据，避免覆盖应用配置
+            } catch (error: any) {
+                toast.push(
+                    <Notification
+                        title={actionType === 'disable' ? '禁用失败' : '启用失败'}
+                        type="danger"
+                    >
+                        {error?.message ||
+                            `${actionType === 'disable' ? '禁用' : '启用'}账户失败，请稍后重试`}
+                    </Notification>
+                )
+            }
         }
-        navigate('/app/merchants/customers')
-        toast.push(
-            <Notification title={'Successfuly Deleted'} type="success">
-                Customer successfuly deleted
-            </Notification>
-        )
     }
 
     const onEdit = () => {
         dispatch(openEditCustomerDetailDialog())
     }
 
+    const isDisabled = status === 'Disabled'
+
     return (
         <>
-            <Button block icon={<HiOutlineTrash />} onClick={onDialogOpen}>
-                Delete
-            </Button>
+            {isDisabled ? (
+                <Button
+                    block
+                    icon={<HiOutlineCheckCircle />}
+                    onClick={() => onDialogOpen('enable')}
+                    variant="solid"
+                    className="bg-green-600 hover:bg-green-700"
+                >
+                    Enable
+                </Button>
+            ) : (
+                <Button
+                    block
+                    icon={<HiOutlineTrash />}
+                    onClick={() => onDialogOpen('disable')}
+                >
+                    Disable
+                </Button>
+            )}
             <Button
                 block
                 icon={<HiPencilSquare />}
@@ -88,18 +138,18 @@ const CustomerProfileAction = ({ id }: { id?: string }) => {
             </Button>
             <ConfirmDialog
                 isOpen={dialogOpen}
-                type="danger"
-                title="Delete customer"
-                confirmButtonColor="red-600"
+                type={actionType === 'disable' ? 'danger' : 'info'}
+                title={actionType === 'disable' ? 'Disable customer' : 'Enable customer'}
+                confirmButtonColor={actionType === 'disable' ? 'red-600' : 'green-600'}
                 onClose={onDialogClose}
                 onRequestClose={onDialogClose}
                 onCancel={onDialogClose}
-                onConfirm={onDelete}
+                onConfirm={onStatusChange}
             >
                 <p>
-                    Are you sure you want to delete this customer? All record
-                    related to this customer will be deleted as well. This
-                    action cannot be undone.
+                    {actionType === 'disable'
+                        ? 'Are you sure you want to disable this customer? The customer will not be able to use the system, but all records will be preserved. You can re-enable the customer later if needed.'
+                        : 'Are you sure you want to enable this customer? The customer will be able to use the system again.'}
                 </p>
             </ConfirmDialog>
             <EditCustomerProfile />
@@ -170,7 +220,7 @@ const CustomerProfile = ({ data = {} }: CustomerProfileProps) => {
                     </div>
                 </div>
                 <div className="mt-4 flex flex-col xl:flex-row gap-2">
-                    <CustomerProfileAction id={data.id} />
+                    <CustomerProfileAction id={data.id} status={data.status} />
                 </div>
             </div>
         </Card>

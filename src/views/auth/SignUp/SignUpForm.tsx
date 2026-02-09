@@ -7,7 +7,7 @@ import ActionLink from '@/components/shared/ActionLink'
 import useTimeOutMessage from '@/utils/hooks/useTimeOutMessage'
 import { Field, Form, Formik } from 'formik'
 import * as Yup from 'yup'
-import useAuth from '@/utils/hooks/useAuth'
+import { apiSignUp } from '@/services/AuthService'
 import type { CommonProps } from '@/@types/common'
 
 interface SignUpFormProps extends CommonProps {
@@ -36,8 +36,6 @@ const validationSchema = Yup.object().shape({
 const SignUpForm = (props: SignUpFormProps) => {
     const { disableSubmit = false, className, signInUrl = '/sign-in' } = props
 
-    const { signUp } = useAuth()
-
     const [message, setMessage] = useTimeOutMessage()
 
     const onSignUp = async (
@@ -46,12 +44,11 @@ const SignUpForm = (props: SignUpFormProps) => {
     ) => {
         const { userName, password, email } = values
         setSubmitting(true)
-        const result = await signUp({ userName, password, email })
-
-        if (result?.status === 'failed') {
-            setMessage(result.message)
+        try {
+            await apiSignUp({ userName, password, email })
+        } catch (error) {
+            setMessage((error as Error).message || 'Sign up failed')
         }
-
         setSubmitting(false)
     }
 

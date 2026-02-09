@@ -43,6 +43,14 @@
             "risk": "Risk",
             "rules": "Rules"
         },
+        "appsFinances": {
+            "finances": "Finances",
+            "dashboard": "Dashboard",
+            "financialFlow": "Financial Flow",
+            "withdraw": "Withdraw",
+            "profitSharing": "Profit Sharing",
+            "settlement": "Settlement"
+        },
         "appsDemo": {
             "demo": "Demo Card"
         },

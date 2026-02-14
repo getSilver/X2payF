@@ -11,9 +11,10 @@ const AGENT_PREFIX = '/api/v1/merchant/agent'
 export interface AgentProfitResponse {
     agent_id: string
     profit_balance: number        // 分润余额（分）
-    profit_share_rate: number     // 分润比例
-    fee_rate: number              // 手续费率
-    supported_currencies: string[] // 支持的币种
+    pay_in_fixed_profit_sharing?: number
+    pay_out_fixed_profit_sharing?: number
+    pay_in_percentage_profit_sharing?: number
+    pay_out_percentage_profit_sharing?: number
 }
 
 export async function apiGetAgentMerchants(params?: MerchantQueryParams) {

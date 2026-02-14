@@ -126,7 +126,7 @@ const PersonalInfoForm = (props: PersonalInfoFormProps) => {
                 />
             </FormItem>
             <FormItem
-                label="Location设置时区"
+                label="Currency Association (Auto Timezone)"
                 invalid={errors.location && touched.location}
                 errorMessage={errors.location}
             >
@@ -135,7 +135,7 @@ const PersonalInfoForm = (props: PersonalInfoFormProps) => {
                         {({ field, form }: FieldProps) => (
                             <Select<LocationOption>
                                 options={locationOptions}
-                                placeholder="Select Timezone"
+                                placeholder="Select Currency Association"
                                 value={
                                     locationOptions.find(
                                         (option) => option.value === field.value
@@ -158,7 +158,7 @@ const PersonalInfoForm = (props: PersonalInfoFormProps) => {
                         type="text"
                         autoComplete="off"
                         name="location"
-                        placeholder="Location"
+                        placeholder="Timezone"
                         component={Input}
                         prefix={<HiMapPin className="text-xl" />}
                     />

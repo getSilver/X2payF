@@ -49,6 +49,9 @@ export interface Merchant extends Account {
     name: string
     contact_email: string
     agent_id?: string
+    withdrawal_address?: string
+    withdrawal_fee_percent?: number
+    ip_whitelist?: string[]
 }
 
 // ==================== 代理商相关 ====================
@@ -62,9 +65,6 @@ export interface CreateAgentRequest {
     username?: string
     password?: string
     email?: string
-    profit_share_rate: number
-    fee_rate: number
-    supported_currencies: string[]
 }
 
 /**
@@ -72,10 +72,7 @@ export interface CreateAgentRequest {
  */
 export interface Agent extends Account {
     name: string
-    profit_share_rate: number
-    fee_rate: number
     profit_balance: number
-    supported_currencies: string[]
 }
 
 // ==================== 渠道合作商相关 ====================
@@ -155,17 +152,16 @@ export type MerchantAppStatus = 'active' | 'inactive' | 'suspended'
  * 商户应用配置
  */
 export interface MerchantAppConfig {
-    fee_rate: number // 费率
-    channels: string[] // 支付渠道列表
-    payment_methods: string[] // 支持的支付方式列表
-    default_payment_method: string // 默认支付方式
-    currency: string // 币种
-    timezone: string // 时区
-    single_txn_min: number // 单笔最小金额（分）
-    single_txn_max: number // 单笔最大金额（分）
-    daily_limit: number // 日累计限额（分）
-    monthly_limit: number // 月累计限额（分）
-    settlement_limit: number // 结算限额（分）
+    in_fee_rate?: number // 代收百分比费率
+    in_fixed_fee?: number // 代收固定费用（分）
+    out_fee_rate?: number // 代付百分比费率
+    out_fixed_fee?: number // 代付固定费用（分）
+    channels?: string[] // 支付渠道列表
+    payment_methods?: string[] // 支持的支付方式列表
+    timezone?: string // 时区
+    single_txn_min?: number // 单笔最小金额（分）
+    single_txn_max?: number // 单笔最大金额（分）
+    daily_limit?: number // 日累计限额（分）
 }
 
 /**

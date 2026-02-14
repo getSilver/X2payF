@@ -86,7 +86,9 @@ const PaymentMethods = () => {
                                             <div className="flex items-center">
                                                 <div className="text-gray-900 dark:text-gray-100 font-semibold">
                                                     {card.channelName}{' '}
-                                                    {card.number}
+                                                    {isAgentAccount
+                                                        ? card.number
+                                                        : card.channel_id}
                                                     {!isAgentAccount && (
                                                         <div>
                                                             <span>
@@ -98,7 +100,7 @@ const PaymentMethods = () => {
                                                                     displayType="text"
                                                                     value={(
                                                                         Math.round(
-                                                                            (card.balanceAmount ||
+                                                                            (card.balance ||
                                                                                 0) *
                                                                                 100
                                                                         ) / 100
@@ -117,7 +119,7 @@ const PaymentMethods = () => {
                                                                     displayType="text"
                                                                     value={(
                                                                         Math.round(
-                                                                            (card.frozenAmount ||
+                                                                            (card.frozen_amount ||
                                                                                 0) *
                                                                                 100
                                                                         ) / 100
@@ -135,7 +137,7 @@ const PaymentMethods = () => {
                                                                     displayType="text"
                                                                     value={(
                                                                         Math.round(
-                                                                            (card.availableAmount ||
+                                                                            (card.available_amount ||
                                                                                 0) *
                                                                                 100
                                                                         ) / 100
@@ -158,39 +160,42 @@ const PaymentMethods = () => {
                                             </div>
                                             {isAgentAccount ? (
                                                 <span>
-                                                    fee_rate:{' '}
-                                                    {card.feeRate ??
-                                                        card.payIn ??
-                                                        '0'}
+                                                    代收费率:{' '}
+                                                    {card.payIn ?? '0'}
                                                     <span> | </span>
-                                                    profit_share_rate:{' '}
-                                                    {card.profitShareRate ??
-                                                        card.fixedFeeIn ??
-                                                        '0'}
+                                                    代付费率:{' '}
+                                                    {card.payOut ?? '0'}
                                                     <span> | </span>
-                                                    supported_currencies:{' '}
-                                                    {(card.supportedCurrencies ||
-                                                        []
-                                                    ).join(', ') || '-'}
+                                                    代收单笔费:{' '}
+                                                    {card.fixedFeeIn ?? '0'}
+                                                    <span> | </span>
+                                                    代付单笔费:{' '}
+                                                    {card.fixedFeeOut ?? '0'}
                                                 </span>
                                             ) : (
                                                 <span>
-                                                    费率: {card.payIn || '0'}/
-                                                    {card.payOut || '0'}{' '}
+                                                    费率: {card.in_fee_rate || '0'}/
+                                                    {card.out_fee_rate || '0'}{' '}
                                                     <span> | </span>
                                                     单笔:{' '}
-                                                    {card.fixedFeeIn || '0'}/
-                                                    {card.fixedFeeOut || '0'}
+                                                    {card.in_fixed_fee || '0'}/
+                                                    {card.out_fixed_fee || '0'}
                                                     <span> | </span>
-                                                    汇率:{' '}
-                                                    {card.exchangeRateSell || '0'}
-                                                    %/
-                                                    {card.exchangeRateBuy || '0'}
-                                                    %<span> | </span>
-                                                    手续费{' '}
-                                                    {card.withdrawalFeePercent ||
-                                                        '0'}
-                                                    %
+                                                    通道ID: {card.channel_id || '-'}
+                                                    <span> | </span>
+                                                    时区: {card.timezone || '-'}
+                                                    <span> | </span>
+                                                    支付方式:{' '}
+                                                    {card.payment_methods?.length
+                                                        ? card.payment_methods.join(
+                                                              ','
+                                                          )
+                                                        : '-'}
+                                                    <span> | </span>
+                                                    限额:{' '}
+                                                    {card.single_txn_min || 0}/
+                                                    {card.single_txn_max || 0}/
+                                                    {card.daily_limit || 0}
                                                 </span>
                                             )}
                                         </div>

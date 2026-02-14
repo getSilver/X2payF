@@ -43,27 +43,37 @@ export type OrderHistory = {
 export type PaymentMethod = {
     id: string
     channelName: string
-    cardType: string
-    payIn: string
-    payOut: string
-    fixedFeeIn: string
-    fixedFeeOut: string
-    number: string
+    currency: string
+    in_fee_rate: string
+    out_fee_rate: string
+    in_fixed_fee: string
+    out_fixed_fee: string
+    channel_id: string
+    payment_methods: string[]
+    timezone: string
+    single_txn_min: number
+    single_txn_max: number
+    daily_limit: number
     primary: boolean
-    balanceAmount: number
-    frozenAmount: number
-    availableAmount: number
-    withdrawalFeePercent: number
-    exchangeRateSell: number
-    exchangeRateBuy: number
+    balance: number
+    frozen_amount: number
+    available_amount: number
     configType?: 'application' | 'agent_rate'
     entityId?: string
     appId?: string
     agentId?: string
     relationStatus?: string
-    feeRate?: number
-    profitShareRate?: number
-    supportedCurrencies?: string[]
+    payInFixedProfitSharing?: number
+    payOutFixedProfitSharing?: number
+    payInPercentageProfitSharing?: number
+    payOutPercentageProfitSharing?: number
+    // 兼容代理分润组件的既有字段
+    payIn?: string
+    payOut?: string
+    fixedFeeIn?: string
+    fixedFeeOut?: string
+    number?: string
+    cardType?: string
 }
 
 export type Subscription = {
@@ -86,10 +96,9 @@ export type Customer = Merchant & {
         agent: string
         birthday: string
         merchantID: string
-        facebook: string
-        twitter: string
-        pinterest: string
-        linkedIn: string
+        withdrawal_address: string
+        withdrawal_fee_percent: string
+        ip_whitelist: string
     }
 }
 
@@ -114,9 +123,10 @@ export const getCustomer = createAsyncThunk(
     async (data: { id: string }) => {
         const merchantResponse = await apiGetMerchant(data.id)
         const merchantBackend = merchantResponse.data as unknown as BackendResponse<Merchant & {
-            fee_rate?: number
-            profit_share_rate?: number
-            supported_currencies?: string[]
+            pay_in_fixed_profit_sharing?: number
+            pay_out_fixed_profit_sharing?: number
+            pay_in_percentage_profit_sharing?: number
+            pay_out_percentage_profit_sharing?: number
             relation_id?: string
             app_id?: string
             relation_status?: string
@@ -128,8 +138,10 @@ export const getCustomer = createAsyncThunk(
                   id: string
                   app_id: string
                   agent_id: string
-                  commission_rate?: number
-                  fixed_amount?: number
+                  pay_in_fixed_profit_sharing?: number
+                  pay_out_fixed_profit_sharing?: number
+                  pay_in_percentage_profit_sharing?: number
+                  pay_out_percentage_profit_sharing?: number
                   status?: string
               }
             | undefined
@@ -144,7 +156,7 @@ export const getCustomer = createAsyncThunk(
                 console.warn('获取应用列表失败，可能不是商户账户', error)
             }
         }
-        if (isAgentAccount && !merchant.relation_id) {
+        if (isAgentAccount) {
             try {
                 const relationResponse = await apiGetAgentAppRelations(data.id)
                 const relationBackend = relationResponse.data as unknown as BackendResponse<
@@ -152,8 +164,10 @@ export const getCustomer = createAsyncThunk(
                         id: string
                         app_id: string
                         agent_id: string
-                        commission_rate?: number
-                        fixed_amount?: number
+                        pay_in_fixed_profit_sharing?: number
+                        pay_out_fixed_profit_sharing?: number
+                        pay_in_percentage_profit_sharing?: number
+                        pay_out_percentage_profit_sharing?: number
                         status?: string
                     }>
                 >
@@ -176,13 +190,25 @@ export const getCustomer = createAsyncThunk(
 
         const paymentMethods: PaymentMethod[] = isAgentAccount
             ? (() => {
-                  const feeRate = merchant.fee_rate ?? 0
-                  const profitShareRate = merchant.profit_share_rate ?? 0
-                  const supportedCurrencies = merchant.supported_currencies ?? []
-                  const hasAgentRateConfig =
-                      feeRate > 0 ||
-                      profitShareRate > 0 ||
-                      supportedCurrencies.length > 0
+                  const payInFixedProfitSharing =
+                      merchant.pay_in_fixed_profit_sharing ??
+                      relationFromList?.pay_in_fixed_profit_sharing ??
+                      0
+                  const payOutFixedProfitSharing =
+                      merchant.pay_out_fixed_profit_sharing ??
+                      relationFromList?.pay_out_fixed_profit_sharing ??
+                      0
+                  const payInPercentageProfitSharing =
+                      merchant.pay_in_percentage_profit_sharing ??
+                      relationFromList?.pay_in_percentage_profit_sharing ??
+                      0
+                  const payOutPercentageProfitSharing =
+                      merchant.pay_out_percentage_profit_sharing ??
+                      relationFromList?.pay_out_percentage_profit_sharing ??
+                      0
+                  const hasAgentRateConfig = Boolean(
+                      merchant.relation_id || relationFromList?.id
+                  )
 
                   if (!hasAgentRateConfig) {
                       return []
@@ -195,19 +221,30 @@ export const getCustomer = createAsyncThunk(
                               relationFromList?.id ||
                               `${merchant.id}_rate_config`,
                           channelName: 'Agent Rate Config',
-                          cardType: supportedCurrencies.join(', '),
-                          payIn: String(feeRate),
-                          payOut: '',
-                          fixedFeeIn: String(profitShareRate),
-                          fixedFeeOut: '',
-                          number: merchant.app_id || relationFromList?.app_id || '',
+                          currency: 'Agent Profit Sharing',
+                          in_fee_rate: String(payInPercentageProfitSharing),
+                          out_fee_rate: String(payOutPercentageProfitSharing),
+                          in_fixed_fee: String(payInFixedProfitSharing),
+                          out_fixed_fee: String(payOutFixedProfitSharing),
+                          channel_id:
+                              merchant.app_id || relationFromList?.app_id || '',
+                          payment_methods: [],
+                          timezone: '',
+                          single_txn_min: 0,
+                          single_txn_max: 0,
+                          daily_limit: 0,
                           primary: true,
-                          balanceAmount: 0,
-                          frozenAmount: 0,
-                          availableAmount: 0,
-                          withdrawalFeePercent: 0,
-                          exchangeRateSell: 0,
-                          exchangeRateBuy: 0,
+                          balance: 0,
+                          frozen_amount: 0,
+                          available_amount: 0,
+                          // 兼容字段
+                          cardType: 'Agent Profit Sharing',
+                          payIn: String(payInPercentageProfitSharing),
+                          payOut: String(payOutPercentageProfitSharing),
+                          fixedFeeIn: String(payInFixedProfitSharing),
+                          fixedFeeOut: String(payOutFixedProfitSharing),
+                          number:
+                              merchant.app_id || relationFromList?.app_id || '',
                           configType: 'agent_rate',
                           entityId: merchant.relation_id || relationFromList?.id || '',
                           appId: merchant.app_id || relationFromList?.app_id || '',
@@ -216,9 +253,10 @@ export const getCustomer = createAsyncThunk(
                               merchant.relation_status ||
                               relationFromList?.status ||
                               'active',
-                          feeRate,
-                          profitShareRate,
-                          supportedCurrencies,
+                          payInFixedProfitSharing,
+                          payOutFixedProfitSharing,
+                          payInPercentageProfitSharing,
+                          payOutPercentageProfitSharing,
                       },
                   ]
               })()
@@ -237,20 +275,25 @@ export const getCustomer = createAsyncThunk(
                   return {
                       id: app.id,
                       channelName: app.name,
-                      cardType: (config.currency as string) || 'CNY',
-                      payIn: String((config.pay_in_percentage_fee as number) || 0),
-                      payOut: String((config.pay_out_percentage_fee as number) || 0),
-                      fixedFeeIn: String((config.pay_in_fixed_fee as number) || 0),
-                      fixedFeeOut: String((config.pay_out_fixed_fee as number) || 0),
-                      number: app.api_key,
+                      currency: app.currency || 'CNY',
+                      in_fee_rate: String((config.in_fee_rate as number) || 0),
+                      out_fee_rate: String((config.out_fee_rate as number) || 0),
+                      in_fixed_fee: String((config.in_fixed_fee as number) || 0),
+                      out_fixed_fee: String((config.out_fixed_fee as number) || 0),
+                      channel_id:
+                          ((config.channels as string[] | undefined)?.[0] as
+                              | string
+                              | undefined) || '',
+                      payment_methods:
+                          (config.payment_methods as string[] | undefined) || [],
+                      timezone: (config.timezone as string) || '',
+                      single_txn_min: (config.single_txn_min as number) || 0,
+                      single_txn_max: (config.single_txn_max as number) || 0,
+                      daily_limit: (config.daily_limit as number) || 0,
                       primary: app.status === 'active',
-                      balanceAmount: app.balance ?? 0,
-                      frozenAmount: app.frozen_amount ?? 0,
-                      availableAmount: app.available_amount ?? 0,
-                      withdrawalFeePercent:
-                          (config.withdrawal_fee_percent as number) || 0,
-                      exchangeRateSell: (config.exchange_rate_sell as number) || 0,
-                      exchangeRateBuy: (config.exchange_rate_buy as number) || 0,
+                      balance: app.balance ?? 0,
+                      frozen_amount: app.frozen_amount ?? 0,
+                      available_amount: app.available_amount ?? 0,
                       configType: 'application',
                       entityId: app.id,
                   }
@@ -264,15 +307,25 @@ export const getCustomer = createAsyncThunk(
             role: merchant.account_type,
             lastOnline: new Date(merchant.updated_at).getTime() / 1000,
             personalInfo: {
-                location: '',
+                location:
+                    paymentMethods.find(
+                        (item) => item.configType === 'application'
+                    )?.timezone || '',
                 title: merchant.account_type,
                 agent: merchant.agent_id || '',
                 birthday: merchant.created_at,
                 merchantID: merchant.id,
-                facebook: '',
-                twitter: '',
-                pinterest: '',
-                linkedIn: '',
+                withdrawal_address:
+                    (merchant as unknown as { withdrawal_address?: string })
+                        .withdrawal_address || '',
+                withdrawal_fee_percent: String(
+                    (merchant as unknown as { withdrawal_fee_percent?: number })
+                        .withdrawal_fee_percent || 0
+                ),
+                ip_whitelist: (
+                    (merchant as unknown as { ip_whitelist?: string[] })
+                        .ip_whitelist || []
+                ).join(','),
             },
         }
 
@@ -314,12 +367,31 @@ export const updateCustomerStatus = createAsyncThunk(
 export const putCustomer = createAsyncThunk(
     SLICE_NAME + '/putCustomer',
     async (data: Customer) => {
-        const updateData: { name?: string; contact_email?: string } = {}
+        const updateData: {
+            name?: string
+            contact_email?: string
+            withdrawal_address?: string
+            withdrawal_fee_percent?: number
+            ip_whitelist?: string[]
+        } = {}
         if (data.name) {
             updateData.name = data.name
         }
         if (data.email) {
             updateData.contact_email = data.email
+        }
+        if (data.personalInfo?.withdrawal_address !== undefined) {
+            updateData.withdrawal_address = data.personalInfo.withdrawal_address
+        }
+        if (data.personalInfo?.withdrawal_fee_percent !== undefined) {
+            updateData.withdrawal_fee_percent =
+                Number(data.personalInfo.withdrawal_fee_percent) || 0
+        }
+        if (data.personalInfo?.ip_whitelist !== undefined) {
+            updateData.ip_whitelist = data.personalInfo.ip_whitelist
+                .split(',')
+                .map((item) => item.trim())
+                .filter((item) => item !== '')
         }
 
         await apiUpdateMerchant(data.id, updateData)
@@ -361,27 +433,29 @@ export const createAgentRateConfig = createAsyncThunk(
     async (data: {
         agentId: string
         app_id: string
-        fee_rate: number
-        profit_share_rate: number
-        supported_currencies: string[]
+        pay_in_fixed_profit_sharing: number
+        pay_out_fixed_profit_sharing: number
+        pay_in_percentage_profit_sharing: number
+        pay_out_percentage_profit_sharing: number
     }) => {
         const response = await apiCreateAppAgentRelation({
             app_id: data.app_id,
             agent_id: data.agentId,
-            commission_rate: data.profit_share_rate,
-            fixed_amount: 0,
-            fee_rate: data.fee_rate,
-            supported_currencies: data.supported_currencies,
+            pay_in_fixed_profit_sharing: data.pay_in_fixed_profit_sharing,
+            pay_out_fixed_profit_sharing: data.pay_out_fixed_profit_sharing,
+            pay_in_percentage_profit_sharing:
+                data.pay_in_percentage_profit_sharing,
+            pay_out_percentage_profit_sharing:
+                data.pay_out_percentage_profit_sharing,
         })
         const backendData = response.data as unknown as BackendResponse<{
             id: string
             app_id: string
             agent_id: string
-            commission_rate?: number
-            profit_share_rate: number
-            fixed_amount?: number
-            fee_rate?: number
-            supported_currencies?: string[]
+            pay_in_fixed_profit_sharing?: number
+            pay_out_fixed_profit_sharing?: number
+            pay_in_percentage_profit_sharing?: number
+            pay_out_percentage_profit_sharing?: number
             status?: string
         }>
         const relation = backendData.data
@@ -390,40 +464,66 @@ export const createAgentRateConfig = createAsyncThunk(
             relationId: relation?.id || '',
             agentId: relation?.agent_id || data.agentId,
             appId: relation?.app_id || data.app_id,
-            fee_rate: relation?.fee_rate ?? data.fee_rate,
-            profit_share_rate:
-                relation?.commission_rate ??
-                relation?.profit_share_rate ??
-                data.profit_share_rate,
-            supported_currencies: relation?.supported_currencies ?? data.supported_currencies,
+            pay_in_fixed_profit_sharing:
+                relation?.pay_in_fixed_profit_sharing ??
+                data.pay_in_fixed_profit_sharing,
+            pay_out_fixed_profit_sharing:
+                relation?.pay_out_fixed_profit_sharing ??
+                data.pay_out_fixed_profit_sharing,
+            pay_in_percentage_profit_sharing:
+                relation?.pay_in_percentage_profit_sharing ??
+                data.pay_in_percentage_profit_sharing,
+            pay_out_percentage_profit_sharing:
+                relation?.pay_out_percentage_profit_sharing ??
+                data.pay_out_percentage_profit_sharing,
             status: relation?.status || 'active',
         }
     }
 )
 
-// 更新分润关联（当前仅更新 profit_share_rate）
+// 更新分润关联（支持 payin/payout 固定与百分比分润）
 export const updateAgentRateConfig = createAsyncThunk(
     SLICE_NAME + '/updateAgentRateConfig',
     async (data: {
         relationId: string
         app_id?: string
-        fee_rate?: number
-        profit_share_rate?: number
-        supported_currencies?: string[]
+        pay_in_fixed_profit_sharing?: number
+        pay_out_fixed_profit_sharing?: number
+        pay_in_percentage_profit_sharing?: number
+        pay_out_percentage_profit_sharing?: number
         agentId: string
     }) => {
-        const updatePayload: { commission_rate?: number } = {}
-        if (typeof data.profit_share_rate === 'number') {
-            updatePayload.commission_rate = data.profit_share_rate
+        const updatePayload: {
+            pay_in_fixed_profit_sharing?: number
+            pay_out_fixed_profit_sharing?: number
+            pay_in_percentage_profit_sharing?: number
+            pay_out_percentage_profit_sharing?: number
+        } = {}
+        if (typeof data.pay_in_fixed_profit_sharing === 'number') {
+            updatePayload.pay_in_fixed_profit_sharing =
+                data.pay_in_fixed_profit_sharing
+        }
+        if (typeof data.pay_out_fixed_profit_sharing === 'number') {
+            updatePayload.pay_out_fixed_profit_sharing =
+                data.pay_out_fixed_profit_sharing
+        }
+        if (typeof data.pay_in_percentage_profit_sharing === 'number') {
+            updatePayload.pay_in_percentage_profit_sharing =
+                data.pay_in_percentage_profit_sharing
+        }
+        if (typeof data.pay_out_percentage_profit_sharing === 'number') {
+            updatePayload.pay_out_percentage_profit_sharing =
+                data.pay_out_percentage_profit_sharing
         }
 
         let relation: {
             id?: string
             app_id?: string
             agent_id?: string
-            commission_rate?: number
-            profit_share_rate?: number
-            fixed_amount?: number
+            pay_in_fixed_profit_sharing?: number
+            pay_out_fixed_profit_sharing?: number
+            pay_in_percentage_profit_sharing?: number
+            pay_out_percentage_profit_sharing?: number
             status?: string
         } = {}
 
@@ -440,9 +540,10 @@ export const updateAgentRateConfig = createAsyncThunk(
                 id: string
                 app_id?: string
                 agent_id?: string
-                commission_rate?: number
-                profit_share_rate?: number
-                fixed_amount?: number
+                pay_in_fixed_profit_sharing?: number
+                pay_out_fixed_profit_sharing?: number
+                pay_in_percentage_profit_sharing?: number
+                pay_out_percentage_profit_sharing?: number
                 status?: string
             }>
             relation = backendData.data || {}
@@ -452,12 +553,18 @@ export const updateAgentRateConfig = createAsyncThunk(
             relationId: relation?.id || data.relationId,
             appId: relation?.app_id || data.app_id || '',
             agentId: relation?.agent_id || data.agentId,
-            fee_rate: data.fee_rate,
-            profit_share_rate:
-                relation?.commission_rate ??
-                relation?.profit_share_rate ??
-                data.profit_share_rate,
-            supported_currencies: data.supported_currencies,
+            pay_in_fixed_profit_sharing:
+                relation?.pay_in_fixed_profit_sharing ??
+                data.pay_in_fixed_profit_sharing,
+            pay_out_fixed_profit_sharing:
+                relation?.pay_out_fixed_profit_sharing ??
+                data.pay_out_fixed_profit_sharing,
+            pay_in_percentage_profit_sharing:
+                relation?.pay_in_percentage_profit_sharing ??
+                data.pay_in_percentage_profit_sharing,
+            pay_out_percentage_profit_sharing:
+                relation?.pay_out_percentage_profit_sharing ??
+                data.pay_out_percentage_profit_sharing,
             status: relation?.status || 'active',
         }
     }
@@ -597,40 +704,59 @@ const customerDetailSlice = createSlice({
                     relationId,
                     appId,
                     agentId,
-                    fee_rate,
-                    profit_share_rate,
-                    supported_currencies,
+                    pay_in_fixed_profit_sharing,
+                    pay_out_fixed_profit_sharing,
+                    pay_in_percentage_profit_sharing,
+                    pay_out_percentage_profit_sharing,
                     status,
                 } = action.payload
                 const profile = state.profileData as Record<string, unknown>
-                profile.fee_rate = fee_rate
-                profile.profit_share_rate = profit_share_rate
-                profile.supported_currencies = supported_currencies
+                profile.pay_in_fixed_profit_sharing =
+                    pay_in_fixed_profit_sharing
+                profile.pay_out_fixed_profit_sharing =
+                    pay_out_fixed_profit_sharing
+                profile.pay_in_percentage_profit_sharing =
+                    pay_in_percentage_profit_sharing
+                profile.pay_out_percentage_profit_sharing =
+                    pay_out_percentage_profit_sharing
                 state.paymentMethodData = [
                     {
                         id: relationId || `${agentId}_rate_config`,
                         channelName: 'Agent Rate Config',
-                        cardType: supported_currencies.join(', '),
-                        payIn: String(fee_rate),
-                        payOut: '',
-                        fixedFeeIn: String(profit_share_rate),
-                        fixedFeeOut: '',
-                        number: appId,
+                        currency: 'Agent Profit Sharing',
+                        in_fee_rate: String(pay_in_percentage_profit_sharing),
+                        out_fee_rate: String(pay_out_percentage_profit_sharing),
+                        in_fixed_fee: String(pay_in_fixed_profit_sharing),
+                        out_fixed_fee: String(pay_out_fixed_profit_sharing),
+                        channel_id: appId,
+                        payment_methods: [],
+                        timezone: '',
+                        single_txn_min: 0,
+                        single_txn_max: 0,
+                        daily_limit: 0,
                         primary: true,
-                        balanceAmount: 0,
-                        frozenAmount: 0,
-                        availableAmount: 0,
-                        withdrawalFeePercent: 0,
-                        exchangeRateSell: 0,
-                        exchangeRateBuy: 0,
+                        balance: 0,
+                        frozen_amount: 0,
+                        available_amount: 0,
+                        cardType: 'Agent Profit Sharing',
+                        payIn: String(pay_in_percentage_profit_sharing),
+                        payOut: String(pay_out_percentage_profit_sharing),
+                        fixedFeeIn: String(pay_in_fixed_profit_sharing),
+                        fixedFeeOut: String(pay_out_fixed_profit_sharing),
+                        number: appId,
                         configType: 'agent_rate',
                         entityId: relationId,
                         appId,
                         agentId,
                         relationStatus: status || 'active',
-                        feeRate: fee_rate,
-                        profitShareRate: profit_share_rate,
-                        supportedCurrencies: supported_currencies,
+                        payInFixedProfitSharing:
+                            pay_in_fixed_profit_sharing,
+                        payOutFixedProfitSharing:
+                            pay_out_fixed_profit_sharing,
+                        payInPercentageProfitSharing:
+                            pay_in_percentage_profit_sharing,
+                        payOutPercentageProfitSharing:
+                            pay_out_percentage_profit_sharing,
                     },
                 ]
             })
@@ -639,34 +765,54 @@ const customerDetailSlice = createSlice({
                     relationId,
                     appId,
                     agentId,
-                    fee_rate,
-                    profit_share_rate,
-                    supported_currencies,
+                    pay_in_fixed_profit_sharing,
+                    pay_out_fixed_profit_sharing,
+                    pay_in_percentage_profit_sharing,
+                    pay_out_percentage_profit_sharing,
                     status,
                 } = action.payload
                 const previous = state.paymentMethodData[0]
                 const resolvedAppId =
                     appId || previous?.appId || previous?.number || ''
-                const resolvedFeeRate =
-                    typeof fee_rate === 'number'
-                        ? fee_rate
-                        : Number(previous?.feeRate ?? previous?.payIn ?? 0)
-                const resolvedProfitShareRate =
-                    typeof profit_share_rate === 'number'
-                        ? profit_share_rate
+                const resolvedPayInFixed =
+                    typeof pay_in_fixed_profit_sharing === 'number'
+                        ? pay_in_fixed_profit_sharing
                         : Number(
-                              previous?.profitShareRate ??
+                              previous?.payInFixedProfitSharing ??
                                   previous?.fixedFeeIn ??
                                   0
                           )
-                const resolvedSupportedCurrencies =
-                    supported_currencies ??
-                    previous?.supportedCurrencies ??
-                    []
+                const resolvedPayOutFixed =
+                    typeof pay_out_fixed_profit_sharing === 'number'
+                        ? pay_out_fixed_profit_sharing
+                        : Number(
+                              previous?.payOutFixedProfitSharing ??
+                                  previous?.fixedFeeOut ??
+                                  0
+                          )
+                const resolvedPayInPercentage =
+                    typeof pay_in_percentage_profit_sharing === 'number'
+                        ? pay_in_percentage_profit_sharing
+                        : Number(
+                              previous?.payInPercentageProfitSharing ??
+                                  previous?.payIn ??
+                                  0
+                          )
+                const resolvedPayOutPercentage =
+                    typeof pay_out_percentage_profit_sharing === 'number'
+                        ? pay_out_percentage_profit_sharing
+                        : Number(
+                              previous?.payOutPercentageProfitSharing ??
+                                  previous?.payOut ??
+                                  0
+                          )
                 const profile = state.profileData as Record<string, unknown>
-                profile.fee_rate = resolvedFeeRate
-                profile.profit_share_rate = resolvedProfitShareRate
-                profile.supported_currencies = resolvedSupportedCurrencies
+                profile.pay_in_fixed_profit_sharing = resolvedPayInFixed
+                profile.pay_out_fixed_profit_sharing = resolvedPayOutFixed
+                profile.pay_in_percentage_profit_sharing =
+                    resolvedPayInPercentage
+                profile.pay_out_percentage_profit_sharing =
+                    resolvedPayOutPercentage
                 profile.relation_id = relationId || previous?.entityId || ''
                 profile.app_id = resolvedAppId
                 profile.relation_status =
@@ -675,27 +821,36 @@ const customerDetailSlice = createSlice({
                     {
                         id: relationId || `${agentId}_rate_config`,
                         channelName: 'Agent Rate Config',
-                        cardType: resolvedSupportedCurrencies.join(', '),
-                        payIn: String(resolvedFeeRate),
-                        payOut: '',
-                        fixedFeeIn: String(resolvedProfitShareRate),
-                        fixedFeeOut: '',
-                        number: resolvedAppId,
+                        currency: 'Agent Profit Sharing',
+                        in_fee_rate: String(resolvedPayInPercentage),
+                        out_fee_rate: String(resolvedPayOutPercentage),
+                        in_fixed_fee: String(resolvedPayInFixed),
+                        out_fixed_fee: String(resolvedPayOutFixed),
+                        channel_id: resolvedAppId,
+                        payment_methods: [],
+                        timezone: '',
+                        single_txn_min: 0,
+                        single_txn_max: 0,
+                        daily_limit: 0,
                         primary: true,
-                        balanceAmount: 0,
-                        frozenAmount: 0,
-                        availableAmount: 0,
-                        withdrawalFeePercent: 0,
-                        exchangeRateSell: 0,
-                        exchangeRateBuy: 0,
+                        balance: 0,
+                        frozen_amount: 0,
+                        available_amount: 0,
+                        cardType: 'Agent Profit Sharing',
+                        payIn: String(resolvedPayInPercentage),
+                        payOut: String(resolvedPayOutPercentage),
+                        fixedFeeIn: String(resolvedPayInFixed),
+                        fixedFeeOut: String(resolvedPayOutFixed),
+                        number: resolvedAppId,
                         configType: 'agent_rate',
                         entityId: relationId,
                         appId: resolvedAppId,
                         agentId,
                         relationStatus: status || 'active',
-                        feeRate: resolvedFeeRate,
-                        profitShareRate: resolvedProfitShareRate,
-                        supportedCurrencies: resolvedSupportedCurrencies,
+                        payInFixedProfitSharing: resolvedPayInFixed,
+                        payOutFixedProfitSharing: resolvedPayOutFixed,
+                        payInPercentageProfitSharing: resolvedPayInPercentage,
+                        payOutPercentageProfitSharing: resolvedPayOutPercentage,
                     },
                 ]
             })
@@ -710,9 +865,10 @@ const customerDetailSlice = createSlice({
             .addCase(deleteAgentRateConfig.fulfilled, (state, action) => {
                 const relationId = action.payload
                 const profile = state.profileData as Record<string, unknown>
-                profile.fee_rate = 0
-                profile.profit_share_rate = 0
-                profile.supported_currencies = []
+                profile.pay_in_fixed_profit_sharing = 0
+                profile.pay_out_fixed_profit_sharing = 0
+                profile.pay_in_percentage_profit_sharing = 0
+                profile.pay_out_percentage_profit_sharing = 0
                 state.paymentMethodData = state.paymentMethodData.filter(
                     (item) => item.entityId !== relationId && item.id !== relationId
                 )

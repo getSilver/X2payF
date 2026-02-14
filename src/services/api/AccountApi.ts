@@ -188,27 +188,17 @@ export interface CreateApplicationRequest {
     merchant_id: string
     name: string
     config: {
-        // 浠ｆ敹璐圭巼
-        pay_in_percentage_fee?: number   // 浠ｆ敹鐧惧垎姣旇垂鐜囷紙濡?0.5 琛ㄧず 0.5%锛?
-        pay_in_fixed_fee?: number        // 浠ｆ敹鍥哄畾璐圭敤锛堝垎锛?
-        // 浠ｄ粯璐圭巼
-        pay_out_percentage_fee?: number  // 浠ｄ粯鐧惧垎姣旇垂鐜囷紙濡?5 琛ㄧず 5%锛?
-        pay_out_fixed_fee?: number       // 浠ｄ粯鍥哄畾璐圭敤锛堝垎锛?
-        // 鍏朵粬閰嶇疆
+        // 应用配置（严格后端字段）
+        in_fee_rate?: number
+        in_fixed_fee?: number
+        out_fee_rate?: number
+        out_fixed_fee?: number
         channels?: string[]
         payment_methods?: string[]
-        default_payment_method?: string
-        currency?: string
         timezone?: string
         single_txn_min?: number
         single_txn_max?: number
         daily_limit?: number
-        monthly_limit?: number
-        settlement_limit?: number
-        // 鎻愭鎵嬬画璐瑰拰姹囩巼鍔犵偣
-        withdrawal_fee_percent?: number   // 鎻愭鎵嬬画璐圭櫨鍒嗘瘮
-        exchange_rate_sell?: number       // 鍗栧嚭姹囩巼鍔犵偣鐧惧垎姣旓紙鍟嗘埛鍗栧嚭鏈竵鎹㈠甯侊級
-        exchange_rate_buy?: number        // 涔板叆姹囩巼鍔犵偣鐧惧垎姣旓紙鍟嗘埛涔板叆鏈竵锛?
     }
 }
 
@@ -265,8 +255,10 @@ export async function apiGetAgentAppRelations(agentId: string) {
             id: string
             app_id: string
             agent_id: string
-            commission_rate?: number
-            fixed_amount?: number
+            pay_in_fixed_profit_sharing?: number
+            pay_out_fixed_profit_sharing?: number
+            pay_in_percentage_profit_sharing?: number
+            pay_out_percentage_profit_sharing?: number
             status?: string
             created_at?: string
             updated_at?: string
@@ -286,9 +278,10 @@ export async function apiGetAgents(params?: AccountListParams) {
 }
 
 export interface UpdateAgentConfigRequest {
-    fee_rate: number
-    profit_share_rate: number
-    supported_currencies: string[]
+    pay_in_fixed_profit_sharing?: number
+    pay_out_fixed_profit_sharing?: number
+    pay_in_percentage_profit_sharing?: number
+    pay_out_percentage_profit_sharing?: number
 }
 
 export async function apiUpdateAgentConfig(agentId: string, data: UpdateAgentConfigRequest) {
@@ -302,19 +295,17 @@ export async function apiUpdateAgentConfig(agentId: string, data: UpdateAgentCon
 export interface CreateAppAgentRelationRequest {
     app_id: string
     agent_id: string
-    commission_rate?: number
-    fixed_amount?: number
-    // backward compatibility
-    profit_share_rate?: number
-    fee_rate?: number
-    supported_currencies?: string[]
+    pay_in_fixed_profit_sharing?: number
+    pay_out_fixed_profit_sharing?: number
+    pay_in_percentage_profit_sharing?: number
+    pay_out_percentage_profit_sharing?: number
 }
 
 export interface UpdateAppAgentRelationRequest {
-    commission_rate?: number
-    fixed_amount?: number
-    // backward compatibility
-    profit_share_rate?: number
+    pay_in_fixed_profit_sharing?: number
+    pay_out_fixed_profit_sharing?: number
+    pay_in_percentage_profit_sharing?: number
+    pay_out_percentage_profit_sharing?: number
 }
 
 export async function apiCreateAppAgentRelation(data: CreateAppAgentRelationRequest) {
@@ -322,12 +313,10 @@ export async function apiCreateAppAgentRelation(data: CreateAppAgentRelationRequ
         id: string
         app_id: string
         agent_id: string
-        commission_rate?: number
-        fixed_amount?: number
-        // backward compatibility
-        profit_share_rate?: number
-        fee_rate?: number
-        supported_currencies?: string[]
+        pay_in_fixed_profit_sharing?: number
+        pay_out_fixed_profit_sharing?: number
+        pay_in_percentage_profit_sharing?: number
+        pay_out_percentage_profit_sharing?: number
         status?: string
         message?: string
     }, CreateAppAgentRelationRequest>({
@@ -345,10 +334,10 @@ export async function apiUpdateAppAgentRelation(
         id: string
         app_id?: string
         agent_id?: string
-        commission_rate?: number
-        fixed_amount?: number
-        // backward compatibility
-        profit_share_rate?: number
+        pay_in_fixed_profit_sharing?: number
+        pay_out_fixed_profit_sharing?: number
+        pay_in_percentage_profit_sharing?: number
+        pay_out_percentage_profit_sharing?: number
         status?: string
         message?: string
     }, UpdateAppAgentRelationRequest>({
@@ -412,7 +401,16 @@ export async function apiUnbindMerchantAgent(merchantId: string) {
 /**
  * 鏇存柊鍟嗘埛淇℃伅
  */
-export async function apiUpdateMerchant(merchantId: string, data: { name?: string; contact_email?: string }) {
+export async function apiUpdateMerchant(
+    merchantId: string,
+    data: {
+        name?: string
+        contact_email?: string
+        withdrawal_address?: string
+        withdrawal_fee_percent?: number
+        ip_whitelist?: string[]
+    }
+) {
     return ApiService.fetchData<{ merchant_id: string; message: string }>({
         url: ACCOUNT_API.MERCHANT_UPDATE(merchantId),
         method: 'put',

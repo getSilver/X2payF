@@ -1,13 +1,12 @@
 import Input from '@/components/ui/Input'
 import { FormItem } from '@/components/ui/Form'
-import { BsFacebook, BsTwitter, BsPinterest, BsLinkedin } from 'react-icons/bs'
+import { HiGlobeAlt, HiShieldCheck } from 'react-icons/hi2'
 import { Field, FormikErrors, FormikTouched } from 'formik'
 
 type FormFieldsName = {
-    facebook: string
-    twitter: string
-    pinterest: string
-    linkedIn: string
+    withdrawal_address: string
+    withdrawal_fee_percent: string
+    ip_whitelist: string
 }
 
 type SocialLinkFormProps = {
@@ -21,59 +20,47 @@ const SocialLinkForm = (props: SocialLinkFormProps) => {
     return (
         <>
             <FormItem
-                label="Facebook link"
-                invalid={errors.facebook && touched.facebook}
-                errorMessage={errors.facebook}
+                label="Withdrawal Address"
+                invalid={errors.withdrawal_address && touched.withdrawal_address}
+                errorMessage={errors.withdrawal_address}
             >
                 <Field
                     type="text"
                     autoComplete="off"
-                    name="facebook"
-                    placeholder="URL"
+                    name="withdrawal_address"
+                    placeholder="TRX..."
                     component={Input}
-                    prefix={<BsFacebook className="text-xl text-[#1773ea]" />}
+                    prefix={<HiGlobeAlt className="text-xl" />}
                 />
             </FormItem>
             <FormItem
-                label="Twitter link"
-                invalid={errors.twitter && touched.twitter}
-                errorMessage={errors.twitter}
+                label="Withdrawal Fee Percent"
+                invalid={
+                    errors.withdrawal_fee_percent && touched.withdrawal_fee_percent
+                }
+                errorMessage={errors.withdrawal_fee_percent}
             >
                 <Field
                     type="text"
                     autoComplete="off"
-                    name="twitter"
-                    placeholder="URL"
+                    name="withdrawal_fee_percent"
+                    placeholder="0"
                     component={Input}
-                    prefix={<BsTwitter className="text-xl text-[#1da1f3]" />}
+                    prefix={<HiGlobeAlt className="text-xl" />}
                 />
             </FormItem>
             <FormItem
-                label="Pinterest link"
-                invalid={errors.pinterest && touched.pinterest}
-                errorMessage={errors.pinterest}
+                label="IP Whitelist (comma-separated)"
+                invalid={errors.ip_whitelist && touched.ip_whitelist}
+                errorMessage={errors.ip_whitelist}
             >
                 <Field
                     type="text"
                     autoComplete="off"
-                    name="pinterest"
-                    placeholder="URL"
+                    name="ip_whitelist"
+                    placeholder="127.0.0.1,10.0.0.1"
                     component={Input}
-                    prefix={<BsPinterest className="text-xl text-[#df0018]" />}
-                />
-            </FormItem>
-            <FormItem
-                label="LinkedIn link"
-                invalid={errors.linkedIn && touched.linkedIn}
-                errorMessage={errors.linkedIn}
-            >
-                <Field
-                    type="text"
-                    autoComplete="off"
-                    name="linkedIn"
-                    placeholder="URL"
-                    component={Input}
-                    prefix={<BsLinkedin className="text-xl text-[#0077b5]" />}
+                    prefix={<HiShieldCheck className="text-xl" />}
                 />
             </FormItem>
         </>

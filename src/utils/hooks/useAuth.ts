@@ -40,6 +40,71 @@ export interface MFAVerifyResult {
     message: string
 }
 
+const normalizeRoles = (payload: any): string[] => {
+    const pickRoleValue = () =>
+        payload?.roles ??
+        payload?.role ??
+        payload?.account_type ??
+        payload?.session?.roles ??
+        payload?.session?.role ??
+        payload?.session?.account_type ??
+        payload?.user?.roles ??
+        payload?.user?.role ??
+        payload?.user?.account_type ??
+        payload?.account?.roles ??
+        payload?.account?.role ??
+        payload?.account?.account_type
+
+    const normalizeRoleName = (role: string): string => {
+        const roleUpper = role.trim().toUpperCase()
+        const mapped: Record<string, string> = {
+            MERCHANT: 'APP_OWNER',
+            AGENT: 'AGENT',
+            CHANNEL_PARTNER: 'CHANNEL_PARTNER',
+        }
+        return mapped[roleUpper] || roleUpper
+    }
+
+    const rolesValue = pickRoleValue()
+
+    if (Array.isArray(rolesValue)) {
+        return rolesValue.filter(
+            (item: unknown): item is string => typeof item === 'string'
+        ).map(normalizeRoleName)
+    }
+
+    if (typeof rolesValue === 'string' && rolesValue.trim()) {
+        return [normalizeRoleName(rolesValue)]
+    }
+
+    return []
+}
+
+const resolveHomePath = (userRoles: string[]): string => {
+    const hasPlatformRole = userRoles.some((role: string) =>
+        [
+            'PLATFORM_SUPER_ADMIN',
+            'PLATFORM_OPERATIONS_ADMIN',
+            'PLATFORM_FINANCE_ADMIN',
+        ].includes(role)
+    )
+    const hasAgentRole = userRoles.includes('AGENT')
+    const hasMerchantRole = userRoles.some((role: string) =>
+        ['APP_OWNER', 'APP_FINANCE', 'APP_CUSTOMER_SERVICE'].includes(role)
+    )
+
+    if (hasPlatformRole) {
+        return '/app/payment/dashboard'
+    }
+    if (hasAgentRole) {
+        return '/agent/dashboard'
+    }
+    if (hasMerchantRole) {
+        return '/mer/dashboard'
+    }
+    return appConfig.unAuthenticatedEntryPath
+}
+
 function useAuth() {
     const dispatch = useAppDispatch()
     const navigate = useNavigate()
@@ -95,7 +160,7 @@ function useAuth() {
                     )
 
                     // 设置用户信息，使用后端返回的角色
-                    const userRoles = loginData.roles || []
+                    const userRoles = normalizeRoles(loginData)
                     dispatch(
                         setUser({
                             userId: user_id,
@@ -111,21 +176,8 @@ function useAuth() {
                     if (redirectUrl) {
                         navigate(redirectUrl)
                     } else {
-                        // 判断用户角色，跳转到对应后台
-                        const hasPlatformRole = userRoles.some((role: string) => 
-                            ['PLATFORM_SUPER_ADMIN', 'PLATFORM_OPERATIONS_ADMIN', 'PLATFORM_FINANCE_ADMIN'].includes(role)
-                        )
-                        const hasMerchantRole = userRoles.some((role: string) => 
-                            ['APP_OWNER', 'APP_FINANCE', 'APP_CUSTOMER_SERVICE'].includes(role)
-                        )
-                        
-                        if (hasPlatformRole) {
-                            navigate('/app/payment/dashboard')
-                        } else if (hasMerchantRole) {
-                            navigate('/mer/dashboard')
-                        } else {
-                            navigate(appConfig.authenticatedEntryPath)
-                        }
+                        const homePath = resolveHomePath(userRoles)
+                        navigate(homePath)
                     }
 
                     return {
@@ -237,7 +289,7 @@ function useAuth() {
                 )
 
                 // 设置用户信息，使用后端返回的角色
-                const userRoles = sessionData.roles || []
+                const userRoles = normalizeRoles(sessionData)
                 dispatch(
                     setUser({
                         userId: user_id,
@@ -253,21 +305,8 @@ function useAuth() {
                 if (redirectUrl) {
                     navigate(redirectUrl)
                 } else {
-                    // 判断用户角色，跳转到对应后台
-                    const hasPlatformRole = userRoles.some((role: string) => 
-                        ['PLATFORM_SUPER_ADMIN', 'PLATFORM_OPERATIONS_ADMIN', 'PLATFORM_FINANCE_ADMIN'].includes(role)
-                    )
-                    const hasMerchantRole = userRoles.some((role: string) => 
-                        ['APP_OWNER', 'APP_FINANCE', 'APP_CUSTOMER_SERVICE'].includes(role)
-                    )
-                    
-                    if (hasPlatformRole) {
-                        navigate('/app/payment/dashboard')
-                    } else if (hasMerchantRole) {
-                        navigate('/mer/dashboard')
-                    } else {
-                        navigate(appConfig.authenticatedEntryPath)
-                    }
+                    const homePath = resolveHomePath(userRoles)
+                    navigate(homePath)
                 }
 
                 return {

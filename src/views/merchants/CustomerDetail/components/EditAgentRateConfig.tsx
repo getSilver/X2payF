@@ -14,16 +14,11 @@ import * as Yup from 'yup'
 
 type FormModel = {
     appId: string
-    feeRate: string
-    profitShareRate: string
-    supportedCurrencies: string
+    payInFixedProfitSharing: string
+    payOutFixedProfitSharing: string
+    payInPercentageProfitSharing: string
+    payOutPercentageProfitSharing: string
 }
-
-const parseCurrencies = (value: string) =>
-    value
-        .split(',')
-        .map((item) => item.trim().toUpperCase())
-        .filter(Boolean)
 
 const EditAgentRateConfig = () => {
     const dispatch = useAppDispatch()
@@ -76,47 +71,48 @@ const EditAgentRateConfig = () => {
             fallbackAppIdFromList ||
             ''
     ).trim()
-    const initialFeeRate = String(
-        selectedCard.feeRate ?? selectedCard.payIn ?? '0'
+    const initialPayInFixedProfitSharing = String(
+        selectedCard.payInFixedProfitSharing ?? selectedCard.fixedFeeIn ?? '0'
     )
-    const initialProfitShareRate = String(
-        selectedCard.profitShareRate ?? selectedCard.fixedFeeIn ?? '0'
+    const initialPayOutFixedProfitSharing = String(
+        selectedCard.payOutFixedProfitSharing ?? selectedCard.fixedFeeOut ?? '0'
     )
-    const initialSupportedCurrencies = (
-        selectedCard.supportedCurrencies || []
-    ).join(',')
+    const initialPayInPercentageProfitSharing = String(
+        selectedCard.payInPercentageProfitSharing ?? selectedCard.payIn ?? '0'
+    )
+    const initialPayOutPercentageProfitSharing = String(
+        selectedCard.payOutPercentageProfitSharing ?? selectedCard.payOut ?? '0'
+    )
     const hasExistingConfigData =
         Boolean(initialAppId) ||
-        initialFeeRate !== '0' ||
-        initialProfitShareRate !== '0' ||
-        Boolean(initialSupportedCurrencies)
+        initialPayInFixedProfitSharing !== '0' ||
+        initialPayOutFixedProfitSharing !== '0' ||
+        initialPayInPercentageProfitSharing !== '0' ||
+        initialPayOutPercentageProfitSharing !== '0'
     const isUpdateMode = hasPersistedRelationId || hasExistingConfigData
-    console.log('[AgentRateDebug] dialog context', {
-        relationId,
-        hasPersistedRelationId,
-        isUpdateMode,
-        initialAppId,
-        fallbackRelationIdFromProfile,
-        fallbackRelationIdFromList,
-        fallbackAppIdFromProfile,
-        fallbackAppIdFromList,
-    })
 
     const validationSchema = Yup.object().shape({
         appId: isUpdateMode
             ? Yup.string()
             : Yup.string().required('商户应用ID不能为空'),
-        feeRate: Yup.number()
-            .typeError('费率必须是数字')
-            .min(0, '费率不能小于0')
-            .required('fee_rate 不能为空'),
-        profitShareRate: Yup.number()
-            .typeError('分润比例必须是数字')
-            .min(0, '分润比例不能小于0')
-            .required('profit_share_rate 不能为空'),
-        supportedCurrencies: Yup.string().required(
-            'supported_currencies 不能为空'
-        ),
+        payInFixedProfitSharing: Yup.number()
+            .typeError('代收固定分润必须是数字')
+            .min(0, '代收固定分润不能小于0')
+            .required('pay_in_fixed_profit_sharing 不能为空'),
+        payOutFixedProfitSharing: Yup.number()
+            .typeError('代付固定分润必须是数字')
+            .min(0, '代付固定分润不能小于0')
+            .required('pay_out_fixed_profit_sharing 不能为空'),
+        payInPercentageProfitSharing: Yup.number()
+            .typeError('代收百分比分润必须是数字')
+            .min(0, '代收百分比分润不能小于0')
+            .max(100, '代收百分比分润不能大于100')
+            .required('pay_in_percentage_profit_sharing 不能为空'),
+        payOutPercentageProfitSharing: Yup.number()
+            .typeError('代付百分比分润必须是数字')
+            .min(0, '代付百分比分润不能小于0')
+            .max(100, '代付百分比分润不能大于100')
+            .required('pay_out_percentage_profit_sharing 不能为空'),
     })
 
     const onDialogClose = () => {
@@ -124,72 +120,65 @@ const EditAgentRateConfig = () => {
     }
 
     const onSubmit = async (values: FormModel) => {
-        console.log('[AgentRateDebug] formik onSubmit fired')
-        console.log('[AgentRateDebug] submit values', values)
         const agentId = String(profileData.id || '').trim()
         if (!agentId) {
-            console.log('[AgentRateDebug] missing agentId, abort submit')
             return
         }
 
-        console.log('[AgentRateDebug] agent submit context', {
-            agentId,
-            relationId,
-            hasPersistedRelationId,
-            isUpdateMode,
-            appIdFromCard: initialAppId,
-            fallbackRelationIdFromProfile,
-            fallbackRelationIdFromList,
-            fallbackAppIdFromProfile,
-            fallbackAppIdFromList,
-            selectedCard,
-        })
-
         const payload = {
             app_id: values.appId.trim(),
-            fee_rate: Number(values.feeRate) || 0,
-            profit_share_rate: Number(values.profitShareRate) || 0,
-            supported_currencies: parseCurrencies(values.supportedCurrencies),
+            pay_in_fixed_profit_sharing:
+                Number(values.payInFixedProfitSharing) || 0,
+            pay_out_fixed_profit_sharing:
+                Number(values.payOutFixedProfitSharing) || 0,
+            pay_in_percentage_profit_sharing:
+                Number(values.payInPercentageProfitSharing) || 0,
+            pay_out_percentage_profit_sharing:
+                Number(values.payOutPercentageProfitSharing) || 0,
             agentId,
         }
 
         try {
             if (hasPersistedRelationId) {
-                const changedProfitShareRate =
-                    Number(values.profitShareRate) !==
-                    Number(initialProfitShareRate)
-                const changedFeeRate =
-                    Number(values.feeRate) !== Number(initialFeeRate)
-                const changedSupportedCurrencies =
-                    parseCurrencies(values.supportedCurrencies).join(',') !==
-                    parseCurrencies(initialSupportedCurrencies).join(',')
+                const changedPayInFixed =
+                    Number(values.payInFixedProfitSharing) !==
+                    Number(initialPayInFixedProfitSharing)
+                const changedPayOutFixed =
+                    Number(values.payOutFixedProfitSharing) !==
+                    Number(initialPayOutFixedProfitSharing)
+                const changedPayInPercentage =
+                    Number(values.payInPercentageProfitSharing) !==
+                    Number(initialPayInPercentageProfitSharing)
+                const changedPayOutPercentage =
+                    Number(values.payOutPercentageProfitSharing) !==
+                    Number(initialPayOutPercentageProfitSharing)
                 const changedAppId = values.appId.trim() !== initialAppId
 
-                console.log('[AgentRateDebug] submit branch: updateAgentRateConfig')
                 await dispatch(
                     updateAgentRateConfig({
                         relationId,
                         agentId,
                         app_id: changedAppId ? values.appId.trim() : undefined,
-                        profit_share_rate: changedProfitShareRate
-                            ? Number(values.profitShareRate)
+                        pay_in_fixed_profit_sharing: changedPayInFixed
+                            ? Number(values.payInFixedProfitSharing)
                             : undefined,
-                        fee_rate: changedFeeRate
-                            ? Number(values.feeRate)
+                        pay_out_fixed_profit_sharing: changedPayOutFixed
+                            ? Number(values.payOutFixedProfitSharing)
                             : undefined,
-                        supported_currencies: changedSupportedCurrencies
-                            ? parseCurrencies(values.supportedCurrencies)
-                            : undefined,
+                        pay_in_percentage_profit_sharing:
+                            changedPayInPercentage
+                                ? Number(values.payInPercentageProfitSharing)
+                                : undefined,
+                        pay_out_percentage_profit_sharing:
+                            changedPayOutPercentage
+                                ? Number(values.payOutPercentageProfitSharing)
+                                : undefined,
                     })
                 ).unwrap()
             } else if (isUpdateMode) {
-                console.log('[AgentRateDebug] submit branch: updateAgentRateConfig')
-                console.error(
-                    '[AgentRateDebug] missing relationId in update mode, abort'
-                )
+                console.error('missing relationId in update mode, abort')
                 return
             } else {
-                console.log('[AgentRateDebug] submit branch: createAgentRateConfig')
                 await dispatch(createAgentRateConfig(payload)).unwrap()
             }
             onDialogClose()
@@ -212,9 +201,14 @@ const EditAgentRateConfig = () => {
                     enableReinitialize
                     initialValues={{
                         appId: initialAppId,
-                        feeRate: initialFeeRate,
-                        profitShareRate: initialProfitShareRate,
-                        supportedCurrencies: initialSupportedCurrencies,
+                        payInFixedProfitSharing:
+                            initialPayInFixedProfitSharing,
+                        payOutFixedProfitSharing:
+                            initialPayOutFixedProfitSharing,
+                        payInPercentageProfitSharing:
+                            initialPayInPercentageProfitSharing,
+                        payOutPercentageProfitSharing:
+                            initialPayOutPercentageProfitSharing,
                     }}
                     validationSchema={validationSchema}
                     onSubmit={async (values, { setSubmitting }) => {
@@ -222,18 +216,7 @@ const EditAgentRateConfig = () => {
                         setSubmitting(false)
                     }}
                 >
-                    {({ touched, errors, isSubmitting, submitCount, values }) => {
-                        if (submitCount > 0 && errors.appId) {
-                            console.log('[AgentRateDebug] validation failed: appId', {
-                                error: errors.appId,
-                                submitCount,
-                                values,
-                                hasPersistedRelationId,
-                                relationId,
-                                initialAppId,
-                            })
-                        }
-
+                    {({ touched, errors, isSubmitting }) => {
                         return (
                             <Form>
                                 <FormContainer>
@@ -253,53 +236,80 @@ const EditAgentRateConfig = () => {
                                 </FormItem>
                                 <div className="grid grid-cols-2 gap-4">
                                     <FormItem
-                                        label="fee_rate"
+                                        label="代收单笔费"
                                         invalid={
-                                            errors.feeRate && touched.feeRate
+                                            errors.payInFixedProfitSharing &&
+                                            touched.payInFixedProfitSharing
                                         }
-                                        errorMessage={errors.feeRate}
+                                        errorMessage={
+                                            errors.payInFixedProfitSharing
+                                        }
                                     >
                                         <Field
                                             type="text"
                                             autoComplete="off"
-                                            name="feeRate"
+                                            name="payInFixedProfitSharing"
                                             component={Input}
-                                            placeholder="0.02"
+                                            placeholder="0"
                                         />
                                     </FormItem>
                                     <FormItem
-                                        label="profit_share_rate"
+                                        label="代付单笔费"
                                         invalid={
-                                            errors.profitShareRate &&
-                                            touched.profitShareRate
+                                            errors.payOutFixedProfitSharing &&
+                                            touched.payOutFixedProfitSharing
                                         }
-                                        errorMessage={errors.profitShareRate}
+                                        errorMessage={
+                                            errors.payOutFixedProfitSharing
+                                        }
                                     >
                                         <Field
                                             type="text"
                                             autoComplete="off"
-                                            name="profitShareRate"
+                                            name="payOutFixedProfitSharing"
                                             component={Input}
-                                            placeholder="0.05"
+                                            placeholder="0"
                                         />
                                     </FormItem>
                                 </div>
-                                <FormItem
-                                    label="supported_currencies"
-                                    invalid={
-                                        errors.supportedCurrencies &&
-                                        touched.supportedCurrencies
-                                    }
-                                    errorMessage={errors.supportedCurrencies}
-                                >
-                                    <Field
-                                        type="text"
-                                        autoComplete="off"
-                                        name="supportedCurrencies"
-                                        component={Input}
-                                        placeholder="CNY,USD"
-                                    />
-                                </FormItem>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <FormItem
+                                        label="代收费率"
+                                        invalid={
+                                            errors.payInPercentageProfitSharing &&
+                                            touched.payInPercentageProfitSharing
+                                        }
+                                        errorMessage={
+                                            errors.payInPercentageProfitSharing
+                                        }
+                                    >
+                                        <Field
+                                            type="text"
+                                            autoComplete="off"
+                                            name="payInPercentageProfitSharing"
+                                            component={Input}
+                                            placeholder="0%"
+                                        />
+                                    </FormItem>
+                                    <FormItem
+                                        label="代付费率"
+                                        invalid={
+                                            errors.payOutPercentageProfitSharing &&
+                                            touched.payOutPercentageProfitSharing
+                                        }
+                                        errorMessage={
+                                            errors.payOutPercentageProfitSharing
+                                        }
+                                    >
+                                        <Field
+                                            type="text"
+                                            autoComplete="off"
+                                            name="payOutPercentageProfitSharing"
+                                            component={Input}
+                                            placeholder="0%"
+                                        />
+                                    </FormItem>
+                                </div>
                                 <FormItem className="mb-0 text-right">
                                     <Button
                                         block

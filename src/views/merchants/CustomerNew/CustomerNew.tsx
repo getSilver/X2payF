@@ -2,8 +2,7 @@ import PersonalInfoForm, {
     FormModel,
     SetSubmitting,
 } from '@/views/merchants/CustomerForm/PersonalInfoForm'
-import { FormContainer } from '@/components/ui/Form'
-import { FormItem } from '@/components/ui/Form'
+import { FormContainer, FormItem } from '@/components/ui/Form'
 import Input from '@/components/ui/Input'
 import { Form, Formik, Field } from 'formik'
 import { useEffect, useMemo, useState } from 'react'
@@ -123,9 +122,6 @@ const CustomerNew = () => {
                     password: data.password,
                     email: data.email,
                     name: data.name,
-                    profit_share_rate: 0.05,
-                    fee_rate: 0.02,
-                    supported_currencies: ['CNY', 'USD'],
                 })
             case 'CHANNEL_PARTNER':
                 return apiCreateChannelPartner({

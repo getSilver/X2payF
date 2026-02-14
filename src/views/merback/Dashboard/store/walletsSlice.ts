@@ -263,7 +263,9 @@ export const getTransctionHistoryData = createAsyncThunk(
                 throw new Error(`Unknown tab: ${tab}`)
             }
         } catch (error) {
-            return rejectWithValue(error)
+            const message =
+                error instanceof Error ? error.message : 'Failed to load transaction history'
+            return rejectWithValue(message)
         }
     }
 )

@@ -181,7 +181,9 @@ export const getAgentMerchantsList = createAsyncThunk(
             )
             return list
         } catch (error) {
-            return rejectWithValue(error)
+            const message =
+                error instanceof Error ? error.message : 'Failed to load agent merchants'
+            return rejectWithValue(message)
         }
     }
 )
@@ -196,7 +198,9 @@ export const getAgentAppsList = createAsyncThunk(
             )
             return list
         } catch (error) {
-            return rejectWithValue(error)
+            const message =
+                error instanceof Error ? error.message : 'Failed to load agent apps'
+            return rejectWithValue(message)
         }
     }
 )
@@ -206,7 +210,7 @@ export const getWalletData = createAsyncThunk(
     async () => {
         // 获取代理商自己的分润余额
         let profitBalance = 0
-        let currency = 'USD'
+        const currency = 'USD'
 
         try {
             const profitRes = await apiGetAgentProfit()
@@ -214,10 +218,6 @@ export const getWalletData = createAsyncThunk(
             if (profitData) {
                 // profit_balance 单位是分，转换为元
                 profitBalance = (profitData.profit_balance ?? 0) / 100
-                // 使用代理商支持的第一个币种
-                if (profitData.supported_currencies?.length > 0) {
-                    currency = profitData.supported_currencies[0]
-                }
             }
         } catch (error) {
             console.error('获取代理商分润信息失败:', error)
@@ -354,7 +354,9 @@ export const getTransctionHistoryData = createAsyncThunk(
 
             throw new Error(`Unknown tab: ${tab}`)
         } catch (error) {
-            return rejectWithValue(error)
+            const message =
+                error instanceof Error ? error.message : 'Failed to load transaction history'
+            return rejectWithValue(message)
         }
     }
 )

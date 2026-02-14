@@ -6,6 +6,7 @@ import toast from '@/components/ui/toast'
 import {
     closeEditCustomerDetailDialog,
     updateProfileData,
+    updatePaymentMethodData,
     putCustomer,
     bindMerchantAgent,
     unbindMerchantAgent,
@@ -16,6 +17,7 @@ import {
 import CustomerForm, { FormikRef, FormModel } from '@/views/merchants/CustomerForm'
 import cloneDeep from 'lodash/cloneDeep'
 import dayjs from 'dayjs'
+import { apiUpdateApplicationConfig } from '@/services/api/AccountApi'
 
 type DrawerFooterProps = {
     onSaveClick?: () => void
@@ -46,6 +48,12 @@ const EditCustomerProfile = () => {
     const customer = useAppSelector(
         (state) => state.crmCustomerDetails.data.profileData
     )
+    const paymentMethodData = useAppSelector(
+        (state) => state.crmCustomerDetails.data.paymentMethodData
+    )
+    const selectedCard = useAppSelector(
+        (state) => state.crmCustomerDetails.data.selectedCard
+    )
 
     const onDrawerClose = () => {
         dispatch(closeEditCustomerDetailDialog())
@@ -64,16 +72,22 @@ const EditCustomerProfile = () => {
             img,
             location,
             title,
-            facebook,
-            twitter,
-            pinterest,
-            linkedIn,
+            withdrawal_address,
+            withdrawal_fee_percent,
+            ip_whitelist,
             agent,
         } = values
 
         // 处理代理商绑定/解绑逻辑
         const oldAgentId = customer.personalInfo?.agent || customer.agent_id || ''
         const newAgentId = agent || ''
+        const oldLocation = customer.personalInfo?.location || ''
+        const targetAppId =
+            selectedCard?.configType === 'application' && selectedCard?.id
+                ? selectedCard.id
+                : paymentMethodData.find(
+                      (item) => item.configType === 'application'
+                  )?.id || ''
         
         try {
             let agentChanged = false
@@ -109,17 +123,31 @@ const EditCustomerProfile = () => {
                     location,
                     title,
                     birthday: dayjs(birthday).format('DD/MM/YYYY'),
-                    facebook,
-                    twitter,
-                    pinterest,
-                    linkedIn,
+                    withdrawal_address,
+                    withdrawal_fee_percent,
+                    ip_whitelist,
                     agent: newAgentId,
                 },
             }
             
             // 更新本地状态
             dispatch(updateProfileData(updatedData))
-            dispatch(putCustomer(updatedData as Customer))
+            await dispatch(putCustomer(updatedData as Customer)).unwrap()
+
+            if (location && location !== oldLocation && targetAppId) {
+                await apiUpdateApplicationConfig(targetAppId, {
+                    timezone: location,
+                })
+                dispatch(
+                    updatePaymentMethodData(
+                        paymentMethodData.map((item) =>
+                            item.id === targetAppId
+                                ? { ...item, timezone: location }
+                                : item
+                        )
+                    )
+                )
+            }
             
             // 显示成功提示
             if (agentChanged) {

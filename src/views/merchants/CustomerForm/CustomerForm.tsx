@@ -1,4 +1,4 @@
-import { forwardRef } from 'react'
+import { forwardRef, useEffect, useState } from 'react'
 import Tabs from '@/components/ui/Tabs'
 import { FormContainer } from '@/components/ui/Form'
 import { Form, Formik, FormikProps } from 'formik'
@@ -7,6 +7,8 @@ import customParseFormat from 'dayjs/plugin/customParseFormat'
 import * as Yup from 'yup'
 import PersonalInfoForm from './PersonalInfoForm'
 import SocialLinkForm from './SocialLinkForm'
+import { apiGetPlatformAssociations } from '@/services/PlatformSettingsService'
+import type { LocationOption } from './PersonalInfoForm'
 
 type BaseCustomerInfo = {
     name: string
@@ -18,10 +20,9 @@ type CustomerPersonalInfo = {
     location: string
     title: string
     birthday: string
-    facebook: string
-    twitter: string
-    pinterest: string
-    linkedIn: string
+    withdrawal_address: string
+    withdrawal_fee_percent: string
+    ip_whitelist: string
     agent: string
 }
 
@@ -50,10 +51,9 @@ const validationSchema = Yup.object().shape({
     location: Yup.string(),
     title: Yup.string(),
     birthday: Yup.string(),
-    facebook: Yup.string(),
-    twitter: Yup.string(),
-    pinterest: Yup.string(),
-    linkedIn: Yup.string(),
+    withdrawal_address: Yup.string(),
+    withdrawal_fee_percent: Yup.string(),
+    ip_whitelist: Yup.string(),
     img: Yup.string(),
     agent: Yup.string(),
 })
@@ -62,6 +62,50 @@ const { TabNav, TabList, TabContent } = Tabs
 
 const CustomerForm = forwardRef<FormikRef, CustomerFormProps>((props, ref) => {
     const { customer, onFormSubmit } = props
+    const [locationOptions, setLocationOptions] = useState<LocationOption[]>([])
+
+    useEffect(() => {
+        const fetchAssociations = async () => {
+            try {
+                const response = await apiGetPlatformAssociations<
+                    { data?: Array<Record<string, unknown>> } | Array<Record<string, unknown>>,
+                    Record<string, unknown>
+                >()
+                const responseData = response.data as
+                    | { data?: Array<Record<string, unknown>> }
+                    | Array<Record<string, unknown>>
+                const associations = Array.isArray(responseData)
+                    ? responseData
+                    : responseData?.data || []
+                const options = associations
+                    .filter((assoc) => Boolean(assoc.id))
+                    .map((assoc) => {
+                        const currency = assoc.currency as
+                            | { code?: string; name?: string }
+                            | undefined
+                        const timezone = assoc.timezone as
+                            | { name?: string; offset?: string }
+                            | undefined
+                        const timezoneValue =
+                            timezone?.name || timezone?.offset || ''
+                        return {
+                            value: timezoneValue,
+                            label:
+                                currency?.code ||
+                                currency?.name ||
+                                timezoneValue ||
+                                String(assoc.id),
+                        }
+                    })
+                    .filter((option) => option.value !== '')
+                setLocationOptions(options)
+            } catch (error) {
+                console.error('Failed to load currency associations:', error)
+                setLocationOptions([])
+            }
+        }
+        fetchAssociations()
+    }, [])
 
     return (
         <Formik<FormModel>
@@ -75,10 +119,11 @@ const CustomerForm = forwardRef<FormikRef, CustomerFormProps>((props, ref) => {
                 birthday: customer?.personalInfo?.birthday
                     ? dayjs(customer.personalInfo.birthday, 'DD/MM/YYYY').toDate()
                     : new Date(),
-                facebook: customer?.personalInfo?.facebook || '',
-                twitter: customer?.personalInfo?.twitter || '',
-                pinterest: customer?.personalInfo?.pinterest || '',
-                linkedIn: customer?.personalInfo?.linkedIn || '',
+                withdrawal_address:
+                    customer?.personalInfo?.withdrawal_address || '',
+                withdrawal_fee_percent:
+                    customer?.personalInfo?.withdrawal_fee_percent || '0',
+                ip_whitelist: customer?.personalInfo?.ip_whitelist || '',
                 agent: customer?.personalInfo?.agent || '',
             }}
             validationSchema={validationSchema}
@@ -102,6 +147,7 @@ const CustomerForm = forwardRef<FormikRef, CustomerFormProps>((props, ref) => {
                                     <PersonalInfoForm
                                         touched={touched}
                                         errors={errors}
+                                        locationOptions={locationOptions}
                                     />
                                 </TabContent>
                                 <TabContent value="social">

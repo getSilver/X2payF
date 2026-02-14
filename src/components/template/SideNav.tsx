@@ -48,8 +48,8 @@ const SideNav = () => {
 
     // 根据当前路由动态获取导航配置
     const navigationConfig = useMemo(() => {
-        return getNavigationConfig(location.pathname)
-    }, [location.pathname])
+        return getNavigationConfig(location.pathname, userAuthority as string[])
+    }, [location.pathname, userAuthority])
 
     const sideNavColor = () => {
         if (navMode === NAV_MODE_THEMED) {

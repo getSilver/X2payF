@@ -1,7 +1,7 @@
 import { lazy } from 'react'
 import { MER_PREFIX_PATH } from '@/constants/route.constant'
 import type { Routes } from '@/@types/routes'
-import { MERCHANT_ROLES, BUSINESS_ROLES } from '@/constants/roles.constant'
+import { MERCHANT_ROLES } from '@/constants/roles.constant'
 
 const merchantRoute: Routes = [
     //商户订单路由
@@ -16,12 +16,6 @@ const merchantRoute: Routes = [
         path: `${MER_PREFIX_PATH}/payment`,
         component: lazy(() => import('@/views/merback/PayIn')),
         authority: MERCHANT_ROLES,
-    },
-    {
-        key: 'merAgents.dashboard',
-        path: `${MER_PREFIX_PATH}/agent-dashboard`,
-        component: lazy(() => import('@/views/merback/AgentDashboard')),
-        authority: [...MERCHANT_ROLES, ...BUSINESS_ROLES],
     },
     {
         key: 'merPayment.paymentDetails',

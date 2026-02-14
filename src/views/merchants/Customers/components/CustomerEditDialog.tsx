@@ -19,6 +19,10 @@ import {
 import CustomerForm, { FormikRef, FormModel } from '@/views/merchants/CustomerForm'
 import cloneDeep from 'lodash/cloneDeep'
 import dayjs from 'dayjs'
+import {
+    apiGetMerchantApplications,
+    apiUpdateApplicationConfig,
+} from '@/services/api/AccountApi'
 
 type DrawerFooterProps = {
     onSaveClick?: () => void
@@ -67,16 +71,17 @@ const CustomerEditDialog = () => {
             img,
             location,
             title,
-            facebook,
-            twitter,
-            pinterest,
-            linkedIn,
+            withdrawal_address,
+            withdrawal_fee_percent,
+            ip_whitelist,
             agent,
         } = values
 
         // 处理代理商绑定/解绑逻辑
         const oldAgentId = (selectedCustomer as Customer).personalInfo?.agent || (selectedCustomer as Customer).agent_id || ''
         const newAgentId = agent || ''
+        const oldLocation =
+            (selectedCustomer as Customer).personalInfo?.location || ''
         
         try {
             let agentChanged = false
@@ -112,16 +117,33 @@ const CustomerEditDialog = () => {
                     location,
                     title,
                     birthday: dayjs(birthday).format('DD/MM/YYYY'),
-                    facebook,
-                    twitter,
-                    pinterest,
-                    linkedIn,
+                    withdrawal_address,
+                    withdrawal_fee_percent,
+                    ip_whitelist,
                     agent: newAgentId,
                 },
             }
             
             // 调用后端更新商户信息
-            dispatch(putCustomer(updatedData as Customer))
+            await dispatch(putCustomer(updatedData as Customer)).unwrap()
+
+            if (location && location !== oldLocation && selectedCustomer.id) {
+                const applicationsResponse = await apiGetMerchantApplications(
+                    selectedCustomer.id
+                )
+                const applicationsRaw = applicationsResponse.data as unknown as
+                    | { data?: Array<{ id?: string }> }
+                    | Array<{ id?: string }>
+                const applications = Array.isArray(applicationsRaw)
+                    ? applicationsRaw
+                    : applicationsRaw?.data || []
+                const appId = applications[0]?.id
+                if (appId) {
+                    await apiUpdateApplicationConfig(appId, {
+                        timezone: location,
+                    })
+                }
+            }
             
             // 刷新列表数据
             dispatch(getCustomers({ 

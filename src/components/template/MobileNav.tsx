@@ -1,4 +1,4 @@
-import { useState, Suspense, lazy } from 'react'
+import { useState, Suspense, lazy, useMemo } from 'react'
 import classNames from 'classnames'
 import Drawer from '@/components/ui/Drawer'
 import {
@@ -8,9 +8,10 @@ import {
 } from '@/constants/theme.constant'
 import withHeaderItem, { WithHeaderItemProps } from '@/utils/hoc/withHeaderItem'
 import NavToggle from '@/components/shared/NavToggle'
-import navigationConfig from '@/configs/navigation.config'
+import { getNavigationConfig } from '@/configs/navigation.config'
 import useResponsive from '@/utils/hooks/useResponsive'
 import { useAppSelector } from '@/store'
+import { useLocation } from 'react-router-dom'
 
 const VerticalMenuContent = lazy(
     () => import('@/components/template/VerticalMenuContent')
@@ -26,6 +27,7 @@ const MobileNavToggle = withHeaderItem<
 
 const MobileNav = () => {
     const [isOpen, setIsOpen] = useState(false)
+    const location = useLocation()
 
     const openDrawer = () => {
         setIsOpen(true)
@@ -51,6 +53,9 @@ const MobileNav = () => {
     const userAuthority = useAppSelector((state) => state.auth.user.authority)
 
     const { smaller } = useResponsive()
+    const navigationConfig = useMemo(() => {
+        return getNavigationConfig(location.pathname, userAuthority as string[])
+    }, [location.pathname, userAuthority])
 
     const navColor = () => {
         if (navMode === NAV_MODE_THEMED) {
@@ -63,7 +68,6 @@ const MobileNav = () => {
 
         return `side-nav-${navMode}`
     }
-
     return (
         <>
             {smaller.md && (

@@ -12,8 +12,9 @@ type PaymentInfoProps = {
 type PaymentSummaryProps = {
     data?: {
         amount?: number | null
-        settlement?: number | null
-        fee?: number | null
+        settlement_amount?: number | null
+        merchant_fee?: number | null
+        status?: string
         currency?: string
     }
 }
@@ -46,14 +47,17 @@ const PaymentInfo = ({ label, value, isLast, currency }: PaymentInfoProps) => {
 }
 
 const PaymentSummary = ({ data }: PaymentSummaryProps) => {
+    const settlementValue =
+        data?.status === 'SUCCESS' ? data?.settlement_amount ?? null : null
+
     return (
         <Card className="mb-4">
             <h5 className="mb-4">Payment Summary</h5>
             <ul>
                 <PaymentInfo label="Amount" value={data?.amount} currency={data?.currency} />
-                <PaymentInfo label="fee(6%)费用" value={data?.fee} currency={data?.currency} />
+                <PaymentInfo label="Fee" value={data?.merchant_fee} currency={data?.currency} />
                 <hr className="mb-3" />
-                <PaymentInfo isLast label="Settlement " value={data?.settlement} currency={data?.currency} />
+                <PaymentInfo isLast label="Settlement " value={settlementValue} currency={data?.currency} />
             </ul>
         </Card>
     )

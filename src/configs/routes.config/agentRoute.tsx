@@ -10,6 +10,12 @@ const agentRoute: Routes = [
         component: lazy(() => import('@/views/merback/AgentDashboard')),
         authority: [AGENT],
     },
+    {
+        key: 'agent.accountSettings',
+        path: `${AGENT_PREFIX_PATH}/account/settings/:tab`,
+        component: lazy(() => import('@/views/account/Settings')),
+        authority: [AGENT],
+    },
 ]
 
 export default agentRoute

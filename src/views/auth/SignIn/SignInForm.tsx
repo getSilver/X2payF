@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
 import Checkbox from '@/components/ui/Checkbox'
@@ -50,8 +50,57 @@ const SignInForm = (props: SignInFormProps) => {
 
     const [message, setMessage] = useTimeOutMessage()
     const [successMessage, setSuccessMessage] = useState('')
+    const [selectedFactorType, setSelectedFactorType] = useState<
+        'totp' | 'email'
+    >('totp')
+    const [sendingCode, setSendingCode] = useState(false)
+    const [emailCodeSent, setEmailCodeSent] = useState(false)
 
-    const { signIn, requiresMFA, verifyMFA, cancelMFA } = useAuth()
+    const {
+        signIn,
+        requiresMFA,
+        mfaPending,
+        requestMFAChallenge,
+        verifyMFA,
+        cancelMFA,
+    } = useAuth()
+
+    const availableFactors = mfaPending?.availableFactors || []
+    const emailFactor = availableFactors.find(
+        (factor) => factor.factor_type === 'email'
+    )
+    const hasEmailFactor = Boolean(emailFactor)
+    const hasTOTPFactor = availableFactors.some(
+        (factor) => factor.factor_type === 'totp'
+    )
+
+    useEffect(() => {
+        if (!requiresMFA) {
+            setSelectedFactorType('totp')
+            setSendingCode(false)
+            setEmailCodeSent(false)
+            return
+        }
+
+        if (mfaPending?.factorType) {
+            setSelectedFactorType(mfaPending.factorType)
+            setEmailCodeSent(mfaPending.factorType === 'email' && !!mfaPending.challengeId)
+            return
+        }
+
+        if (hasEmailFactor && !hasTOTPFactor) {
+            setSelectedFactorType('email')
+        } else {
+            setSelectedFactorType('totp')
+        }
+        setEmailCodeSent(!!mfaPending?.challengeId)
+    }, [
+        requiresMFA,
+        mfaPending?.challengeId,
+        mfaPending?.factorType,
+        hasEmailFactor,
+        hasTOTPFactor,
+    ])
 
     // 处理登录
     const onSignIn = async (
@@ -67,7 +116,11 @@ const SignInForm = (props: SignInFormProps) => {
         if (result.status === 'failed') {
             setMessage(result.message)
         } else if (result.status === 'mfa_required') {
-            setSuccessMessage('Please enter the MFA code')
+            setSuccessMessage(
+                selectedFactorType === 'email'
+                    ? 'Choose a verification method to continue'
+                    : 'Please enter the MFA code'
+            )
         }
 
         setSubmitting(false)
@@ -81,7 +134,7 @@ const SignInForm = (props: SignInFormProps) => {
         setSubmitting(true)
         setSuccessMessage('')
 
-        const result = await verifyMFA(values.code, 'totp')
+        const result = await verifyMFA(values.code, selectedFactorType)
 
         if (result.status === 'failed') {
             setMessage(result.message)
@@ -95,6 +148,39 @@ const SignInForm = (props: SignInFormProps) => {
         cancelMFA()
         setMessage('')
         setSuccessMessage('')
+        setSelectedFactorType('totp')
+        setSendingCode(false)
+        setEmailCodeSent(false)
+    }
+
+    const handleFactorTypeChange = (factorType: 'totp' | 'email') => {
+        setSelectedFactorType(factorType)
+        setMessage('')
+        if (factorType === 'totp') {
+            setSuccessMessage('Please enter the MFA code')
+        } else {
+            setSuccessMessage('Send a verification code to your email and enter it below')
+        }
+    }
+
+    const handleSendEmailCode = async () => {
+        if (!emailFactor) {
+            setMessage('No email verification factor is available')
+            return
+        }
+
+        setSendingCode(true)
+        setMessage('')
+        const result = await requestMFAChallenge(emailFactor.id)
+
+        if (result.status === 'failed') {
+            setMessage(result.message)
+        } else {
+            setEmailCodeSent(true)
+            setSuccessMessage('A verification code has been sent to your email')
+        }
+
+        setSendingCode(false)
     }
 
     // MFA 验证表单
@@ -114,9 +200,43 @@ const SignInForm = (props: SignInFormProps) => {
                 <div className="mb-4">
                     <h4 className="mb-2">MFA Validation</h4>
                     <p className="text-gray-500">
-                        Please enter the 6-digit verification code from your authenticator app.
+                        {selectedFactorType === 'email'
+                            ? 'Send a 6-digit verification code to your bound email address, then enter it below.'
+                            : 'Please enter the 6-digit verification code from your authenticator app.'}
                     </p>
                 </div>
+                {(hasTOTPFactor || hasEmailFactor) && (
+                    <div className="mb-4 flex gap-2">
+                        {hasTOTPFactor && (
+                            <Button
+                                size="sm"
+                                variant={
+                                    selectedFactorType === 'totp'
+                                        ? 'solid'
+                                        : 'plain'
+                                }
+                                type="button"
+                                onClick={() => handleFactorTypeChange('totp')}
+                            >
+                                Authenticator App
+                            </Button>
+                        )}
+                        {hasEmailFactor && (
+                            <Button
+                                size="sm"
+                                variant={
+                                    selectedFactorType === 'email'
+                                        ? 'solid'
+                                        : 'plain'
+                                }
+                                type="button"
+                                onClick={() => handleFactorTypeChange('email')}
+                            >
+                                Email Code
+                            </Button>
+                        )}
+                    </div>
+                )}
                 <Formik
                     initialValues={{ code: '' }}
                     validationSchema={mfaValidationSchema}
@@ -143,11 +263,31 @@ const SignInForm = (props: SignInFormProps) => {
                                         component={Input}
                                     />
                                 </FormItem>
+                                {selectedFactorType === 'email' && (
+                                    <Button
+                                        block
+                                        className="mb-3"
+                                        loading={sendingCode}
+                                        variant="plain"
+                                        type="button"
+                                        onClick={handleSendEmailCode}
+                                    >
+                                        {sendingCode
+                                            ? 'Sending code...'
+                                            : emailCodeSent
+                                              ? 'Resend Code'
+                                              : 'Send Code'}
+                                    </Button>
+                                )}
                                 <Button
                                     block
                                     loading={isSubmitting}
                                     variant="solid"
                                     type="submit"
+                                    disabled={
+                                        selectedFactorType === 'email' &&
+                                        !emailCodeSent
+                                    }
                                 >
                                     {isSubmitting ? 'Verifying...' : 'Verification'}
                                 </Button>

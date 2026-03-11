@@ -1,48 +1,29 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import dayjs from 'dayjs'
 import AdaptableCard from '@/components/shared/AdaptableCard'
 import DataTable from '@/components/shared/DataTable'
 import Card from '@/components/ui/Card'
-import Tabs from '@/components/ui/Tabs'
 import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
+import DatePicker from '@/components/ui/DatePicker'
 import Input from '@/components/ui/Input'
+import Tabs from '@/components/ui/Tabs'
 import Notification from '@/components/ui/Notification'
 import toast from '@/components/ui/toast'
 import {
-    apiCreateSettlement,
-    apiExecuteSettlement,
     apiGetReconciliationStatus,
-    apiGetSettlementStatus,
+    apiListReconciliationTasks,
     apiReconcileBalance,
     apiReconcileJournals,
     apiStartReconciliation,
+    type ReconciliationTaskListItem,
     type SettlementRequestPayload,
 } from '@/services/FinanceService'
+import createUID from '@/components/ui/utils/createUid'
 import type { ColumnDef } from '@/components/shared/DataTable'
 
-type ActionGroup = 'settlement' | 'reconciliation'
 type LogStatus = 'SUCCESS' | 'FAILED'
-type FieldType = 'text' | 'number' | 'textarea'
-
-type FieldDef = {
-    name: string
-    label: string
-    type?: FieldType
-    required?: boolean
-    placeholder?: string
-}
-
-type ActionDef = {
-    key: string
-    group: ActionGroup
-    title: string
-    path: string
-    submitText: string
-    fields: FieldDef[]
-    initialValues: Record<string, string | number>
-    request: (payload: SettlementRequestPayload) => Promise<unknown>
-}
+type TaskType = 'FULL' | 'BALANCE' | 'JOURNAL'
 
 type LogRow = {
     id: string
@@ -52,145 +33,80 @@ type LogRow = {
     timestamp: number
 }
 
-const ACTIONS: ActionDef[] = [
-    {
-        key: 'createSettlement',
-        group: 'settlement',
-        title: 'Create Settlement',
-        path: '/api/v1/admin/settlement/create',
-        submitText: 'Create',
-        fields: [
-            { name: 'request_id', label: 'Request ID', required: true },
-            { name: 'app_id', label: 'App ID', required: true },
-            { name: 'merchant_id', label: 'Merchant ID' },
-            { name: 'currency', label: 'Currency', required: true },
-            { name: 'amount', label: 'Amount', type: 'number', required: true },
-            { name: 'biz_date', label: 'Biz Date (YYYY-MM-DD)' },
-            { name: 'note', label: 'Note', type: 'textarea' },
-        ],
-        initialValues: {
-            request_id: '',
-            app_id: '',
-            merchant_id: '',
-            currency: 'USD',
-            amount: '',
-            biz_date: '',
-            note: '',
-        },
-        request: apiCreateSettlement,
-    },
-    {
-        key: 'executeSettlement',
-        group: 'settlement',
-        title: 'Execute Settlement',
-        path: '/api/v1/admin/settlement/execute',
-        submitText: 'Execute',
-        fields: [
-            { name: 'settlement_id', label: 'Settlement ID', required: true },
-            { name: 'operator_note', label: 'Operator Note', type: 'textarea' },
-        ],
-        initialValues: { settlement_id: '', operator_note: '' },
-        request: apiExecuteSettlement,
-    },
-    {
-        key: 'getSettlementStatus',
-        group: 'settlement',
-        title: 'Get Settlement Status',
-        path: '/api/v1/admin/settlement/status',
-        submitText: 'Query',
-        fields: [
-            { name: 'settlement_id', label: 'Settlement ID', required: true },
-            { name: 'request_id', label: 'Request ID' },
-        ],
-        initialValues: { settlement_id: '', request_id: '' },
-        request: apiGetSettlementStatus,
-    },
-    {
-        key: 'startReconciliation',
-        group: 'reconciliation',
-        title: 'Start Reconciliation',
-        path: '/api/v1/admin/settlement/reconciliation/start',
-        submitText: 'Start',
-        fields: [
-            { name: 'reconciliation_id', label: 'Reconciliation ID', required: true },
-            { name: 'settlement_id', label: 'Settlement ID' },
-            { name: 'biz_date', label: 'Biz Date (YYYY-MM-DD)', required: true },
-            { name: 'currency', label: 'Currency', required: true },
-        ],
-        initialValues: {
-            reconciliation_id: '',
-            settlement_id: '',
-            biz_date: '',
-            currency: 'USD',
-        },
-        request: apiStartReconciliation,
-    },
-    {
-        key: 'getReconciliationStatus',
-        group: 'reconciliation',
-        title: 'Get Reconciliation Status',
-        path: '/api/v1/admin/settlement/reconciliation/status',
-        submitText: 'Query',
-        fields: [
-            { name: 'task_id', label: 'Task ID', required: true },
-            { name: 'reconciliation_id', label: 'Reconciliation ID' },
-        ],
-        initialValues: { task_id: '', reconciliation_id: '' },
-        request: apiGetReconciliationStatus,
-    },
-    {
-        key: 'reconcileBalance',
-        group: 'reconciliation',
-        title: 'Reconcile Balance',
-        path: '/api/v1/admin/settlement/reconciliation/balance',
-        submitText: 'Reconcile',
-        fields: [{ name: 'task_id', label: 'Task ID', required: true }],
-        initialValues: { task_id: '' },
-        request: apiReconcileBalance,
-    },
-    {
-        key: 'reconcileJournals',
-        group: 'reconciliation',
-        title: 'Reconcile Journals',
-        path: '/api/v1/admin/settlement/reconciliation/journals',
-        submitText: 'Reconcile',
-        fields: [
-            { name: 'task_id', label: 'Task ID', required: true },
-            { name: 'page', label: 'Page', type: 'number', required: true },
-            { name: 'page_size', label: 'Page Size', type: 'number', required: true },
-        ],
-        initialValues: { task_id: '', page: 1, page_size: 20 },
-        request: apiReconcileJournals,
-    },
-]
+type ManualTaskRow = {
+    task_id: string
+    app_id: string
+    type: string
+    status: string
+    progress: number
+    message: string
+    start_time?: string
+    end_time?: string
+    updated_at?: string
+    completed_at?: string
+}
+
+type StartForm = {
+    app_id: string
+    type: TaskType
+    requested_by: string
+    start_time: string
+    end_time: string
+    description: string
+}
+
+type TaskActionForm = {
+    task_id: string
+}
+
+const dateFormat = 'MMM DD, YYYY'
+const { DatePickerRange } = DatePicker
+const { TabNav, TabList, TabContent } = Tabs
 
 const statusColor: Record<LogStatus, { dotClass: string; textClass: string; label: string }> = {
     SUCCESS: { dotClass: 'bg-emerald-500', textClass: 'text-emerald-500', label: 'Success' },
     FAILED: { dotClass: 'bg-red-500', textClass: 'text-red-500', label: 'Failed' },
 }
 
-const compactPayload = (values: Record<string, string | number>) => {
-    const next: Record<string, string | number> = {}
-    Object.entries(values).forEach(([key, value]) => {
-        if (value === '' || value === null || typeof value === 'undefined') return
-        next[key] = value
-    })
-    return next
+const taskStatusColorMap: Record<string, { dotClass: string; textClass: string }> = {
+    PENDING: { dotClass: 'bg-amber-500', textClass: 'text-amber-500' },
+    RUNNING: { dotClass: 'bg-blue-500', textClass: 'text-blue-500' },
+    COMPLETED: { dotClass: 'bg-emerald-500', textClass: 'text-emerald-500' },
+    FAILED: { dotClass: 'bg-red-500', textClass: 'text-red-500' },
+    CANCELLED: { dotClass: 'bg-gray-500', textClass: 'text-gray-500' },
+}
+
+const asRecord = (value: unknown): Record<string, unknown> =>
+    (value && typeof value === 'object' ? value : {}) as Record<string, unknown>
+
+const unwrapData = (payload: unknown) => {
+    const source = asRecord(payload)
+    const data = source.data
+    return data && typeof data === 'object' ? (data as Record<string, unknown>) : source
 }
 
 const findString = (obj: unknown, keys: string[]) => {
-    if (!obj || typeof obj !== 'object') return ''
-    const source = obj as Record<string, unknown>
+    const source = unwrapData(obj)
     for (const key of keys) {
         const direct = source[key]
         if (typeof direct === 'string' && direct) return direct
-        const data = source.data
-        if (data && typeof data === 'object') {
-            const nested = (data as Record<string, unknown>)[key]
-            if (typeof nested === 'string' && nested) return nested
-        }
     }
     return ''
+}
+
+const findNumber = (obj: unknown, keys: string[]) => {
+    const source = unwrapData(obj)
+    for (const key of keys) {
+        const value = source[key]
+        if (typeof value === 'number' && Number.isFinite(value)) return value
+    }
+    return 0
+}
+
+const toRFC3339 = (value: string | undefined) => {
+    if (!value) return undefined
+    const parsed = dayjs(value)
+    return parsed.isValid() ? parsed.toISOString() : undefined
 }
 
 const getErrorMessage = (error: unknown) => {
@@ -202,100 +118,351 @@ const getErrorMessage = (error: unknown) => {
     return 'Request failed'
 }
 
-const Settlement = () => {
-    const [tab, setTab] = useState<ActionGroup>('settlement')
-    const [forms, setForms] = useState<Record<string, Record<string, string | number>>>(
-        ACTIONS.reduce((acc, action) => ({ ...acc, [action.key]: action.initialValues }), {})
-    )
-    const [loading, setLoading] = useState<Record<string, boolean>>({})
-    const [results, setResults] = useState<Record<string, string>>({})
-    const [logs, setLogs] = useState<LogRow[]>([])
-    const [pageIndex, setPageIndex] = useState(1)
-    const [pageSize, setPageSize] = useState(10)
+const formatDateTime = (value?: string) => (value ? dayjs(value).format('YYYY-MM-DD HH:mm:ss') : '-')
 
-    const actionsByGroup = useMemo(
-        () => ({
-            settlement: ACTIONS.filter((item) => item.group === 'settlement'),
-            reconciliation: ACTIONS.filter((item) => item.group === 'reconciliation'),
-        }),
-        []
-    )
-
-    const updateFormValue = (actionKey: string, field: string, value: string | number) => {
-        setForms((prev) => ({
-            ...prev,
-            [actionKey]: {
-                ...prev[actionKey],
-                [field]: value,
-            },
-        }))
+const renderTaskStatus = (status?: string) => {
+    if (!status) return <span>-</span>
+    const style = taskStatusColorMap[status] ?? {
+        dotClass: 'bg-gray-400',
+        textClass: 'text-gray-500',
     }
+    return (
+        <div className="flex items-center">
+            <Badge className={style.dotClass} />
+            <span className={`ml-2 font-semibold ${style.textClass}`}>{status}</span>
+        </div>
+    )
+}
+
+const Settlement = () => {
+    const [startForm, setStartForm] = useState<StartForm>({
+        app_id: '',
+        type: 'FULL',
+        requested_by: 'finance-admin',
+        start_time: '',
+        end_time: '',
+        description: '',
+    })
+    const [taskActionForm, setTaskActionForm] = useState<TaskActionForm>({ task_id: '' })
+
+    const [manualTasks, setManualTasks] = useState<ManualTaskRow[]>([])
+    const [autoTasks, setAutoTasks] = useState<ReconciliationTaskListItem[]>([])
+    const [logs, setLogs] = useState<LogRow[]>([])
+
+    const [taskRefreshing, setTaskRefreshing] = useState<Record<string, boolean>>({})
+    const [loading, setLoading] = useState<Record<string, boolean>>({
+        start: false,
+        status: false,
+        balance: false,
+        journals: false,
+        autoList: false,
+    })
+
+    const [autoTaskPageIndex, setAutoTaskPageIndex] = useState(1)
+    const [autoTaskPageSize, setAutoTaskPageSize] = useState(10)
+    const [autoTaskTotal, setAutoTaskTotal] = useState(0)
+
+    const [manualTaskPageIndex, setManualTaskPageIndex] = useState(1)
+    const [manualTaskPageSize, setManualTaskPageSize] = useState(10)
+
+    const [logPageIndex, setLogPageIndex] = useState(1)
+    const [logPageSize, setLogPageSize] = useState(10)
 
     const appendLog = (action: string, status: LogStatus, message: string) => {
         setLogs((prev) => [
-            { id: `${Date.now()}-${Math.random()}`, action, status, message, timestamp: Date.now() },
+            { id: `${Date.now()}-${createUID(8)}`, action, status, message, timestamp: Date.now() },
             ...prev,
         ])
     }
 
-    const handleSubmit = async (action: ActionDef) => {
-        const values = forms[action.key]
-        const missingField = action.fields.find((field) => field.required && !values[field.name])
-        if (missingField) {
+    const upsertManualTask = (nextTask: ManualTaskRow) => {
+        if (!nextTask.task_id) return
+        setManualTasks((prev) => {
+            const idx = prev.findIndex((item) => item.task_id === nextTask.task_id)
+            if (idx === -1) return [nextTask, ...prev]
+            const current = prev[idx]
+            const merged = {
+                ...current,
+                ...nextTask,
+                app_id: nextTask.app_id || current.app_id,
+                type: nextTask.type || current.type,
+            }
+            const next = [...prev]
+            next[idx] = merged
+            return next
+        })
+    }
+
+    const mapResponseToManualTask = (response: unknown, fallbackTaskId = ''): ManualTaskRow => ({
+        task_id: findString(response, ['task_id', 'id']) || fallbackTaskId,
+        app_id: findString(response, ['app_id']),
+        type: findString(response, ['type']),
+        status: findString(response, ['status']) || 'PENDING',
+        progress: findNumber(response, ['progress']),
+        message: findString(response, ['message', 'summary']),
+        start_time: findString(response, ['started_at', 'start_time']),
+        end_time: findString(response, ['end_time']),
+        updated_at: findString(response, ['updated_at', 'created_at']) || dayjs().toISOString(),
+        completed_at: findString(response, ['completed_at']),
+    })
+
+    const setDefaultTaskId = (taskId: string) => {
+        if (!taskId) return
+        setTaskActionForm((prev) => ({ ...prev, task_id: taskId }))
+    }
+
+    const handleDateRangeChange = (value: [Date | null, Date | null]) => {
+        const [start, end] = value
+        setStartForm((prev) => ({
+            ...prev,
+            start_time: start ? dayjs(start).startOf('day').format('YYYY-MM-DDTHH:mm:ss') : '',
+            end_time: end ? dayjs(end).endOf('day').format('YYYY-MM-DDTHH:mm:ss') : '',
+        }))
+    }
+
+    const loadAutoTasks = useCallback(async () => {
+        setLoading((prev) => ({ ...prev, autoList: true }))
+        try {
+            const result = await apiListReconciliationTasks({
+                source: 'AUTO',
+                page: autoTaskPageIndex,
+                page_size: autoTaskPageSize,
+            })
+            setAutoTasks(result.list)
+            setAutoTaskTotal(result.total)
+        } catch (error) {
             toast.push(
-                <Notification type="danger" title="参数不完整">
-                    {missingField.label} is required
+                <Notification title="加载自动任务失败" type="danger">
+                    {getErrorMessage(error)}
+                </Notification>
+            )
+        } finally {
+            setLoading((prev) => ({ ...prev, autoList: false }))
+        }
+    }, [autoTaskPageIndex, autoTaskPageSize])
+
+    useEffect(() => {
+        loadAutoTasks()
+    }, [loadAutoTasks])
+
+    const runTaskAction = async (
+        actionKey: 'status' | 'balance' | 'journals',
+        actionTitle: string,
+        request: (payload: SettlementRequestPayload) => Promise<unknown>,
+        taskId: string
+    ) => {
+        if (!taskId) {
+            toast.push(
+                <Notification title="参数不完整" type="danger">
+                    Task ID is required
                 </Notification>
             )
             return
         }
 
-        const payload = compactPayload(values)
-        setLoading((prev) => ({ ...prev, [action.key]: true }))
+        setLoading((prev) => ({ ...prev, [actionKey]: true }))
         try {
-            const response = await action.request(payload)
-            setResults((prev) => ({ ...prev, [action.key]: JSON.stringify(response, null, 2) }))
-            appendLog(action.title, 'SUCCESS', 'Request completed')
-
-            if (action.key === 'createSettlement') {
-                const settlementId = findString(response, ['settlement_id', 'id'])
-                if (settlementId) {
-                    updateFormValue('executeSettlement', 'settlement_id', settlementId)
-                    updateFormValue('getSettlementStatus', 'settlement_id', settlementId)
-                    updateFormValue('startReconciliation', 'settlement_id', settlementId)
-                }
-            }
-            if (action.key === 'startReconciliation') {
-                const taskId = findString(response, ['task_id'])
-                const reconciliationId = findString(response, ['reconciliation_id'])
-                if (taskId) {
-                    updateFormValue('getReconciliationStatus', 'task_id', taskId)
-                    updateFormValue('reconcileBalance', 'task_id', taskId)
-                    updateFormValue('reconcileJournals', 'task_id', taskId)
-                }
-                if (reconciliationId) {
-                    updateFormValue('getReconciliationStatus', 'reconciliation_id', reconciliationId)
-                }
-            }
-
+            const response = await request({ task_id: taskId })
+            upsertManualTask(mapResponseToManualTask(response, taskId))
+            appendLog(actionTitle, 'SUCCESS', 'Request completed')
             toast.push(
-                <Notification type="success" title="执行成功">
-                    {action.title} completed
+                <Notification title="执行成功" type="success">
+                    {actionTitle} completed
                 </Notification>
             )
         } catch (error) {
             const message = getErrorMessage(error)
-            setResults((prev) => ({ ...prev, [action.key]: JSON.stringify({ error: message }, null, 2) }))
-            appendLog(action.title, 'FAILED', message)
+            appendLog(actionTitle, 'FAILED', message)
             toast.push(
-                <Notification type="danger" title="执行失败">
-                    {action.title}: {message}
+                <Notification title="执行失败" type="danger">
+                    {actionTitle}: {message}
                 </Notification>
             )
         } finally {
-            setLoading((prev) => ({ ...prev, [action.key]: false }))
+            setLoading((prev) => ({ ...prev, [actionKey]: false }))
         }
     }
+
+    const handleStart = async () => {
+        if (!startForm.app_id || !startForm.requested_by) {
+            toast.push(
+                <Notification title="参数不完整" type="danger">
+                    App ID and Requested By are required
+                </Notification>
+            )
+            return
+        }
+
+        const payload: SettlementRequestPayload = {
+            app_id: startForm.app_id,
+            type: startForm.type,
+            requested_by: startForm.requested_by,
+            description: startForm.description || undefined,
+            start_time: toRFC3339(startForm.start_time),
+            end_time: toRFC3339(startForm.end_time),
+        }
+
+        setLoading((prev) => ({ ...prev, start: true }))
+        try {
+            const response = await apiStartReconciliation(payload)
+            const task = mapResponseToManualTask(response)
+            upsertManualTask(task)
+            setDefaultTaskId(task.task_id)
+            appendLog('Start Reconciliation', 'SUCCESS', 'Task created')
+            toast.push(
+                <Notification title="任务已创建" type="success">
+                    {task.task_id || 'Task created successfully'}
+                </Notification>
+            )
+        } catch (error) {
+            const message = getErrorMessage(error)
+            appendLog('Start Reconciliation', 'FAILED', message)
+            toast.push(
+                <Notification title="创建失败" type="danger">
+                    {message}
+                </Notification>
+            )
+        } finally {
+            setLoading((prev) => ({ ...prev, start: false }))
+        }
+    }
+
+    const refreshManualTaskStatus = async (taskId: string) => {
+        if (!taskId) return
+        setTaskRefreshing((prev) => ({ ...prev, [taskId]: true }))
+        try {
+            const response = await apiGetReconciliationStatus({ task_id: taskId })
+            upsertManualTask(mapResponseToManualTask(response, taskId))
+        } catch (error) {
+            toast.push(
+                <Notification title="刷新失败" type="danger">
+                    {getErrorMessage(error)}
+                </Notification>
+            )
+        } finally {
+            setTaskRefreshing((prev) => ({ ...prev, [taskId]: false }))
+        }
+    }
+
+    const autoTaskColumns: ColumnDef<ReconciliationTaskListItem>[] = [
+        {
+            header: 'Task ID',
+            accessorKey: 'task_id',
+            cell: (props) => <span className="font-semibold">{props.row.original.task_id}</span>,
+        },
+        { header: 'App ID', accessorKey: 'app_id' },
+        { header: 'Type', accessorKey: 'type' },
+        {
+            header: 'Status',
+            accessorKey: 'status',
+            cell: (props) => renderTaskStatus(props.row.original.status),
+        },
+        {
+            header: 'Discrepancies',
+            accessorKey: 'discrepancy_count',
+            cell: (props) => {
+                const value = Number(props.row.original.discrepancy_count || 0)
+                return (
+                    <span className={value > 0 ? 'font-semibold text-red-500' : ''}>
+                        {value}
+                    </span>
+                )
+            },
+        },
+        {
+            header: 'Message',
+            accessorKey: 'message',
+            cell: (props) => props.row.original.message || '-',
+        },
+        {
+            header: 'Completed At',
+            accessorKey: 'completed_at',
+            cell: (props) => formatDateTime(props.row.original.completed_at),
+        },
+        {
+            header: 'Action',
+            id: 'auto_action',
+            cell: (props) => (
+                <Button
+                    size="xs"
+                    onClick={() => setDefaultTaskId(props.row.original.task_id)}
+                >
+                    Use Task ID
+                </Button>
+            ),
+        },
+    ]
+
+    const manualTaskColumns: ColumnDef<ManualTaskRow>[] = [
+        {
+            header: 'Task ID',
+            accessorKey: 'task_id',
+            cell: (props) => <span className="font-semibold">{props.row.original.task_id || '-'}</span>,
+        },
+        { header: 'App ID', accessorKey: 'app_id' },
+        { header: 'Type', accessorKey: 'type' },
+        {
+            header: 'Status',
+            accessorKey: 'status',
+            cell: (props) => renderTaskStatus(props.row.original.status),
+        },
+        {
+            header: 'Progress',
+            accessorKey: 'progress',
+            cell: (props) => `${props.row.original.progress ?? 0}%`,
+        },
+        {
+            header: 'Message',
+            accessorKey: 'message',
+            cell: (props) => props.row.original.message || '-',
+        },
+        {
+            header: 'Updated At',
+            accessorKey: 'updated_at',
+            cell: (props) => formatDateTime(props.row.original.updated_at),
+        },
+        {
+            header: 'Action',
+            id: 'manual_action',
+            cell: (props) => {
+                const taskId = props.row.original.task_id
+                return (
+                    <div className="flex gap-2">
+                        <Button
+                            loading={Boolean(taskRefreshing[taskId])}
+                            size="xs"
+                            onClick={() => {
+                                setDefaultTaskId(taskId)
+                                refreshManualTaskStatus(taskId)
+                            }}
+                        >
+                            Status
+                        </Button>
+                        <Button
+                            loading={Boolean(loading.balance)}
+                            size="xs"
+                            onClick={() => {
+                                setDefaultTaskId(taskId)
+                                runTaskAction('balance', 'Reconcile Balance', apiReconcileBalance, taskId)
+                            }}
+                        >
+                            Balance
+                        </Button>
+                        <Button
+                            loading={Boolean(loading.journals)}
+                            size="xs"
+                            onClick={() => {
+                                setDefaultTaskId(taskId)
+                                runTaskAction('journals', 'Reconcile Journals', apiReconcileJournals, taskId)
+                            }}
+                        >
+                            Journals
+                        </Button>
+                    </div>
+                )
+            },
+        },
+    ]
 
     const logColumns: ColumnDef<LogRow>[] = useMemo(
         () => [
@@ -325,100 +492,220 @@ const Settlement = () => {
         []
     )
 
-    const renderActionCard = (action: ActionDef) => {
-        const values = forms[action.key]
-        return (
-            <Card key={action.key}>
-                <div className="mb-3 flex items-center justify-between gap-3">
-                    <h6>{action.title}</h6>
-                    <span className="text-xs text-gray-500 font-mono">POST {action.path}</span>
-                </div>
-                <div className="space-y-3">
-                    {action.fields.map((field) => (
-                        <div key={field.name}>
-                            <div className="mb-1 text-sm text-gray-600">{field.label}</div>
-                            <Input
-                                textArea={field.type === 'textarea'}
-                                type={field.type === 'number' ? 'number' : 'text'}
-                                value={values[field.name] as string | number}
-                                placeholder={field.placeholder}
-                                onChange={(event) => {
-                                    const raw = event.target.value
-                                    const nextValue =
-                                        field.type === 'number' ? (raw === '' ? '' : Number(raw)) : raw
-                                    updateFormValue(action.key, field.name, nextValue)
-                                }}
-                            />
-                        </div>
-                    ))}
-                </div>
-                <div className="mt-3 text-right">
-                    <Button
-                        variant="solid"
-                        loading={Boolean(loading[action.key])}
-                        onClick={() => handleSubmit(action)}
-                    >
-                        {action.submitText}
-                    </Button>
-                </div>
-                <div className="mt-3 rounded-md bg-gray-50 p-3 dark:bg-gray-700">
-                    <p className="mb-2 text-xs text-gray-500">Response</p>
-                    <pre className="max-h-52 overflow-auto text-xs whitespace-pre-wrap break-all">
-                        {results[action.key] || '// no response yet'}
-                    </pre>
-                </div>
-            </Card>
-        )
-    }
-
     return (
-        <AdaptableCard className="h-full" bodyClass="h-full">
-            <div className="mb-4 flex items-center justify-between">
-                <div>
-                    <h3 className="mb-1">Settlement 结算管理</h3>
-                    <p className="text-sm text-gray-500">结构化表单已直接对接 7 个结算接口。</p>
-                </div>
-                <Button
-                    size="sm"
-                    onClick={() => {
-                        setLogs([])
-                        setResults({})
-                    }}
-                >
-                    Clear
-                </Button>
+        <AdaptableCard bodyClass="h-full" className="h-full">
+            <div className="mb-4">
+                <h3 className="mb-1">Settlement Reconciliation</h3>
+                <p className="text-sm text-gray-500">生产运营页：自动任务看板 + 手动补跑与排障。</p>
             </div>
 
-            <Tabs value={tab} onChange={(value) => setTab(String(value) as ActionGroup)}>
-                <Tabs.TabList>
-                    <Tabs.TabNav value="settlement">Settlement</Tabs.TabNav>
-                    <Tabs.TabNav value="reconciliation">Reconciliation</Tabs.TabNav>
-                </Tabs.TabList>
-                <Tabs.TabContent value="settlement" className="mt-4">
-                    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                        {actionsByGroup.settlement.map(renderActionCard)}
-                    </div>
-                </Tabs.TabContent>
-                <Tabs.TabContent value="reconciliation" className="mt-4">
-                    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                        {actionsByGroup.reconciliation.map(renderActionCard)}
-                    </div>
-                </Tabs.TabContent>
-            </Tabs>
+            <Tabs defaultValue="operations">
+                <TabList>
+                    <TabNav value="operations">Operations</TabNav>
+                    <TabNav value="inspect">Inspect</TabNav>
+                </TabList>
 
-            <Card className="mt-6">
-                <h5 className="mb-3">Operation Logs</h5>
-                <DataTable
-                    columns={logColumns}
-                    data={logs}
-                    pagingData={{ total: logs.length, pageIndex, pageSize }}
-                    onPaginationChange={setPageIndex}
-                    onSelectChange={(value) => {
-                        setPageSize(Number(value))
-                        setPageIndex(1)
-                    }}
-                />
-            </Card>
+                <div className="mt-4 space-y-6">
+                    <TabContent value="operations">
+                        <Card>
+                            <div className="mb-3 flex items-center justify-between">
+                                <div>
+                                    <h5>Auto Reconciliation Tasks</h5>
+                                    <span className="text-xs text-gray-500">自动对账任务列表 / 状态 / 差异数</span>
+                                </div>
+                                <Button
+                                    loading={Boolean(loading.autoList)}
+                                    size="sm"
+                                    onClick={loadAutoTasks}
+                                >
+                                    Refresh
+                                </Button>
+                            </div>
+                            <DataTable
+                                columns={autoTaskColumns}
+                                data={autoTasks}
+                                loading={Boolean(loading.autoList)}
+                                pagingData={{
+                                    total: autoTaskTotal,
+                                    pageIndex: autoTaskPageIndex,
+                                    pageSize: autoTaskPageSize,
+                                }}
+                                onPaginationChange={setAutoTaskPageIndex}
+                                onSelectChange={(value) => {
+                                    setAutoTaskPageSize(Number(value))
+                                    setAutoTaskPageIndex(1)
+                                }}
+                            />
+                        </Card>
+                    </TabContent>
+
+                    <TabContent value="inspect">
+                        <Card className="mb-6">
+                            <h5 className="mb-4">Start Reconciliation Task</h5>
+                            <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+                                <div>
+                                    <div className="mb-1 text-sm text-gray-600">App ID</div>
+                                    <Input
+                                        value={startForm.app_id}
+                                        onChange={(e) => setStartForm((prev) => ({ ...prev, app_id: e.target.value }))}
+                                    />
+                                </div>
+                                <div>
+                                    <div className="mb-1 text-sm text-gray-600">Requested By</div>
+                                    <Input
+                                        value={startForm.requested_by}
+                                        onChange={(e) =>
+                                            setStartForm((prev) => ({ ...prev, requested_by: e.target.value }))
+                                        }
+                                    />
+                                </div>
+                                <div>
+                                    <div className="mb-1 text-sm text-gray-600">Type</div>
+                                    <div className="flex gap-2">
+                                        {(['FULL', 'BALANCE', 'JOURNAL'] as TaskType[]).map((type) => (
+                                            <Button
+                                                key={type}
+                                                size="sm"
+                                                variant={startForm.type === type ? 'solid' : 'default'}
+                                                onClick={() => setStartForm((prev) => ({ ...prev, type }))}
+                                            >
+                                                {type}
+                                            </Button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="xl:col-span-2">
+                                    <div className="mb-1 text-sm text-gray-600">Date Range</div>
+                                    <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+                                        <DatePickerRange
+                                            inputFormat={dateFormat}
+                                            size="sm"
+                                            value={[
+                                                startForm.start_time ? dayjs(startForm.start_time).toDate() : null,
+                                                startForm.end_time ? dayjs(startForm.end_time).toDate() : null,
+                                            ]}
+                                            onChange={handleDateRangeChange}
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <div className="mb-1 text-sm text-gray-600">Description</div>
+                                    <Input
+                                        value={startForm.description}
+                                        onChange={(e) =>
+                                            setStartForm((prev) => ({ ...prev, description: e.target.value }))
+                                        }
+                                    />
+                                </div>
+                            </div>
+                            <div className="mt-4 text-right">
+                                <Button loading={Boolean(loading.start)} variant="solid" onClick={handleStart}>
+                                    Start Task
+                                </Button>
+                            </div>
+                        </Card>
+
+                        <Card className="mb-6">
+                            <div className="mb-3 flex items-center justify-between">
+                                <h5>Manual Reconciliation Tasks</h5>
+                                <span className="text-xs text-gray-500">手动触发/查询过的任务</span>
+                            </div>
+                            <DataTable
+                                columns={manualTaskColumns}
+                                data={manualTasks}
+                                pagingData={{
+                                    total: manualTasks.length,
+                                    pageIndex: manualTaskPageIndex,
+                                    pageSize: manualTaskPageSize,
+                                }}
+                                onPaginationChange={setManualTaskPageIndex}
+                                onSelectChange={(value) => {
+                                    setManualTaskPageSize(Number(value))
+                                    setManualTaskPageIndex(1)
+                                }}
+                            />
+                        </Card>
+
+                        <Card className="mb-6">
+                            <h5 className="mb-4">Task Operation</h5>
+                            <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+                                <div className="xl:col-span-2">
+                                    <div className="mb-1 text-sm text-gray-600">Task ID</div>
+                                    <Input
+                                        value={taskActionForm.task_id}
+                                        onChange={(e) => setTaskActionForm({ task_id: e.target.value })}
+                                    />
+                                </div>
+                                <div className="flex items-end gap-2">
+                                    <Button
+                                        loading={Boolean(loading.status)}
+                                        onClick={() =>
+                                            runTaskAction(
+                                                'status',
+                                                'Get Reconciliation Status',
+                                                apiGetReconciliationStatus,
+                                                taskActionForm.task_id
+                                            )
+                                        }
+                                    >
+                                        Status
+                                    </Button>
+                                    <Button
+                                        loading={Boolean(loading.balance)}
+                                        onClick={() =>
+                                            runTaskAction(
+                                                'balance',
+                                                'Reconcile Balance',
+                                                apiReconcileBalance,
+                                                taskActionForm.task_id
+                                            )
+                                        }
+                                    >
+                                        Balance
+                                    </Button>
+                                    <Button
+                                        loading={Boolean(loading.journals)}
+                                        onClick={() =>
+                                            runTaskAction(
+                                                'journals',
+                                                'Reconcile Journals',
+                                                apiReconcileJournals,
+                                                taskActionForm.task_id
+                                            )
+                                        }
+                                    >
+                                        Journals
+                                    </Button>
+                                </div>
+                            </div>
+                        </Card>
+
+                        <Card>
+                            <div className="mb-3 flex items-center justify-between">
+                                <h5>Operation Logs</h5>
+                                <Button
+                                    size="sm"
+                                    onClick={() => {
+                                        setLogs([])
+                                    }}
+                                >
+                                    Clear Logs
+                                </Button>
+                            </div>
+                            <DataTable
+                                columns={logColumns}
+                                data={logs}
+                                pagingData={{ total: logs.length, pageIndex: logPageIndex, pageSize: logPageSize }}
+                                onPaginationChange={setLogPageIndex}
+                                onSelectChange={(value) => {
+                                    setLogPageSize(Number(value))
+                                    setLogPageIndex(1)
+                                }}
+                            />
+                        </Card>
+                    </TabContent>
+                </div>
+            </Tabs>
         </AdaptableCard>
     )
 }

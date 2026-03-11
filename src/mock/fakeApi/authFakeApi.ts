@@ -3,6 +3,16 @@ import uniqueId from 'lodash/uniqueId'
 import isEmpty from 'lodash/isEmpty'
 
 export default function authFakeApi(server: Server, apiPrefix: string) {
+    const mfaFactors: Array<{
+        id: string
+        factor_type: 'totp' | 'email'
+        status: 'verified'
+        friendly_name: string
+        email?: string
+        created_at: string
+        last_used_at?: string
+    }> = []
+
     // 新版登录 API（匹配后端 /api/v1/auth/login）
     server.post(`${apiPrefix}/v1/auth/login`, (schema, { requestBody }) => {
         const { username, password } = JSON.parse(requestBody)
@@ -44,6 +54,62 @@ export default function authFakeApi(server: Server, apiPrefix: string) {
             username: 'admin',
             email: 'admin@example.com',
         }
+    })
+
+    server.post(`${apiPrefix}/v1/auth/change-password`, () => {
+        return { message: '密码修改成功' }
+    })
+
+    server.get(`${apiPrefix}/v1/auth/mfa/factors`, () => {
+        return { data: mfaFactors }
+    })
+
+    server.post(`${apiPrefix}/v1/auth/mfa/totp/enroll`, () => {
+        return {
+            data: {
+                factor_id: 'mfa_factor_totp',
+                secret: 'MOCKSECRET123456',
+                qr_code_uri: 'otpauth://totp/X2Pay:demo?secret=MOCKSECRET123456&issuer=X2Pay',
+                friendly_name: '我的验证器',
+            },
+        }
+    })
+
+    server.post(`${apiPrefix}/v1/auth/mfa/totp/verify-enrollment`, () => {
+        const exists = mfaFactors.some((factor) => factor.id === 'mfa_factor_totp')
+        if (!exists) {
+            mfaFactors.push({
+                id: 'mfa_factor_totp',
+                factor_type: 'totp',
+                status: 'verified',
+                friendly_name: '我的验证器',
+                created_at: new Date().toISOString(),
+            })
+        }
+        return { data: { message: 'TOTP 绑定验证成功', factor_id: 'mfa_factor_totp' } }
+    })
+
+    server.post(`${apiPrefix}/v1/auth/mfa/email/enroll`, (schema, { requestBody }) => {
+        const { email } = JSON.parse(requestBody)
+        const id = uniqueId('mfa_email_')
+        mfaFactors.push({
+            id,
+            factor_type: 'email',
+            status: 'verified',
+            friendly_name: `邮箱 ${email}`,
+            email,
+            created_at: new Date().toISOString(),
+        })
+        return { data: { id, factor_type: 'email', status: 'verified', friendly_name: `邮箱 ${email}`, email, created_at: new Date().toISOString() } }
+    })
+
+    server.delete(`${apiPrefix}/v1/auth/mfa/factors/:id`, (schema, request) => {
+        const factorId = request.params.id
+        const index = mfaFactors.findIndex((factor) => factor.id === factorId)
+        if (index >= 0) {
+            mfaFactors.splice(index, 1)
+        }
+        return { data: { message: 'MFA 因子解绑成功', factor_id: factorId } }
     })
 
     // 兼容旧版登录 API

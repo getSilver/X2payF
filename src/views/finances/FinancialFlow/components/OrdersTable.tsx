@@ -2,7 +2,8 @@ import { useEffect, useCallback, useMemo, useRef } from 'react'
 import Badge from '@/components/ui/Badge'
 import Tooltip from '@/components/ui/Tooltip'
 import DataTable from '@/components/shared/DataTable'
-import { HiOutlineEye } from 'react-icons/hi2'
+import Avatar from '@/components/ui/Avatar'
+import { HiOutlineArrowUp, HiOutlineArrowDown, HiOutlineEye } from 'react-icons/hi2'
 import { NumericFormat } from 'react-number-format'
 import {
     setSelectedRows,
@@ -20,7 +21,11 @@ import useThemeClass from '@/utils/hooks/useThemeClass'
 import { useNavigate } from 'react-router-dom'
 import cloneDeep from 'lodash/cloneDeep'
 import dayjs from 'dayjs'
-import type { PaymentStatus } from '@/@types/payment'
+import {
+    PAYMENT_STATUS_META,
+    type PaymentStatus,
+    type TransactionType,
+} from '@/@types/payment'
 import type {
     DataTableResetHandle,
     OnSortParam,
@@ -32,6 +37,8 @@ type Order = {
     id: string      //交易ID
     // mid: string     //商户ID
     // cid: string     //渠道ID
+    transaction_type: TransactionType
+    currency?: string
     date: number    //创建时间
     sdate: number    //成功时间Successful time
     status: PaymentStatus
@@ -43,53 +50,6 @@ type Order = {
     amount: number    //实际收金额
     channel: string     //通道名
     customer: string
-    note: string
-}
-
-const orderStatusColor: Record<
-    PaymentStatus,
-    {
-        label: string
-        dotClass: string
-        textClass: string
-    }
-> = {
-    SUCCESS: {
-        label: 'Paid',
-        dotClass: 'bg-emerald-500',
-        textClass: 'text-emerald-500',
-    },
-    PENDING: {
-        label: 'Pending',
-        dotClass: 'bg-amber-500',
-        textClass: 'text-amber-500',
-    },
-    PROCESSING: {
-        label: 'Processing',
-        dotClass: 'bg-amber-500',
-        textClass: 'text-amber-500',
-    },
-    FAILED: {
-        label: 'Failed',
-        dotClass: 'bg-red-500',
-        textClass: 'text-red-500',
-    },
-    CANCELLED: {
-        label: 'Cancelled',
-        dotClass: 'bg-gray-500',
-        textClass: 'text-gray-500',
-    },
-    CLOSED: {
-        label: 'Closed',
-        dotClass: 'bg-gray-500',
-        textClass: 'text-gray-500',
-    },
-    //退款
-    REFUNDED: {
-        label: 'Refund',
-        dotClass: 'bg-stone-500',
-        textClass: 'text-stone-500',
-    },
 }
 
 const PaymentMethodImage = ({
@@ -224,12 +184,38 @@ const OrdersTable = () => {
     const columns: ColumnDef<Order>[] = useMemo(
         () => [
             {
-                header: 'Order交易ID',
+                header: 'Transaction',
+                accessorKey: 'transaction_type',
+                cell: (props) => {
+                    const row = props.row.original
+                    const isPayIn = row.transaction_type === 'PAY_IN'
+                    return (
+                        <div className="flex items-center gap-2">
+                            <Avatar
+                                size="sm"
+                                className={isPayIn
+                                    ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-100'
+                                    : 'bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-100'
+                                }
+                                icon={isPayIn
+                                    ? <HiOutlineArrowDown style={{ transform: 'rotate(45deg)' }} />
+                                    : <HiOutlineArrowUp style={{ transform: 'rotate(45deg)' }} />
+                                }
+                            />
+                            <span className="font-semibold heading-text whitespace-nowrap">
+                                {isPayIn ? 'Pay In' : 'Pay Out'}
+                            </span>
+                        </div>
+                    )
+                },
+            },
+            {
+                header: 'OrderID',
                 accessorKey: 'id',
                 cell: (props) => <OrderColumn row={props.row.original} />,
             },
             {
-                header: 'Date业务时间',
+                header: 'Date',
                 accessorKey: 'date',
                 cell: (props) => {
                     const row = props.row.original
@@ -240,40 +226,39 @@ const OrdersTable = () => {
                 },
             },
             {
-                header: 'Customer商户ID',
+                header: 'Customer',
                 accessorKey: 'customer',
             },
             {
-                header: 'Status״̬',
+                header: 'Status',
                 accessorKey: 'status',
                 cell: (props) => {
                     const { status } = props.row.original
+                    const statusInfo = PAYMENT_STATUS_META[status] || PAYMENT_STATUS_META.PENDING
                     return (
                         <div className="flex items-center">
-                            <Badge
-                                className={orderStatusColor[status].dotClass}
-                            />
+                            <Badge className={statusInfo.dotClass} />
                             <span
-                                className={`ml-2 rtl:mr-2 capitalize font-semibold ${orderStatusColor[status].textClass}`}
+                                className={`ml-2 rtl:mr-2 capitalize font-semibold ${statusInfo.textClass}`}
                             >
-                                {orderStatusColor[status].label}
+                                {statusInfo.label}
                             </span>
                         </div>
                     )
                 },
             },
             {
-                header: 'Amount原金额',
+                header: 'Amount',
                 accessorKey: 'amount',
                 cell: (props) => {
-                    const { amount } = props.row.original
+                    const { amount, currency } = props.row.original
                     return (
                         <NumericFormat
                             displayType="text"
                             value={(
                                 Math.round(amount * 100) / 100
                             ).toFixed(3)}
-                            prefix={'$'}
+                            prefix={getCurrencySymbol(currency, '')}
                             thousandSeparator={true}
                         />
                     )
@@ -283,42 +268,34 @@ const OrdersTable = () => {
                 header: 'Fee',
                 accessorKey: 'fee',
                 cell: (props) => {
-                    const { fee } = props.row.original
+                    const { fee, currency } = props.row.original
                     return (
                         <NumericFormat
                             displayType="text"
                             value={(
                                 Math.round(fee * 100) / 100
                             ).toFixed(3)}
-                            prefix={'$'}
+                            prefix={getCurrencySymbol(currency, '')}
                             thousandSeparator={true}
                         />
                     )
                 },
             },
             {
-                header: 'totalAmount结算金额',
+                header: 'Settlement',
                 accessorKey: 'totalAmount',
                 cell: (props) => {
-                    const { totalAmount } = props.row.original
+                    const { totalAmount, currency } = props.row.original
                     return (
                         <NumericFormat
                             displayType="text"
                             value={(
                                 Math.round(totalAmount * 100) / 100
                             ).toFixed(3)}
-                            prefix={'$'}
+                            prefix={getCurrencySymbol(currency, '')}
                             thousandSeparator={true}
                         />
                     )
-                },
-            },
-            {
-                header: 'Note备注',
-                accessorKey: 'note',
-                cell: (props) => {
-                    const { note } = props.row.original
-
                 },
             },
             {

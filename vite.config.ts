@@ -13,6 +13,14 @@ export default defineConfig({
     }
   }),
   dynamicImport()],
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+    },
+  },
   assetsInclude: ['**/*.md'],
   resolve: {
     alias: {

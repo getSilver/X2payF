@@ -1,5 +1,4 @@
 import ApiService from './ApiService'
-import createUID from '@/components/ui/utils/createUid'
 
 export type WithdrawalStatus = 'PENDING' | 'APPROVED' | 'COMPLETED' | 'REJECTED' | 'CANCELLED'
 
@@ -25,6 +24,7 @@ export interface Withdrawal {
     cancelled_by?: string
     cancelled_at?: string
     cancel_reason?: string
+    extra?: string | { withdrawal_address?: string }
     created_at: string
     updated_at: string
 }
@@ -123,14 +123,6 @@ async function postSettlementAction(
     return response.data || {}
 }
 
-export async function apiCreateSettlement(payload: SettlementRequestPayload) {
-    return postSettlementAction('/api/v1/admin/settlement/create', payload)
-}
-
-export async function apiExecuteSettlement(payload: SettlementRequestPayload) {
-    return postSettlementAction('/api/v1/admin/settlement/execute', payload)
-}
-
 export async function apiReconcileBalance(payload: SettlementRequestPayload) {
     return postSettlementAction(
         '/api/v1/admin/settlement/reconciliation/balance',
@@ -161,84 +153,89 @@ export async function apiGetReconciliationStatus(
     )
 }
 
-export async function apiGetSettlementStatus(payload: SettlementRequestPayload) {
-    return postSettlementAction('/api/v1/admin/settlement/status', payload)
+export interface ReconciliationTaskListItem {
+    task_id: string
+    task_no: string
+    app_id: string
+    type: string
+    status: string
+    progress: number
+    message: string
+    requested_by: string
+    source: 'AUTO' | 'MANUAL'
+    discrepancy_count: number
+    created_at: string
+    updated_at: string
+    completed_at?: string
 }
 
-type ProfitSharingStatus = 'ENABLED' | 'DISABLED' | 'PAUSED' | 'RUNNING'
-type ProfitSharingTaskStatus =
+export interface ReconciliationTaskListQuery {
+    app_id?: string
+    type?: string
+    status?: string
+    source?: 'AUTO' | 'MANUAL'
+    start_time?: string
+    end_time?: string
+    page?: number
+    page_size?: number
+}
+
+export async function apiListReconciliationTasks(
+    params: ReconciliationTaskListQuery = {}
+) {
+    const page = params.page ?? 1
+    const pageSize = params.page_size ?? 10
+    const response = await ApiService.fetchData<{ data: unknown }>({
+        url: '/api/v1/admin/settlement/reconciliation/tasks',
+        method: 'get',
+        params: {
+            ...params,
+            page,
+            page_size: pageSize,
+        },
+    })
+
+    const payload = unwrapPayload<unknown>(response.data)
+    return normalizePaginated<ReconciliationTaskListItem>(payload, page, pageSize)
+}
+
+type ProfitSharingRecordStatus =
     | 'PENDING'
-    | 'RUNNING'
-    | 'SUCCESS'
+    | 'PROCESSING'
+    | 'COMPLETED'
     | 'FAILED'
     | 'CANCELLED'
 
-export interface ProfitSharingStatistics {
-    total_amount: number
+export interface SettlementProfitSharingStatistics {
     total_records: number
-    success_amount: number
+    total_amount: number
+    completed_amount: number
     pending_amount: number
-    active_schedules: number
-    pending_tasks: number
+    failed_amount: number
 }
 
-export interface ProfitSharingSchedule {
+export interface SettlementProfitSharingRecord {
     id: string
-    name: string
-    description?: string
-    status: ProfitSharingStatus
-    currency?: string
-    rules?: string
-    next_execute_at?: string
-    last_execute_at?: string
-    created_at?: string
-    updated_at?: string
-}
-
-export interface ProfitSharingTask {
-    id: string
-    schedule_id: string
-    status: ProfitSharingTaskStatus
-    trigger_mode?: string
-    started_at?: string
-    finished_at?: string
-    created_at?: string
-    message?: string
-}
-
-export interface ProfitSharingRecord {
-    id: string
-    task_id?: string
-    schedule_id?: string
-    order_id?: string
-    merchant_id?: string
+    profit_sharing_id: string
+    app_id: string
+    transaction_id: string
+    recipient_id: string
+    recipient_type: string
     amount: number
-    currency?: string
-    status?: string
-    created_at?: string
+    percentage: number
+    status: ProfitSharingRecordStatus
+    created_at: string
+    completed_at?: string
 }
 
-export interface ProfitSharingSchedulePayload {
-    name: string
-    description?: string
-    currency?: string
-    rules?: string
-}
-
-export interface ProfitSharingListQuery {
+export interface SettlementProfitSharingQuery {
+    app_id?: string
+    recipient_id?: string
+    status?: ProfitSharingRecordStatus
+    start_time?: string
+    end_time?: string
     page?: number
     page_size?: number
-    keyword?: string
-    status?: string
-}
-
-export interface ProfitSharingRecordQuery extends ProfitSharingListQuery {
-    task_id?: string
-    schedule_id?: string
-}
-
-export interface ProfitSharingTaskQuery extends ProfitSharingListQuery {
-    schedule_id?: string
 }
 
 export interface PaginatedResult<T> {
@@ -246,6 +243,7 @@ export interface PaginatedResult<T> {
     total: number
     page: number
     page_size: number
+    total_records?: number
 }
 
 type UnknownRecord = Record<string, unknown>
@@ -279,201 +277,39 @@ const normalizePaginated = <T>(
     }
 }
 
-const withRequestId = <T extends UnknownRecord>(payload?: T) => ({
-    request_id: createUID(16),
-    ...(payload ?? {}),
-})
-
-export async function apiGetProfitSharingStatistics() {
-    const response = await ApiService.fetchData<{ data: unknown }>({
-        url: '/api/v1/profit-sharing/statistics',
-        method: 'get',
-    })
-    return unwrapPayload<ProfitSharingStatistics>(response.data)
-}
-
-export async function apiGetProfitSharingSchedules(
-    params: ProfitSharingListQuery = {}
+export async function apiGetSettlementProfitSharingStatistics(
+    params: SettlementProfitSharingQuery = {}
 ) {
-    const page = params.page ?? 1
-    const pageSize = params.page_size ?? 10
     const response = await ApiService.fetchData<{ data: unknown }>({
-        url: '/api/v1/profit-sharing/schedules',
-        method: 'get',
-        params: {
-            ...params,
-            page,
-            page_size: pageSize,
-        },
-    })
-    return normalizePaginated<ProfitSharingSchedule>(
-        unwrapPayload<unknown>(response.data),
-        page,
-        pageSize
-    )
-}
-
-export async function apiCreateProfitSharingSchedule(
-    payload: ProfitSharingSchedulePayload
-) {
-    const response = await ApiService.fetchData<{ data: unknown }, UnknownRecord>(
-        {
-            url: '/api/v1/profit-sharing/schedules',
-            method: 'post',
-            data: withRequestId(payload),
-        }
-    )
-    return unwrapPayload<ProfitSharingSchedule>(response.data)
-}
-
-export async function apiDeleteProfitSharingSchedule(id: string) {
-    await ApiService.fetchData<void>({
-        url: `/api/v1/profit-sharing/schedules/${id}`,
-        method: 'delete',
-    })
-}
-
-export async function apiGetProfitSharingScheduleDetail(id: string) {
-    const response = await ApiService.fetchData<{ data: unknown }>({
-        url: `/api/v1/profit-sharing/schedules/${id}`,
-        method: 'get',
-    })
-    return unwrapPayload<ProfitSharingSchedule>(response.data)
-}
-
-export async function apiUpdateProfitSharingSchedule(
-    id: string,
-    payload: ProfitSharingSchedulePayload
-) {
-    const response = await ApiService.fetchData<{ data: unknown }, UnknownRecord>(
-        {
-            url: `/api/v1/profit-sharing/schedules/${id}`,
-            method: 'put',
-            data: payload,
-        }
-    )
-    return unwrapPayload<ProfitSharingSchedule>(response.data)
-}
-
-export async function apiUpdateProfitSharingRules(id: string, rules: string) {
-    const response = await ApiService.fetchData<{ data: unknown }, UnknownRecord>(
-        {
-            url: `/api/v1/profit-sharing/schedules/${id}/rules`,
-            method: 'put',
-            data: withRequestId({ rules }),
-        }
-    )
-    return unwrapPayload<ProfitSharingSchedule>(response.data)
-}
-
-async function postScheduleAction(id: string, action: string) {
-    await ApiService.fetchData<void, UnknownRecord>({
-        url: `/api/v1/profit-sharing/schedules/${id}/${action}`,
-        method: 'post',
-        data: withRequestId(),
-    })
-}
-
-export async function apiDisableProfitSharingSchedule(id: string) {
-    await postScheduleAction(id, 'disable')
-}
-
-export async function apiEnableProfitSharingSchedule(id: string) {
-    await postScheduleAction(id, 'enable')
-}
-
-export async function apiPauseProfitSharingSchedule(id: string) {
-    await postScheduleAction(id, 'pause')
-}
-
-export async function apiResumeProfitSharingSchedule(id: string) {
-    await postScheduleAction(id, 'resume')
-}
-
-export async function apiTriggerProfitSharingSchedule(id: string) {
-    await postScheduleAction(id, 'trigger')
-}
-
-export async function apiGetProfitSharingTasks(
-    params: ProfitSharingTaskQuery = {}
-) {
-    const page = params.page ?? 1
-    const pageSize = params.page_size ?? 10
-    const response = await ApiService.fetchData<{ data: unknown }>({
-        url: '/api/v1/profit-sharing/tasks',
-        method: 'get',
-        params: {
-            ...params,
-            page,
-            page_size: pageSize,
-        },
-    })
-    return normalizePaginated<ProfitSharingTask>(
-        unwrapPayload<unknown>(response.data),
-        page,
-        pageSize
-    )
-}
-
-export async function apiGetProfitSharingTaskDetail(id: string) {
-    const response = await ApiService.fetchData<{ data: unknown }>({
-        url: `/api/v1/profit-sharing/tasks/${id}`,
-        method: 'get',
-    })
-    return unwrapPayload<ProfitSharingTask>(response.data)
-}
-
-export async function apiGetProfitSharingTaskRecords(
-    id: string,
-    params: ProfitSharingListQuery = {}
-) {
-    const page = params.page ?? 1
-    const pageSize = params.page_size ?? 10
-    const response = await ApiService.fetchData<{ data: unknown }>({
-        url: `/api/v1/profit-sharing/tasks/${id}/records`,
-        method: 'get',
-        params: {
-            ...params,
-            page,
-            page_size: pageSize,
-        },
-    })
-    return normalizePaginated<ProfitSharingRecord>(
-        unwrapPayload<unknown>(response.data),
-        page,
-        pageSize
-    )
-}
-
-export async function apiGetProfitSharingRecords(
-    params: ProfitSharingRecordQuery = {}
-) {
-    const page = params.page ?? 1
-    const pageSize = params.page_size ?? 10
-    const response = await ApiService.fetchData<{ data: unknown }>({
-        url: '/api/v1/profit-sharing/records',
-        method: 'get',
-        params: {
-            ...params,
-            page,
-            page_size: pageSize,
-        },
-    })
-    return normalizePaginated<ProfitSharingRecord>(
-        unwrapPayload<unknown>(response.data),
-        page,
-        pageSize
-    )
-}
-
-export async function apiExportProfitSharingReport(
-    params: ProfitSharingRecordQuery = {}
-) {
-    const response = await ApiService.fetchData<Blob>({
-        url: '/api/v1/profit-sharing/reports/export',
+        url: '/api/v1/admin/settlement/profit-sharing/statistics',
         method: 'get',
         params,
-        responseType: 'blob',
     })
-    return response.data
+    return unwrapPayload<SettlementProfitSharingStatistics>(response.data)
+}
+
+export async function apiGetSettlementProfitSharingRecords(
+    params: SettlementProfitSharingQuery = {}
+) {
+    const page = params.page ?? 1
+    const pageSize = params.page_size ?? 10
+    const response = await ApiService.fetchData<{ data: unknown }>({
+        url: '/api/v1/admin/settlement/profit-sharing/records',
+        method: 'get',
+        params: {
+            ...params,
+            page,
+            page_size: pageSize,
+        },
+    })
+    const payload = unwrapPayload<unknown>(response.data)
+    const paged = normalizePaginated<SettlementProfitSharingRecord>(
+        payload,
+        page,
+        pageSize
+    )
+    return {
+        ...paged,
+        total_records: paged.total,
+    }
 }

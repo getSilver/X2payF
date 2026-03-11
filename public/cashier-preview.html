@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cashier Preview</title>
+  <style>
+    :root {
+      --bg: #efefef;
+      --card: #f6f6f6;
+      --ink: #1b1c20;
+      --line: #cfcfcf;
+      --yellow: #ffc700;
+      --desktop-gutter: 36px;
+      --mobile-gutter: 18px;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+        "Segoe UI", Roboto, "Noto Sans", sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      min-height: 100vh;
+      padding: 24px 12px 40px;
+    }
+
+    .cashier {
+      width: min(700px, 100%);
+      margin: 0 auto;
+    }
+
+    .expire,
+    .order-box {
+      width: min(640px, 100%);
+    }
+
+    .expire {
+      margin: 0 auto 14px;
+      padding-right: var(--desktop-gutter);
+      text-align: right;
+      font-size: 11px;
+      letter-spacing: 0.3px;
+    }
+
+    .order-box {
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      overflow: hidden;
+      background: var(--card);
+      margin: 0 auto 16px;
+      position: relative;
+      display: grid;
+      grid-template-rows: 1fr 1fr;
+      min-height: 116px;
+    }
+    .order-box::after {
+      content: "";
+      position: absolute;
+      left: var(--desktop-gutter);
+      right: var(--desktop-gutter);
+      top: 50%;
+      border-top: 1px solid var(--line);
+      transform: translateY(-0.5px);
+    }
+    .row-a,
+    .row-b {
+      padding: 0 var(--desktop-gutter);
+      display: flex;
+      align-items: center;
+    }
+    .row-a {
+      display: flex;
+      justify-content: space-between;
+      font-size: 15px;
+      line-height: 1;
+    }
+    .brand {
+      font-size: 15px;
+      font-weight: 500;
+    }
+    .money {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .money .ccy {
+      font-size: 11px;
+      font-weight: 500;
+      margin-right: 4px;
+    }
+    .row-b {
+      justify-content: flex-end;
+      font-size: 14px;
+      letter-spacing: 0.3px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      background: var(--card);
+      padding: 30px 20px 26px;
+      text-align: center;
+    }
+
+    .tips {
+      width: min(90%, 520px);
+      margin: 0 auto 20px;
+      font-size: 22px;
+      line-height: 1.45;
+      font-weight: 600;
+    }
+
+    .qr {
+      width: min(540px, 85%);
+      aspect-ratio: 1 / 1;
+      margin: 0 auto 18px;
+      background:
+        repeating-linear-gradient(90deg, #000 0 9px, #fff 9px 18px),
+        repeating-linear-gradient(#000 0 9px, #fff 9px 18px);
+      background-blend-mode: difference;
+      border: 14px solid #fff;
+      border-radius: 8px;
+    }
+
+    .copy-btn {
+      display: block;
+      width: min(540px, 85%);
+      margin: 0 auto 22px;
+      background: var(--yellow);
+      color: #111;
+      border: 0;
+      border-radius: 12px;
+      padding: 16px 12px;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      cursor: pointer;
+    }
+
+    .copy-btn span {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .copy-icon,
+    .copy-icon::before {
+      width: 24px;
+      height: 24px;
+      border: 2px solid rgba(255, 255, 255, 0.9);
+      border-radius: 6px;
+    }
+
+    .copy-icon {
+      position: relative;
+      display: inline-block;
+    }
+
+    .copy-icon::before {
+      content: "";
+      position: absolute;
+      top: -6px;
+      left: -6px;
+      background: transparent;
+    }
+
+    .logo {
+      width: min(280px, 48%);
+      display: block;
+      margin: 0 auto;
+      object-fit: contain;
+    }
+
+    @media (max-width: 880px) {
+      .expire {
+        margin-bottom: 10px;
+        padding-right: var(--mobile-gutter);
+      }
+      .order-box { min-height: 92px; }
+      .row-a, .row-b { padding: 0 var(--mobile-gutter); }
+      .order-box::after { left: var(--mobile-gutter); right: var(--mobile-gutter); }
+      .panel { border-radius: 22px; padding: 20px 12px 18px; }
+      .tips { font-size: 18px; margin-bottom: 12px; }
+      .qr { width: min(360px, 90%); border-width: 10px; margin-bottom: 12px; }
+      .copy-btn {
+        width: min(360px, 90%);
+        padding: 12px 10px;
+        font-size: 14px;
+        margin-bottom: 16px;
+      }
+      .copy-icon,
+      .copy-icon::before {
+        width: 18px;
+        height: 18px;
+      }
+      .copy-icon::before { top: -4px; left: -4px; }
+      .logo { width: min(180px, 50%); }
+    }
+  </style>
+</head>
+<body>
+  <main class="cashier">
+    <p class="expire">过期时间：15:20:00</p>
+
+    <section class="order-box">
+      <div class="row-a">
+        <span class="brand">Valor</span>
+        <span class="money"><span class="ccy">USD</span>12.00</span>
+      </div>
+      <div class="row-b">订单号：ORD-20260226-10098213</div>
+    </section>
+
+    <section class="panel">
+      <p class="tips">
+        Abra o app com sua chave PIX cadastrada,<br>
+        escolha Pagar com Pix e escaneie o QR Codeou<br>
+        copie e cole o código.
+      </p>
+      <div class="qr" aria-label="QR code preview"></div>
+      <button class="copy-btn" type="button">
+        <span>PIX CÓPIA É COLA <i class="copy-icon" aria-hidden="true"></i></span>
+      </button>
+      <img class="logo" src="pixogo.jpg" alt="PIX logo">
+    </section>
+  </main>
+</body>
+</html>

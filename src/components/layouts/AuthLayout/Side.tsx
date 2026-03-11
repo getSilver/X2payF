@@ -33,7 +33,7 @@ const Side = ({ children, content, ...rest }: SideProps) => {
                         </div>
                     </div>
                     <p className="text-lg text-white opacity-80">
-                        借助 X2pay 助力你的出海业务
+                        X2pay provides you with secure payment collection.
                     </p>
                 </div>
                 <span className="text-white">

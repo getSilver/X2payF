@@ -1,0 +1,212 @@
+.cashier-page {
+    --bg: #efefef;
+    --card: #f6f6f6;
+    --ink: #1b1c20;
+    --line: #cfcfcf;
+    --yellow: #ffc700;
+    --gutter: 36px;
+    --card-width: min(640px, 100%);
+    min-height: 100dvh;
+    padding: 24px 12px;
+    color: var(--ink);
+    background: var(--bg);
+    font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        'Segoe UI',
+        Roboto,
+        'Noto Sans',
+        sans-serif;
+}
+
+.cashier-wrap {
+    width: var(--card-width);
+    margin: 0 auto;
+}
+
+.cashier-expire {
+    width: 100%;
+    margin: 0 auto 10px;
+    padding-right: var(--gutter);
+    text-align: right;
+    font-size: 11px;
+    letter-spacing: 0.3px;
+}
+
+.cashier-order {
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+    display: grid;
+    grid-template-rows: 1fr 1fr;
+    min-height: 116px;
+    margin: 0 auto 12px;
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    background: var(--card);
+}
+
+.cashier-order::after {
+    content: '';
+    position: absolute;
+    left: var(--gutter);
+    right: var(--gutter);
+    top: 50%;
+    border-top: 1px solid var(--line);
+    transform: translateY(-0.5px);
+}
+
+.cashier-row {
+    display: flex;
+    align-items: center;
+    padding: 0 var(--gutter);
+}
+
+.cashier-row-top {
+    justify-content: space-between;
+    font-size: 15px;
+}
+
+.cashier-row-bottom {
+    justify-content: flex-end;
+    font-size: 15px;
+    font-weight: 600;
+    color: gray;
+}
+
+.cashier-brand {
+    font-size: 15px;
+    font-weight: 500;
+    color: gray;
+}
+
+.cashier-money {
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.cashier-money-ccy {
+    margin-right: 4px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.cashier-panel {
+    width: 100%;
+    margin: 0 auto;
+    text-align: center;
+    border: 1px solid var(--line);
+    border-radius: 28px;
+    background: var(--card);
+    padding: 30px 20px 26px;
+}
+
+.cashier-tips {
+    width: min(90%, 520px);
+    margin: 0 auto 20px;
+    font-size: 22px;
+    line-height: 1.45;
+    font-weight: 400;
+}
+
+.cashier-qr-wrap {
+    width: min(540px, 85%);
+    margin: 0 auto 18px;
+}
+
+.cashier-qr {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    display: block;
+    object-fit: contain;
+    background: #fff;
+    border: 10px solid #fff;
+    border-radius: 8px;
+}
+
+.cashier-qr-fallback {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px dashed var(--line);
+    border-radius: 8px;
+    padding: 16px;
+    font-size: 12px;
+    word-break: break-all;
+    background: #fff;
+}
+
+.cashier-copy-btn {
+    width: min(540px, 85%);
+    margin: 0 auto 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border: 0;
+    border-radius: 12px;
+    padding: 14px 12px;
+    font-size: 17px;
+    font-weight: 600;
+    cursor: pointer;
+    background: var(--yellow);
+    color: #111;
+}
+
+.cashier-copy-icon {
+    font-size: 18px;
+}
+
+.cashier-logo {
+    width: min(280px, 48%);
+    display: block;
+    margin: 0 auto;
+    object-fit: contain;
+}
+
+.cashier-status {
+    margin-top: 14px;
+    font-size: 14px;
+}
+
+@media (max-width: 880px) {
+    .cashier-page {
+        --gutter: 18px;
+    }
+
+    .cashier-order {
+        min-height: 92px;
+    }
+
+    .cashier-panel {
+        border-radius: 22px;
+        padding: 20px 12px 18px;
+    }
+
+    .cashier-tips {
+        font-size: 18px;
+        margin-bottom: 12px;
+    }
+
+    .cashier-qr-wrap {
+        width: min(360px, 90%);
+        margin-bottom: 12px;
+    }
+
+    .cashier-qr {
+        border-width: 8px;
+    }
+
+    .cashier-copy-btn {
+        width: min(360px, 90%);
+        margin-bottom: 16px;
+        padding: 12px 10px;
+        font-size: 16px;
+    }
+
+    .cashier-logo {
+        width: min(180px, 50%);
+    }
+}

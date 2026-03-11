@@ -18,6 +18,15 @@ import type { TransactionType } from '@/@types/payment'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type FormikRef = FormikProps<any>
 
+export type FeeMode = 'UNIFIED' | 'BY_TXN_TYPE' | 'TIERED'
+
+export type TieredFeeRuleForm = {
+    min_amount: string
+    max_amount: string
+    percentage_fee: string
+    fixed_fee: string
+}
+
 /**
  * 证书信息
  */
@@ -40,17 +49,17 @@ export type InitialData = {
     supported_currencies?: string[]
     supported_payment_methods?: PaymentMethod[]
     supported_transaction_types?: TransactionType[]
-    // Pay_In 费率配置
+    fee_mode?: FeeMode
+    unified_percentage_fee?: string
+    unified_fixed_fee?: string
     pay_in_percentage_fee?: string
     pay_in_fixed_fee?: string
-    // Pay_Out 费率配置
     pay_out_percentage_fee?: string
     pay_out_fixed_fee?: string
-    // 限额配置
+    tiered_rules?: TieredFeeRuleForm[]
     min_amount?: string
     max_amount?: string
     daily_limit?: string
-    // API 配置
     production_endpoint?: string
     test_endpoint?: string
     merchant_id?: string
@@ -74,17 +83,17 @@ export type FormModel = {
     supported_currencies: string[]
     supported_payment_methods: PaymentMethod[]
     supported_transaction_types: TransactionType[]
-    // Pay_In 费率配置
+    fee_mode: FeeMode
+    unified_percentage_fee: string
+    unified_fixed_fee: string
     pay_in_percentage_fee: string
     pay_in_fixed_fee: string
-    // Pay_Out 费率配置
     pay_out_percentage_fee: string
     pay_out_fixed_fee: string
-    // 限额配置
+    tiered_rules: TieredFeeRuleForm[]
     min_amount: string
     max_amount: string
     daily_limit: string
-    // API 配置
     production_endpoint: string
     test_endpoint: string
     merchant_id: string
@@ -109,54 +118,67 @@ type ChannelFormProps = {
     onFormSubmit: (formData: FormModel, setSubmitting: SetSubmitting) => void
 }
 
+const requiredByMode = (mode: FeeMode | FeeMode[]) =>
+    Yup.string().when('fee_mode', {
+        is: (currentMode: FeeMode) =>
+            Array.isArray(mode) ? mode.includes(currentMode) : currentMode === mode,
+        then: (schema) => schema.required('必填'),
+        otherwise: (schema) => schema.notRequired(),
+    })
+
 /**
  * 表单验证规则（根据类型动态调整）
  */
-const getValidationSchema = (type: 'edit' | 'new') => Yup.object().shape({
-    code: Yup.string()
-        .required('渠道代码必填')
-        .min(2, '渠道代码至少2个字符')
-        .max(32, '渠道代码最多32个字符'),
-    name: Yup.string()
-        .required('渠道名称必填')
-        .max(100, '渠道名称最多100个字符'),
-    display_name: Yup.string()
-        .required('显示名称必填')
-        .max(100, '显示名称最多100个字符'),
-    supported_currencies: Yup.array()
-        .min(1, '至少选择一种币种')
-        .required('支持币种必填'),
-    supported_payment_methods: Yup.array()
-        .min(1, '至少选择一种支付方式')
-        .required('支付方式必填'),
-    supported_transaction_types: Yup.array()
-        .min(1, '至少选择一种交易类型')
-        .required('交易类型必填'),
-    // Pay_In 费率配置验证
-    pay_in_percentage_fee: Yup.string().required('代收百分比费率必填'),
-    pay_in_fixed_fee: Yup.string().required('代收固定费用必填'),
-    // Pay_Out 费率配置验证
-    pay_out_percentage_fee: Yup.string().required('代付百分比费率必填'),
-    pay_out_fixed_fee: Yup.string().required('代付固定费用必填'),
-    // 限额配置验证
-    min_amount: Yup.string().required('最小金额必填'),
-    max_amount: Yup.string().required('最大金额必填'),
-    daily_limit: Yup.string().required('日限额必填'),
-    // API 配置验证
-    production_endpoint: Yup.string().url('请输入有效的URL').required('生产环境端点必填'),
-    test_endpoint: Yup.string().url('请输入有效的URL').required('测试环境端点必填'),
-    merchant_id: Yup.string().required('商户ID必填'),
-    app_id: Yup.string().required('应用ID必填'),
-    // 编辑模式下密钥可选（后端不返回密钥），新建模式下必填
-    secret_key: type === 'edit' 
-        ? Yup.string().notRequired()
-        : Yup.string().required('密钥必填'),
-    // 证书可选
-    certificate: Yup.string().notRequired(),
-    timeout: Yup.string().required('超时时间必填'),
-    retry_count: Yup.string().required('重试次数必填'),
-    retry_interval: Yup.string().required('重试间隔必填'),
-})
+const getValidationSchema = (type: 'edit' | 'new') =>
+    Yup.object().shape({
+        code: Yup.string()
+            .required('渠道代码必填')
+            .min(2, '渠道代码至少2个字符')
+            .max(32, '渠道代码最多32个字符'),
+        name: Yup.string().required('渠道名称必填').max(100, '渠道名称最多100个字符'),
+        display_name: Yup.string()
+            .required('显示名称必填')
+            .max(100, '显示名称最多100个字符'),
+        supported_currencies: Yup.array().min(1, '至少选择一种币种').required('支持币种必填'),
+        supported_payment_methods: Yup.array().min(1, '至少选择一种支付方式').required('支付方式必填'),
+        supported_transaction_types: Yup.array().min(1, '至少选择一种交易类型').required('交易类型必填'),
+        fee_mode: Yup.mixed<FeeMode>()
+            .oneOf(['UNIFIED', 'BY_TXN_TYPE', 'TIERED'])
+            .required('费率模式必填'),
+        unified_percentage_fee: requiredByMode('UNIFIED'),
+        unified_fixed_fee: requiredByMode('UNIFIED'),
+        pay_in_percentage_fee: requiredByMode('BY_TXN_TYPE'),
+        pay_in_fixed_fee: requiredByMode('BY_TXN_TYPE'),
+        pay_out_percentage_fee: requiredByMode('BY_TXN_TYPE'),
+        pay_out_fixed_fee: requiredByMode('BY_TXN_TYPE'),
+        tiered_rules: Yup.array()
+            .of(
+                Yup.object({
+                    min_amount: Yup.string().required('最小金额必填'),
+                    max_amount: Yup.string().required('最大金额必填'),
+                    percentage_fee: Yup.string().required('百分比费率必填'),
+                    fixed_fee: Yup.string().required('固定费用必填'),
+                }),
+            )
+            .when('fee_mode', {
+                is: 'TIERED',
+                then: (schema) => schema.min(1, '至少配置一条阶梯规则').required('阶梯规则必填'),
+                otherwise: (schema) => schema.notRequired(),
+            }),
+        min_amount: Yup.string().required('最小金额必填'),
+        max_amount: Yup.string().required('最大金额必填'),
+        daily_limit: Yup.string().required('日限额必填'),
+        production_endpoint: Yup.string().url('请输入有效的URL').required('生产环境端点必填'),
+        test_endpoint: Yup.string().url('请输入有效的URL').notRequired(),
+        merchant_id: Yup.string().required('商户ID必填'),
+        app_id: Yup.string().required('应用ID必填'),
+        secret_key:
+            type === 'edit' ? Yup.string().notRequired() : Yup.string().required('密钥必填'),
+        certificate: Yup.string().notRequired(),
+        timeout: Yup.string().required('超时时间必填'),
+        retry_count: Yup.string().required('重试次数必填'),
+        retry_interval: Yup.string().required('重试间隔必填'),
+    })
 
 /**
  * 删除按钮组件
@@ -218,10 +240,14 @@ const ChannelForm = forwardRef<FormikRef, ChannelFormProps>((props, ref) => {
             supported_currencies: [],
             supported_payment_methods: [],
             supported_transaction_types: [],
+            fee_mode: 'BY_TXN_TYPE',
+            unified_percentage_fee: '',
+            unified_fixed_fee: '',
             pay_in_percentage_fee: '',
             pay_in_fixed_fee: '',
             pay_out_percentage_fee: '',
             pay_out_fixed_fee: '',
+            tiered_rules: [],
             min_amount: '',
             max_amount: '',
             daily_limit: '',
@@ -252,10 +278,14 @@ const ChannelForm = forwardRef<FormikRef, ChannelFormProps>((props, ref) => {
                 supported_currencies: initialData.supported_currencies || [],
                 supported_payment_methods: initialData.supported_payment_methods || [],
                 supported_transaction_types: initialData.supported_transaction_types || [],
+                fee_mode: initialData.fee_mode || 'BY_TXN_TYPE',
+                unified_percentage_fee: initialData.unified_percentage_fee || '',
+                unified_fixed_fee: initialData.unified_fixed_fee || '',
                 pay_in_percentage_fee: initialData.pay_in_percentage_fee || '',
                 pay_in_fixed_fee: initialData.pay_in_fixed_fee || '',
                 pay_out_percentage_fee: initialData.pay_out_percentage_fee || '',
                 pay_out_fixed_fee: initialData.pay_out_fixed_fee || '',
+                tiered_rules: initialData.tiered_rules || [],
                 min_amount: initialData.min_amount || '',
                 max_amount: initialData.max_amount || '',
                 daily_limit: initialData.daily_limit || '',
@@ -287,21 +317,11 @@ const ChannelForm = forwardRef<FormikRef, ChannelFormProps>((props, ref) => {
                                     values={values}
                                     type={type}
                                 />
-                                <APIConfigFields
-                                    touched={touched}
-                                    errors={errors}
-                                />
-                                <PricingFields
-                                    touched={touched}
-                                    errors={errors}
-                                />
+                                <APIConfigFields touched={touched} errors={errors} />
+                                <PricingFields touched={touched} errors={errors} values={values} />
                             </div>
                             <div className="lg:col-span-1">
-                                <CertificateUpload
-                                    values={values}
-                                    touched={touched}
-                                    errors={errors}
-                                />
+                                <CertificateUpload values={values} touched={touched} errors={errors} />
                             </div>
                         </div>
                         <StickyFooter
@@ -309,9 +329,7 @@ const ChannelForm = forwardRef<FormikRef, ChannelFormProps>((props, ref) => {
                             stickyClass="border-t bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
                         >
                             <div>
-                                {type === 'edit' && onDelete && (
-                                    <DeleteChannelButton onDelete={onDelete} />
-                                )}
+                                {type === 'edit' && onDelete && <DeleteChannelButton onDelete={onDelete} />}
                             </div>
                             <div className="md:flex items-center">
                                 <Button

@@ -8,9 +8,13 @@ import {
     useAppSelector,
 } from '../store'
 import { FormModel } from '@/views/merback/TradeForm'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import isEmpty from 'lodash/isEmpty'
-import { apiCreateWithdrawal, CreateWithdrawalRequest } from '@/services/MerchantService'
+import { CreateWithdrawalRequest } from '@/services/MerchantService'
+import {
+    getTradeWithdrawProvider,
+    resolveProviderTypeByPath,
+} from '@/services/tradeWithdrawProvider'
 import createUID from '@/components/ui/utils/createUid'
 
 
@@ -22,6 +26,10 @@ const TradeDialog = () => {
     const dispatch = useAppDispatch()
 
     const navigate = useNavigate()
+    const location = useLocation()
+    const provider = getTradeWithdrawProvider(
+        resolveProviderTypeByPath(location.pathname)
+    )
 
     const tradeDialogOpen = useAppSelector(
         (state) => state.appWallets.data.tradeDialogOpen
@@ -69,6 +77,8 @@ const TradeDialog = () => {
                 const appId = showProceed.appId as string
                 const currency = (showProceed.currency as string || '').toUpperCase()
                 const price = showProceed.price as number
+                const usdAmount = showProceed.amount as number
+                const rate = showProceed.rate as number
                 
                 // 参数验证
                 if (!appId) {
@@ -89,6 +99,18 @@ const TradeDialog = () => {
                     setConfirmLoading(false)
                     return
                 }
+                if (!usdAmount || usdAmount <= 0) {
+                    console.error('提款失败: amount 无效', usdAmount)
+                    setStatus('FAILED')
+                    setConfirmLoading(false)
+                    return
+                }
+                if (!rate || rate <= 0) {
+                    console.error('提款失败: rate 无效', rate)
+                    setStatus('FAILED')
+                    setConfirmLoading(false)
+                    return
+                }
                 
                 // 金额转换为分（后端使用分为单位）
                 const amountInCents = Math.round(price * 100)
@@ -98,12 +120,12 @@ const TradeDialog = () => {
                     app_id: appId,
                     amount: amountInCents,
                     currency: currency,
-                    note: `Sell ${price} ${currency} for USD`,
+                    note: `SELL ${price.toFixed(2)} ${currency} -> ${usdAmount.toFixed(2)} USD @ ${rate.toFixed(4)} ${currency}/USD`,
                 }
                 
                 console.log('提款请求:', request)
                 
-                await apiCreateWithdrawal(request)
+                await provider.createWithdrawal(request)
                 setStatus('SUCCESS')
             } catch (error: any) {
                 console.error('提款申请失败:', error)
@@ -128,7 +150,7 @@ const TradeDialog = () => {
         onDialogClose()
         if (shouldRedirect) {
             dispatch(setSelectedTab('withdrawal'))
-            navigate('/mer/dashboard')
+            navigate(provider.dashboardPath)
         }
     }
 

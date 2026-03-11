@@ -32,20 +32,36 @@ const WalletCard = ({ data = {}, title }: WalletCardProps) => {
                             fixedDecimalScale
                         />
                     </h5>
-                    <GrowShrinkTag value={data.growshrink} suffix="%" />
+                    {data.metaType === 'amount' && (
+                        <div className="text-sm font-semibold text-gray-500 dark:text-gray-300">
+                            {data.metaLabel || 'Frozen'}:{' '}
+                            <NumericFormat
+                                displayType="text"
+                                value={data.metaValue ?? 0}
+                                prefix={data.symbol}
+                                thousandSeparator={true}
+                                decimalScale={2}
+                                fixedDecimalScale
+                            />
+                        </div>
+                    )}
+                    {data.metaType === 'percent' && (
+                        <GrowShrinkTag value={data.growshrink} suffix="%" />
+                    )}
                 </div>
             </div>
             <div className="my-5">
-                <h5 className="font-bold">
-                    <NumericFormat
-                        displayType="text"
-                        value={data.coinValue}
-                        prefix={data.symbol}
-                        thousandSeparator={true}
-                        decimalScale={2}
-                        fixedDecimalScale
-                    />
-                </h5>
+                    <h5 className="font-bold">
+                        <NumericFormat
+                            displayType="text"
+                            value={data.coinValue}
+                            prefix={data.secondaryType === 'count' ? undefined : data.symbol}
+                            suffix={data.secondaryType === 'count' ? (data.secondarySuffix || '') : undefined}
+                            thousandSeparator={true}
+                            decimalScale={data.secondaryType === 'count' ? 0 : 2}
+                            fixedDecimalScale={data.secondaryType !== 'count'}
+                        />
+                    </h5>
             </div>
         </Card>
     )

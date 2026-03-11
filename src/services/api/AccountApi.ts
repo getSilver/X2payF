@@ -6,6 +6,7 @@ import ApiService from '../ApiService'
 import type {
     Account,
     Merchant,
+    MerchantConfig,
     Agent,
     ChannelPartner,
     CreateMerchantRequest,
@@ -409,6 +410,7 @@ export async function apiUpdateMerchant(
         withdrawal_address?: string
         withdrawal_fee_percent?: number
         ip_whitelist?: string[]
+        config?: MerchantConfig
     }
 ) {
     return ApiService.fetchData<{ merchant_id: string; message: string }>({

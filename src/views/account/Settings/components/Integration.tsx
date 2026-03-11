@@ -8,6 +8,7 @@ import Avatar from '@/components/ui/Avatar'
 import Card from '@/components/ui/Card'
 import cloneDeep from 'lodash/cloneDeep'
 import MFAIntegrationDialog from './MFAIntegrationDialog'
+import { apiListMFAFactors } from '@/services/MFAService'
 
 type IntegrationDetail = {
     name: string
@@ -26,8 +27,6 @@ type IntegrationType = {
     installed: IntegrationDetail[]
     available: IntegrationDetail[]
 }
-
-type GetAccountSettingIntegrationDataResponse = IntegrationType
 
 const Integration = () => {
     // 静态数据：MFA 集成配置
@@ -54,21 +53,42 @@ const Integration = () => {
     const [showMFADialog, setShowMFADialog] = useState(false)
 
     const fetchData = async () => {
-        // 暂时使用静态数据，不调用后端接口
-        // 如果后端实现了 /account/setting/integration 接口，可以取消注释
-        // try {
-        //     const response = await apiGetAccountSettingIntegrationData<GetAccountSettingIntegrationDataResponse>()
-        //     setData(response.data)
-        // } catch (error) {
-        //     console.error('获取集成数据失败:', error)
-        //     // 失败时使用静态数据
-        //     setData(initialData)
-        // }
+        try {
+            const response = await apiListMFAFactors()
+            const responseData = response.data as {
+                data?: { id: string }[]
+            }
+            const factorCount = responseData?.data?.length || 0
+
+            setData({
+                installed: [
+                    {
+                        ...initialData.installed[0],
+                        active: factorCount > 0,
+                        desc:
+                            factorCount > 0
+                                ? `已绑定 ${factorCount} 个 MFA 验证方式`
+                                : '多因子认证尚未启用',
+                    },
+                ],
+                available: [],
+            })
+        } catch {
+            setData({
+                installed: [
+                    {
+                        ...initialData.installed[0],
+                        active: false,
+                        desc: '无法获取 MFA 状态，请打开查看集成进行检查',
+                    },
+                ],
+                available: [],
+            })
+        }
     }
 
     useEffect(() => {
-        // 组件加载时不需要获取数据，使用静态数据
-        // fetchData()
+        void fetchData()
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
@@ -120,7 +140,7 @@ const Integration = () => {
 
     const handleMFASuccess = () => {
         // MFA 操作成功后刷新数据
-        fetchData()
+        void fetchData()
     }
 
 

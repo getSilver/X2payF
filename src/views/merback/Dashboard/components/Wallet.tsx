@@ -9,9 +9,9 @@ const Wallet = () => {
 
     return (
         <div className="grid lg:grid-cols-3 2xl:grid-cols-3 gap-4">
-            <WalletCard title="代收" data={data[0] || {}} />
-            <WalletCard title="代付" data={data[1] || {}} />
-            <WalletCard title="余额" data={data[2] || {}} />
+            <WalletCard title="PayIn" data={data[0] || {}} />
+            <WalletCard title="PayOut" data={data[1] || {}} />
+            <WalletCard title="Amount" data={data[2] || {}} />
         </div>
     )
 }

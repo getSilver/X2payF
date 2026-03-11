@@ -42,6 +42,7 @@ type WithdrawRow = {
     fee: number
     actual_amount: number
     note: string
+    withdrawalAddress: string
 }
 
 const statusColor: Record<
@@ -101,8 +102,9 @@ const ActionIcon = ({ type }: { type: WithdrawAction }) => {
 
 type ApprovalForm = {
     amount: number
-    rate: number
+    rate: string
     merchant: string
+    withdrawalAddress: string
     action: 'approve' | 'reject' | 'complete'
     reason?: string
     note?: string
@@ -145,6 +147,19 @@ const WithdrawTable = () => {
 
     const rows: WithdrawRow[] = useMemo(() => {
         return withdrawals.map((w) => ({
+            // 从 extra 字段读取商户提交时的提款地址
+            ...(function parseExtra() {
+                let withdrawalAddress = ''
+                if (w.extra) {
+                    try {
+                        const extraData = typeof w.extra === 'string' ? JSON.parse(w.extra) : w.extra
+                        withdrawalAddress = extraData?.withdrawal_address || ''
+                    } catch {
+                        withdrawalAddress = ''
+                    }
+                }
+                return { withdrawalAddress }
+            })(),
             id: w.id,
             action: 'Withdraw',
             actionType: 'WITHDRAW' as WithdrawAction,
@@ -349,8 +364,9 @@ const WithdrawTable = () => {
                             enableReinitialize
                             initialValues={{ 
                                 amount: activeRow.amount, 
-                                rate: activeRow.forex, 
+                                rate: activeRow.note || '', 
                                 merchant: activeRow.merchant, 
+                                withdrawalAddress: activeRow.withdrawalAddress || '',
                                 action: activeRow.status === 'APPROVED' ? 'complete' : 'approve', 
                                 reason: '',
                                 note: ''
@@ -364,10 +380,11 @@ const WithdrawTable = () => {
                                         <FormItem label="Merchant">
                                             <Field type="text" readOnly name="merchant" component={Input} />
                                         </FormItem>
+                                        <FormItem label="Withdrawal Address">
+                                            <Field type="text" readOnly name="withdrawalAddress" component={Input} />
+                                        </FormItem>
                                         <FormItem label="Rate">
-                                            <Field name="rate">
-                                                {({ field }: FieldProps) => <FormNumericInput readOnly field={field} value={field.value} decimalScale={4} />}
-                                            </Field>
+                                            <Field type="text" readOnly name="rate" component={Input} />
                                         </FormItem>
                                         <FormItem label="Amount" invalid={Boolean(errors.amount) && Boolean(touched.amount)} errorMessage={errors.amount}>
                                             <Field name="amount">

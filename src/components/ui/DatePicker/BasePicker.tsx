@@ -1,6 +1,7 @@
 import { useRef, forwardRef } from 'react'
 import dayjs from 'dayjs'
 import localizedFormat from 'dayjs/plugin/localizedFormat'
+import type { Placement } from '@popperjs/core'
 import { Input } from '../Input'
 import useRootClose from '../hooks/useRootClose'
 import { usePopper } from 'react-popper'
@@ -8,6 +9,7 @@ import useMergedRef from '../hooks/useMergeRef'
 import { HiOutlineCalendar } from 'react-icons/hi'
 import CloseButton from '../CloseButton'
 import type { CommonProps, TypeAttributes } from '../@types/common'
+import type { DropdownPlacement } from '../@types/placement'
 import type {
     ReactNode,
     FocusEvent,
@@ -32,6 +34,7 @@ export interface BasePickerSharedProps {
     onDropdownClose?: () => void
     onFocus?: (event: FocusEvent<HTMLInputElement, Element>) => void
     placeholder?: string
+    dropdownPlacement?: DropdownPlacement
     size?: TypeAttributes.ControlSize
     type?: HTMLInputTypeAttribute
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -48,6 +51,32 @@ interface BasePickerProps extends CommonProps, BasePickerSharedProps {
     onClear?: (event: MouseEvent<HTMLElement>) => void
     onChange?: (event: ChangeEvent<HTMLInputElement>) => void
     setDropdownOpened: (opened: boolean) => void
+}
+
+const resolvePopperPlacement = (
+    placement?: DropdownPlacement
+): Placement => {
+    switch (placement) {
+        case 'top-start':
+        case 'top-end':
+        case 'bottom-start':
+        case 'bottom-end':
+            return placement
+        case 'top-center':
+            return 'top'
+        case 'bottom-center':
+            return 'bottom'
+        case 'middle-start-top':
+            return 'right-start'
+        case 'middle-start-bottom':
+            return 'right-end'
+        case 'middle-end-top':
+            return 'left-start'
+        case 'middle-end-bottom':
+            return 'left-end'
+        default:
+            return 'bottom-start'
+    }
 }
 
 const BasePicker = forwardRef<HTMLInputElement, BasePickerProps>(
@@ -73,6 +102,7 @@ const BasePicker = forwardRef<HTMLInputElement, BasePickerProps>(
             onKeyDown,
             onClear,
             placeholder,
+            dropdownPlacement,
             setDropdownOpened,
             size,
             type,
@@ -147,7 +177,7 @@ const BasePicker = forwardRef<HTMLInputElement, BasePickerProps>(
             referenceRef.current,
             popperRef.current,
             {
-                placement: 'bottom-start',
+                placement: resolvePopperPlacement(dropdownPlacement),
                 modifiers: [
                     {
                         name: 'offset',

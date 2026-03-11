@@ -1,6 +1,7 @@
 import { useMemo, lazy, Suspense } from 'react'
 import Loading from '@/components/shared/Loading'
 import { useAppSelector } from '@/store'
+import { useLocation } from 'react-router-dom'
 import {
     LAYOUT_TYPE_CLASSIC,
     LAYOUT_TYPE_MODERN,
@@ -24,6 +25,8 @@ const layouts = {
 
 const Layout = () => {
     const layoutType = useAppSelector((state) => state.theme.layout.type)
+    const location = useLocation()
+    const isCashierPage = location.pathname.startsWith('/cashier/')
 
     const { authenticated } = useAuth()
 
@@ -32,11 +35,14 @@ const Layout = () => {
     useLocale()
 
     const AppLayout = useMemo(() => {
+        if (isCashierPage) {
+            return layouts[LAYOUT_TYPE_BLANK]
+        }
         if (authenticated) {
             return layouts[layoutType]
         }
         return lazy(() => import('./AuthLayout'))
-    }, [layoutType, authenticated])
+    }, [layoutType, authenticated, isCashierPage])
 
     return (
         <Suspense

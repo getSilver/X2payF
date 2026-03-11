@@ -89,6 +89,19 @@ export async function apiClosePayment(paymentId: string) {
     })
 }
 
+/**
+ * 重新发送支付通知（管理后台）
+ * 使用用户会话认证（Bearer Token）
+ * @param paymentId 支付订单 ID
+ * @returns 操作结果
+ */
+export async function apiAdminResendPaymentNotification(paymentId: string) {
+    return ApiService.fetchData<{ message: string; payment_id: string }>({
+        url: PAYMENT_ADMIN_API.notify(paymentId),
+        method: 'post',
+    })
+}
+
 
 
 // ==================== 商户后台 API（Bearer Token 认证） ====================

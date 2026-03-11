@@ -77,6 +77,15 @@ export const AUTH_API = {
     RESET_PASSWORD: authPath('reset-password'),
 } as const
 
+// 当前登录用户自助 MFA 管理
+export const SELF_MFA_API = {
+    TOTP_ENROLL: authPath('mfa', 'totp', 'enroll'),
+    TOTP_VERIFY_ENROLLMENT: authPath('mfa', 'totp', 'verify-enrollment'),
+    EMAIL_ENROLL: authPath('mfa', 'email', 'enroll'),
+    FACTORS: authPath('mfa', 'factors'),
+    factor: (id: string) => authPath('mfa', 'factors', id),
+} as const
+
 // ==================== 管理后台端点 ====================
 
 // MFA 管理
@@ -94,6 +103,7 @@ export const PAYMENT_ADMIN_API = {
     detail: (id: string) => adminPath(ADMIN_RESOURCES.PAYMENTS, id),
     cancel: (id: string) => adminPath(ADMIN_RESOURCES.PAYMENTS, id, 'cancel'),
     close: (id: string) => adminPath(ADMIN_RESOURCES.PAYMENTS, id, 'close'),
+    notify: (id: string) => adminPath(ADMIN_RESOURCES.PAYMENTS, id, 'notify'),
 } as const
 
 // 用户管理（管理员操作）

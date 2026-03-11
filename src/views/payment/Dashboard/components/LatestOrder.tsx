@@ -13,6 +13,7 @@ import {
 import { useNavigate } from 'react-router-dom'
 import { NumericFormat } from 'react-number-format'
 import dayjs from 'dayjs'
+import { PAYMENT_STATUS_META, type PaymentStatus } from '@/@types/payment'
 
 type Order = {
     id: string
@@ -35,25 +36,10 @@ type OrderColumnPros = {
 
 const { Tr, Td, TBody, THead, Th } = Table
 
-const orderStatusColor: Record<
-    number,
-    {
-        label: string
-        dotClass: string
-        textClass: string
-    }
-> = {
-    0: {
-        label: 'Paid',
-        dotClass: 'bg-emerald-500',
-        textClass: 'text-emerald-500',
-    },
-    1: {
-        label: 'Pending',
-        dotClass: 'bg-amber-500',
-        textClass: 'text-amber-500',
-    },
-    2: { label: 'Failed', dotClass: 'bg-red-500', textClass: 'text-red-500' },
+const latestOrderStatusMap: Record<number, PaymentStatus> = {
+    0: 'SUCCESS',
+    1: 'PENDING',
+    2: 'FAILED',
 }
 
 const OrderColumn = ({ row }: OrderColumnPros) => {
@@ -85,13 +71,15 @@ const columns = [
         header: 'Status',
         cell: (props) => {
             const { status } = props.row.original
+            const mappedStatus = latestOrderStatusMap[status] || 'PENDING'
+            const statusInfo = PAYMENT_STATUS_META[mappedStatus]
             return (
                 <div className="flex items-center">
-                    <Badge className={orderStatusColor[status].dotClass} />
+                    <Badge className={statusInfo.dotClass} />
                     <span
-                        className={`ml-2 rtl:mr-2 capitalize font-semibold ${orderStatusColor[status].textClass}`}
+                        className={`ml-2 rtl:mr-2 capitalize font-semibold ${statusInfo.textClass}`}
                     >
-                        {orderStatusColor[status].label}
+                        {statusInfo.label}
                     </span>
                 </div>
             )

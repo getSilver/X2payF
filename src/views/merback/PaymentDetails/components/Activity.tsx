@@ -20,10 +20,26 @@ type ActivityData = {
 type ActivityProps = {
     data?: {
         payment_id?: string
+        app_id?: string
+        merchant_tx_id?: string
+        transaction_type?: string
+        amount?: number | null
         status?: string
+        currency?: string
+        payment_method?: string
+        notify_url?: string
+        return_url?: string
+        subject?: string
+        body?: string
+        extra?: string
+        progress_status?: number
         created_at?: string
         updated_at?: string
         expired_at?: string
+        refund_count?: number
+        successful_refund_amount?: number
+        latest_refund_status?: string
+        latest_refund_time?: string
     }
 }
 
@@ -37,22 +53,59 @@ const buildActivityData = (detail: ActivityProps['data']): ActivityData[] => {
     const createdDate = detail.created_at.split('T')[0]
     const events: Event[] = []
 
-    // 构建完整的订单响应数据作为 details
-    const orderDetails = JSON.stringify(detail, null, 2)
+    const submitSnapshot = {
+        app_id: detail.app_id || '-',
+        merchant_tx_id: detail.merchant_tx_id || '-',
+        transaction_type: detail.transaction_type || '-',
+        amount: detail.amount ?? '-',
+        currency: detail.currency || '-',
+        payment_method: detail.payment_method || '-',
+        subject: detail.subject || '-',
+        notify_url: detail.notify_url || '-',
+        return_url: detail.return_url || '-',
+        extra: detail.extra || '-',
+    }
+    const orderDetails = JSON.stringify(submitSnapshot, null, 2)
 
     // 订单创建事件
     events.push({
         time: detail.created_at,
-        action: '订单创建',
+        action: 'Creation',
         details: orderDetails,
     })
 
     // 如果有更新时间且与创建时间不同，添加更新事件
     if (detail.updated_at && detail.updated_at !== detail.created_at) {
+        const callbackContent = JSON.stringify(
+            {
+                notify_url: detail.notify_url || '-',
+                callback_status: detail.progress_status === 0 ? 'Done' : 'Failed',
+                payment_status: detail.status || '-',
+            },
+            null,
+            2
+        )
         events.push({
             time: detail.updated_at,
-            action: '订单更新',
-            details: `状态: ${detail.status || '-'}`,
+            action: `Status: ${detail.status || '-'}`,
+            details: callbackContent,
+        })
+    }
+
+    if (detail.latest_refund_status) {
+        const refundedAmount =
+            typeof detail.successful_refund_amount === 'number'
+                ? (detail.successful_refund_amount / 100).toFixed(2)
+                : '0.00'
+        const refundDetails = [
+            `退款状态: ${detail.latest_refund_status}`,
+            `累计成功退款: ${refundedAmount} ${detail.currency || ''}`.trim(),
+            `退款次数: ${detail.refund_count || 0}`,
+        ].join('\n')
+        events.push({
+            time: detail.latest_refund_time || detail.updated_at || detail.created_at,
+            action: 'Refund',
+            details: refundDetails,
         })
     }
 

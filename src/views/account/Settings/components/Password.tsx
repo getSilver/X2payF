@@ -7,8 +7,11 @@ import toast from '@/components/ui/toast'
 import { FormContainer } from '@/components/ui/Form'
 import FormDesription from './FormDesription'
 import FormRow from './FormRow'
+import { apiChangePassword } from '@/services/AuthService'
 import { Field, Form, Formik } from 'formik'
 import isLastChild from '@/utils/isLastChild'
+import store, { clearUser, signOutSuccess } from '@/store'
+import { useNavigate } from 'react-router-dom'
 import {
     HiOutlineDesktopComputer,
     HiOutlineDeviceMobile,
@@ -25,7 +28,7 @@ type LoginHistory = {
 }
 
 type PasswordFormModel = {
-    password: string
+    currentPassword: string
     newPassword: string
     confirmNewPassword: string
 }
@@ -44,43 +47,79 @@ const LoginHistoryIcon = ({ type }: { type: string }) => {
 }
 
 const validationSchema = Yup.object().shape({
-    password: Yup.string().required('Password Required'),
+    currentPassword: Yup.string().required('Current password is required'),
     newPassword: Yup.string()
         .required('Enter your new password')
-        .min(8, 'Too Short!')
-        .matches(/^[A-Za-z0-9_-]*$/, 'Only Letters & Numbers Allowed'),
-    confirmNewPassword: Yup.string().oneOf(
-        [Yup.ref('newPassword'), ''],
-        'Password not match'
-    ),
+        .min(12, 'Password must be at least 12 characters')
+        .matches(/[A-Z]/, 'Password must contain at least one uppercase letter')
+        .matches(/[a-z]/, 'Password must contain at least one lowercase letter')
+        .matches(/[0-9]/, 'Password must contain at least one number')
+        .matches(/[^A-Za-z0-9]/, 'Password must contain at least one special character')
+        .notOneOf(
+            [Yup.ref('currentPassword')],
+            'New password must be different from current password'
+        ),
+    confirmNewPassword: Yup.string()
+        .required('Please confirm your new password')
+        .oneOf([Yup.ref('newPassword')], 'Password not match'),
 })
 
 const Password = ({ data }: { data?: LoginHistory[] }) => {
-    const onFormSubmit = (
+    const navigate = useNavigate()
+
+    const onFormSubmit = async (
         values: PasswordFormModel,
-        setSubmitting: (isSubmitting: boolean) => void
+        setSubmitting: (isSubmitting: boolean) => void,
+        resetForm: () => void
     ) => {
-        toast.push(<Notification title={'Password updated'} type="success" />, {
-            placement: 'top-center',
-        })
-        setSubmitting(false)
-        console.log('values', values)
+        try {
+            await apiChangePassword({
+                current_password: values.currentPassword,
+                new_password: values.newPassword,
+                confirm_password: values.confirmNewPassword,
+            })
+
+            toast.push(
+                <Notification title={'Password updated'} type="success" />,
+                {
+                    placement: 'top-center',
+                }
+            )
+            store.dispatch(signOutSuccess())
+            store.dispatch(clearUser())
+            resetForm()
+            navigate('/sign-in')
+        } catch (error) {
+            toast.push(
+                <Notification
+                    title={
+                        error instanceof Error
+                            ? error.message
+                            : 'Failed to update password'
+                    }
+                    type="danger"
+                />,
+                {
+                    placement: 'top-center',
+                }
+            )
+        } finally {
+            setSubmitting(false)
+        }
     }
 
     return (
         <>
             <Formik
                 initialValues={{
-                    password: '',
+                    currentPassword: '',
                     newPassword: '',
                     confirmNewPassword: '',
                 }}
                 validationSchema={validationSchema}
-                onSubmit={(values, { setSubmitting }) => {
+                onSubmit={(values, { setSubmitting, resetForm }) => {
                     setSubmitting(true)
-                    setTimeout(() => {
-                        onFormSubmit(values, setSubmitting)
-                    }, 1000)
+                    void onFormSubmit(values, setSubmitting, resetForm)
                 }}
             >
                 {({ touched, errors, isSubmitting, resetForm }) => {
@@ -93,14 +132,14 @@ const Password = ({ data }: { data?: LoginHistory[] }) => {
                                     desc="Enter your current & new password to reset your password"
                                 />
                                 <FormRow
-                                    name="password"
+                                    name="currentPassword"
                                     label="Current Password"
                                     {...validatorProps}
                                 >
                                     <Field
                                         type="password"
                                         autoComplete="off"
-                                        name="password"
+                                        name="currentPassword"
                                         placeholder="Current Password"
                                         component={Input}
                                     />

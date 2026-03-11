@@ -78,6 +78,9 @@ const Settings = () => {
         if (location.pathname.startsWith('/mer/')) {
             return '/mer/account/settings'
         }
+        if (location.pathname.startsWith('/agent/')) {
+            return '/agent/account/settings'
+        }
         return '/account/settings'
     }
 

@@ -59,17 +59,7 @@ const generalNotificationForm = [
     { label: 'Reminders', name: 'reminders' },
 ]
 
-const projectNotificationForm = [
-    { label: 'Somone mentions you', name: 'mentioned' },
-    { label: 'Somone replies to your message', name: 'replies' },
-    { label: 'Task status updated', name: 'taskUpdate' },
-    { label: 'Task assigned to you', name: 'assigned' },
-]
 
-const salesNotificationForm = [
-    { label: 'New product', name: 'newProduct' },
-    { label: 'New order placed', name: 'newOrder' },
-]
 
 const Selector = ({ field, form, values, name }: SelectorProps) => {
     return (
@@ -193,27 +183,7 @@ const NotificationSetting = ({
                                 rows={generalNotificationForm}
                                 validators={validatorProps}
                                 values={values}
-                            />
-                            <FormDesription
-                                className="mt-6"
-                                title="Project Notification"
-                                desc="Select how you'll be notified when the project related events happended."
-                            />
-                            <Rows
-                                rows={projectNotificationForm}
-                                validators={validatorProps}
-                                values={values}
-                            />
-                            <FormDesription
-                                className="mt-6"
-                                title="Sales Notification"
-                                desc="Select how you'll be notified when any products & order updated."
-                            />
-                            <Rows
-                                rows={salesNotificationForm}
-                                validators={validatorProps}
-                                values={values}
-                            />
+                            />                                        
                             <div className="mt-4 ltr:text-right">
                                 <Button
                                     className="ltr:mr-2 rtl:ml-2"

@@ -12,7 +12,7 @@ import { HiOutlineCalendar } from 'react-icons/hi'
 import { apiGetMerchantBackendPaymentDetails } from '@/services/PaymentService'
 import { useLocation } from 'react-router-dom'
 import isEmpty from 'lodash/isEmpty'
-import type { PaymentStatus } from '@/@types/payment'
+import { PAYMENT_STATUS_META, type PaymentStatus } from '@/@types/payment'
 
 type OrderDetailsResponse = {
     payment_id?: string
@@ -20,8 +20,13 @@ type OrderDetailsResponse = {
     status?: PaymentStatus
     progress_status?: number
     amount?: number | null
-    settlement?: number | null
-    fee?: number | null
+    settlement_amount?: number | null
+    merchant_fee?: number | null
+    settled_at?: string | null
+    refund_count?: number
+    successful_refund_amount?: number
+    latest_refund_status?: string
+    latest_refund_time?: string
     subject?: string
     currency?: string
     orderLogo?: string
@@ -55,37 +60,6 @@ type PayementStatus = {
     class: string
 }
 
-const paymentStatus: Record<PaymentStatus, PayementStatus> = {
-    SUCCESS: {
-        label: 'Paid',
-        class: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-100',
-    },
-    PENDING: {
-        label: 'Unpaid',
-        class: 'text-red-500 bg-red-100 dark:text-red-100 dark:bg-red-500/20',
-    },
-    PROCESSING: {
-        label: 'Processing',
-        class: 'text-amber-600 bg-amber-100 dark:text-amber-100 dark:bg-amber-500/20',
-    },
-    FAILED: {
-        label: 'Failed',
-        class: 'text-red-500 bg-red-100 dark:text-red-100 dark:bg-red-500/20',
-    },
-    CANCELLED: {
-        label: 'Cancelled',
-        class: 'text-gray-500 bg-gray-100 dark:text-gray-100 dark:bg-gray-500/20',
-    },
-    CLOSED: {
-        label: 'Closed',
-        class: 'text-gray-500 bg-gray-100 dark:text-gray-100 dark:bg-gray-500/20',
-    },
-    REFUNDED: {
-        label: 'Refund',
-        class: 'bg-cyan-100 text-cyan-600 dark:bg-cyan-500/20 dark:text-cyan-100',
-    },
-}
-
 const notifyStatus: Record<number, PayementStatus> = {
     0: {
         label: 'Done',
@@ -102,6 +76,20 @@ const fallbackText = (value?: string) => {
         return value
     }
     return '-'
+}
+
+const isValidSuccessSettlement = (detail: Partial<OrderDetailsResponse>) => {
+    if (detail.status !== 'SUCCESS') {
+        return true
+    }
+    return (
+        typeof detail.merchant_fee === 'number' &&
+        Number.isFinite(detail.merchant_fee) &&
+        typeof detail.settlement_amount === 'number' &&
+        Number.isFinite(detail.settlement_amount) &&
+        typeof detail.settled_at === 'string' &&
+        detail.settled_at.trim() !== ''
+    )
 }
 
 const mapPaymentDetail = (detail: any): OrderDetailsResponse => {
@@ -128,6 +116,9 @@ const PaymentDetails = () => {
 
     const [loading, setLoading] = useState(true)
     const [data, setData] = useState<Partial<OrderDetailsResponse>>({})
+    const currentStatusMeta =
+        PAYMENT_STATUS_META[(data.status || 'PENDING') as PaymentStatus] ||
+        PAYMENT_STATUS_META.PENDING
 
     useEffect(() => {
         fetchData()
@@ -148,6 +139,11 @@ const PaymentDetails = () => {
                 
                 if (paymentData && paymentData.payment_id) {
                     const mappedData = mapPaymentDetail(paymentData)
+                    if (!isValidSuccessSettlement(mappedData)) {
+                        throw new Error(
+                            'SUCCESS订单缺少结算字段：merchant_fee/settlement_amount/settled_at'
+                        )
+                    }
                     console.log('商户订单详情 Mapped Data:', mappedData)
                     setData(mappedData)
                 } else {
@@ -177,16 +173,10 @@ const PaymentDetails = () => {
                                 <Tag
                                     className={classNames(
                                         'border-0 rounded-md ltr:ml-2 rtl:mr-2',
-                                        paymentStatus[
-                                            data.status || 'PENDING'
-                                        ].class
+                                        currentStatusMeta.tagClass
                                     )}
                                 >
-                                    {
-                                        paymentStatus[
-                                            data.status || 'PENDING'
-                                        ].label
-                                    }
+                                    {currentStatusMeta.label}
                                 </Tag>
                                 <Tag
                                     className={classNames(

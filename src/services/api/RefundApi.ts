@@ -18,8 +18,8 @@ const REFUND_API = {
     REFUND_DETAIL: (id: string) => `/api/v1/refunds/${id}`,
 
     // 商户后台接口
-    MERCHANT_BACKEND_REFUNDS: '/api/v1/merchant-backend/refunds',
-    MERCHANT_BACKEND_REFUND_DETAIL: (id: string) => `/api/v1/merchant-backend/refunds/${id}`,
+    MERCHANT_BACKEND_REFUNDS: '/api/v1/merchant/refunds',
+    MERCHANT_BACKEND_REFUND_DETAIL: (id: string) => `/api/v1/merchant/refunds/${id}`,
 }
 
 /**

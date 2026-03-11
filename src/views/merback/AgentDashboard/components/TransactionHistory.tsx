@@ -3,6 +3,7 @@ import {
     getTransctionHistoryData,
     setSelectedTab,
     setSelectedMerchantId,
+    setSelectedAppId,
     setTableData,
     initialTableData,
     setTransactionHistoryData,
@@ -37,14 +38,16 @@ const { TabNav, TabList, TabContent } = Tabs
 const TransactionHistory = () => {
     const dispatch = useAppDispatch()
 
-    const { data, loading, selectedTab, tableData, merchants, selectedMerchantId } = useAppSelector(
+    const { data, loading, selectedTab, tableData, merchants, apps, selectedMerchantId, selectedAppId } = useAppSelector(
         (state) => ({
             data: state.agentWallets?.data?.transactionHistoryData ?? [],
             loading: state.agentWallets?.data?.transactionHistoryLoading ?? true,
             selectedTab: state.agentWallets?.data?.selectedTab ?? 'merchant',
             tableData: state.agentWallets?.data?.tableData ?? initialTableData,
             merchants: state.agentWallets?.data?.merchants ?? [],
+            apps: state.agentWallets?.data?.apps ?? [],
             selectedMerchantId: state.agentWallets?.data?.selectedMerchantId ?? '',
+            selectedAppId: state.agentWallets?.data?.selectedAppId ?? '',
         }),
         shallowEqual
     )
@@ -58,7 +61,7 @@ const TransactionHistory = () => {
         }
 
         dispatch(getTransctionHistoryData({ tab: selectedTab, ...tableData }))
-    }, [dispatch, selectedTab, tableData])
+    }, [dispatch, selectedAppId, selectedMerchantId, selectedTab, tableData])
 
     const handleTabChange = useCallback(
         (val: string) => {
@@ -88,44 +91,48 @@ const TransactionHistory = () => {
         [dispatch, tableData]
     )
 
-    const merchantOptions = merchants.map((merchant) => ({
-        value: merchant.id,
-        label: merchant.name || merchant.id,
+    const appOptions = apps.map((app) => ({
+        value: app.id,
+        label: app.name || app.id,
     }))
 
-    const handleMerchantChange = useCallback(
+    const handleAppChange = useCallback(
         (option?: { value?: string }) => {
-            const merchantId = option?.value || ''
-            dispatch(setSelectedMerchantId(merchantId))
+            const appId = option?.value || ''
+            const selectedApp = apps.find((app) => app.id === appId)
+            dispatch(setSelectedAppId(appId))
+            dispatch(setSelectedMerchantId(selectedApp?.merchant_id || ''))
             dispatch(clearTransactionHistoryCache())
             dispatch(setTransactionHistoryData([]))
             dispatch(setTableData(initialTableData))
         },
-        [dispatch]
+        [apps, dispatch]
     )
 
     useEffect(() => {
         if (selectedTab !== 'deposit') {
             return
         }
-        if (selectedMerchantId || merchants.length === 0) {
+        if (apps.length === 0) {
             return
         }
-        const firstMerchantId = merchants[0]?.id || ''
-        if (!firstMerchantId) {
+        if (!selectedAppId) {
+            const firstApp = apps[0]
+            if (!firstApp?.id) {
+                return
+            }
+            dispatch(setSelectedMerchantId(firstApp.merchant_id))
+            dispatch(setSelectedAppId(firstApp.id))
+            dispatch(clearTransactionHistoryCache())
+            dispatch(setTransactionHistoryData([]))
+            dispatch(setTableData(initialTableData))
             return
         }
-        dispatch(setSelectedMerchantId(firstMerchantId))
-        dispatch(clearTransactionHistoryCache())
-        dispatch(setTransactionHistoryData([]))
-        dispatch(setTableData(initialTableData))
-        dispatch(
-            getTransctionHistoryData({
-                tab: 'deposit',
-                ...initialTableData,
-            })
-        )
-    }, [dispatch, merchants, selectedMerchantId, selectedTab])
+        const currentApp = apps.find((app) => app.id === selectedAppId)
+        if (currentApp && currentApp.merchant_id !== selectedMerchantId) {
+            dispatch(setSelectedMerchantId(currentApp.merchant_id))
+        }
+    }, [apps, dispatch, selectedAppId, selectedMerchantId, selectedTab])
 
     return (
         <Card>
@@ -153,10 +160,10 @@ const TransactionHistory = () => {
                                     size="sm"
                                     menuPlacement="top"
                                     isSearchable
-                                    placeholder="Select merchant"
-                                    options={merchantOptions}
-                                    value={merchantOptions.find((option) => option.value === selectedMerchantId)}
-                                    onChange={(option) => handleMerchantChange(option as { value?: string })}
+                                    placeholder="Select app"
+                                    options={appOptions}
+                                    value={appOptions.find((option) => option.value === selectedAppId)}
+                                    onChange={(option) => handleAppChange(option as { value?: string })}
                                 />
                             </div>
                         )}

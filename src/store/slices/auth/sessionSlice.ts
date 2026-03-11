@@ -1,5 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 import { SLICE_BASE_NAME } from './constants'
+import type { LoginMFAFactor } from '@/@types/auth'
 
 /**
  * MFA 待验证状态
@@ -9,6 +10,7 @@ export interface MFAPendingState {
     factorId?: string
     challengeId?: string
     factorType?: 'totp' | 'email'
+    availableFactors?: LoginMFAFactor[]
 }
 
 /**
@@ -54,6 +56,7 @@ interface MFAPendingPayload {
     userId: string
     factorId?: string
     factorType?: 'totp' | 'email'
+    availableFactors?: LoginMFAFactor[]
 }
 
 /**
@@ -100,6 +103,7 @@ const sessionSlice = createSlice({
                 userId: action.payload.userId,
                 factorId: action.payload.factorId,
                 factorType: action.payload.factorType,
+                availableFactors: action.payload.availableFactors,
             }
         },
 

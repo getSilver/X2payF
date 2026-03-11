@@ -1,16 +1,15 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
 import {
-    apiGetMerchantWithdrawals,
-} from '@/services/MerchantService'
-import {
     apiGetAgentMerchants,
     apiGetAgentApps,
     apiGetAgentDailyReport,
     apiGetAgentProfit,
 } from '@/services/AgentMerchantService'
+import { getTradeWithdrawProvider } from '@/services/tradeWithdrawProvider'
 import type { TableQueries } from '@/@types/common'
 import type { Merchant, MerchantApplication } from '@/@types/account'
 import { getCurrencySymbol } from '@/utils/currencySymbols'
+import dayjs from 'dayjs'
 
 export type TransactionDetails = {
     id: string
@@ -101,6 +100,7 @@ export type CryptoWalletsState = {
     tableData: TableQueries
     selectedTab: string
     selectedMerchantId: string
+    selectedAppId: string
     selectedRow: any
     merchants: Merchant[]
     apps: MerchantApplication[]
@@ -269,9 +269,11 @@ export const getTransctionHistoryData = createAsyncThunk(
             sort = { order: '', key: '' },
         } = data
         const { startDate, endDate } = state.agentWallets.data
+        const selectedAppId = state.agentWallets.data.selectedAppId
 
         const merchantKey = state.agentWallets.data.selectedMerchantId || ''
-        const cacheKey = `${tab}_${pageIndex}_${pageSize}_${query}_${sort.order}_${sort.key}_${startDate ?? ''}_${endDate ?? ''}_${merchantKey}`
+        const appKey = selectedAppId || ''
+        const cacheKey = `${tab}_${pageIndex}_${pageSize}_${query}_${sort.order}_${sort.key}_${startDate ?? ''}_${endDate ?? ''}_${merchantKey}_${appKey}`
         const cachedData = state.agentWallets.data.transactionHistoryCache[cacheKey]
 
         const CACHE_DURATION = 5 * 60 * 1000
@@ -334,8 +336,15 @@ export const getTransctionHistoryData = createAsyncThunk(
                 if (!merchantId) {
                     return { total: 0, data: [] }
                 }
+                if (!selectedAppId) {
+                    return { total: 0, data: [] }
+                }
                 response = await apiGetAgentDailyReport({
-                    ...params,
+                    page: pageIndex,
+                    page_size: pageSize,
+                    app_id: selectedAppId,
+                    start_date: startDate ? dayjs(startDate).format('YYYY-MM-DD') : undefined,
+                    end_date: endDate ? dayjs(endDate).format('YYYY-MM-DD') : undefined,
                     merchant_id: merchantId,
                 })
                 const outerData = (response.data as any).data || response.data
@@ -344,7 +353,8 @@ export const getTransctionHistoryData = createAsyncThunk(
                     data: outerData.data || outerData || [],
                 }
             } else if (tab === 'withdrawal') {
-                response = await apiGetMerchantWithdrawals(params)
+                const provider = getTradeWithdrawProvider('agent')
+                response = await provider.listWithdrawals(params)
                 const responseData = (response.data as any).data || response.data
                 return {
                     total: responseData.total || 0,
@@ -400,6 +410,7 @@ const initialState: CryptoWalletsState = {
     tableData: initialTableData,
     selectedTab: 'merchant',
     selectedMerchantId: '',
+    selectedAppId: '',
     selectedRow: {},
     merchants: [],
     apps: [],
@@ -421,6 +432,9 @@ const walletsSlice = createSlice({
         },
         setSelectedMerchantId: (state, action: PayloadAction<string>) => {
             state.selectedMerchantId = action.payload
+        },
+        setSelectedAppId: (state, action: PayloadAction<string>) => {
+            state.selectedAppId = action.payload
         },
         setTableData: (state, action) => {
             state.tableData = action.payload
@@ -460,7 +474,8 @@ const walletsSlice = createSlice({
                     sort = { order: '', key: '' },
                 } = state.tableData
                 const merchantKey = state.selectedMerchantId || ''
-                const cacheKey = `${state.selectedTab}_${pageIndex}_${pageSize}_${query}_${sort.order}_${sort.key}_${merchantKey}`
+                const appKey = state.selectedAppId || ''
+                const cacheKey = `${state.selectedTab}_${pageIndex}_${pageSize}_${query}_${sort.order}_${sort.key}_${merchantKey}_${appKey}`
                 state.transactionHistoryCache[cacheKey] = {
                     data: payload,
                     timestamp: Date.now(),
@@ -497,6 +512,7 @@ export const {
     setEndDate,
     setSelectedTab,
     setSelectedMerchantId,
+    setSelectedAppId,
     setTableData,
     setTransactionHistoryData,
     setSelectedRow,

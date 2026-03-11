@@ -4,6 +4,7 @@ import type {
     MerchantApplication,
 } from '@/@types/account'
 import type { MerchantDailyReportResponse, MerchantQueryParams } from './MerchantService'
+import type { CreateWithdrawalRequest, CreateWithdrawalResponse, MerchantWithdrawalResponse } from './MerchantService'
 
 const AGENT_PREFIX = '/api/v1/merchant/agent'
 
@@ -46,5 +47,54 @@ export async function apiGetAgentProfit() {
     return ApiService.fetchData<AgentProfitResponse>({
         url: `${AGENT_PREFIX}/profit`,
         method: 'get',
+    })
+}
+
+export type AgentProfile = {
+    agent_id?: string
+    id?: string
+    name?: string
+    withdrawal_address?: string
+    profit_balance?: number
+}
+
+export async function apiGetAgentProfile() {
+    return ApiService.fetchData<AgentProfile>({
+        url: `${AGENT_PREFIX}/profile`,
+        method: 'get',
+    })
+}
+
+export async function apiUpdateAgentWithdrawalAddress(withdrawalAddress: string) {
+    return ApiService.fetchData<{ agent_id: string; withdrawal_address: string; message: string }>({
+        url: `${AGENT_PREFIX}/profile/withdrawal-address`,
+        method: 'put',
+        data: {
+            withdrawal_address: withdrawalAddress,
+        },
+    })
+}
+
+export async function apiGetAgentWithdrawals(params: MerchantQueryParams) {
+    return ApiService.fetchData<MerchantWithdrawalResponse>({
+        url: `${AGENT_PREFIX}/withdrawals`,
+        method: 'get',
+        params,
+    })
+}
+
+export async function apiCreateAgentWithdrawal(data: CreateWithdrawalRequest) {
+    return ApiService.fetchData<CreateWithdrawalResponse>({
+        url: `${AGENT_PREFIX}/withdrawals`,
+        method: 'post',
+        data,
+    })
+}
+
+export async function apiCancelAgentWithdrawal(id: string, reason?: string) {
+    return ApiService.fetchData<{ withdrawal_id: string; message: string }>({
+        url: `${AGENT_PREFIX}/withdrawals/${id}/cancel`,
+        method: 'post',
+        data: reason ? { reason } : {},
     })
 }

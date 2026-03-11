@@ -1,7 +1,6 @@
 import { useMemo } from 'react'
 import DataTable from '@/components/shared/DataTable'
 import { setTableData, useAppDispatch, Trade } from '../store'
-import { statusColor } from '../constants'
 import SharedActionIcon from './SharedActionIcon'
 import cloneDeep from 'lodash/cloneDeep'
 import dayjs from 'dayjs'
@@ -12,7 +11,7 @@ import { memo } from 'react'
 import Tooltip from '@/components/ui/Tooltip'
 import { HiOutlineEye } from 'react-icons/hi2'
 import useThemeClass from '@/utils/hooks/useThemeClass'
-import type { PaymentStatus } from '@/@types/payment'
+import { PAYMENT_STATUS_META, type PaymentStatus } from '@/@types/payment'
 import { formatCurrencyAmount } from '@/utils/currencySymbols'
 
 type TradeTableProps = {
@@ -21,15 +20,15 @@ type TradeTableProps = {
     tableData: TableQueries
 }
 
-// 状态映射：后端状态 -> 前端状态码
-const statusMap: Record<PaymentStatus, number> = {
-    PENDING: 0,
-    PROCESSING: 1,
-    SUCCESS: 2,
-    FAILED: 3,
-    CANCELLED: 4,
-    CLOSED: 5,
-    REFUNDED: 6,
+// 兼容历史数字状态码
+const statusCodeToStatus: Record<number, PaymentStatus> = {
+    0: 'PENDING',
+    1: 'PROCESSING',
+    2: 'SUCCESS',
+    3: 'FAILED',
+    4: 'CANCELLED',
+    5: 'CLOSED',
+    6: 'REFUNDED',
 }
 
 // 交易类型映射
@@ -65,6 +64,18 @@ ActionColumn.displayName = 'ActionColumn'
 
 const TradeTable = ({ data, loading, tableData }: TradeTableProps) => {
     const dispatch = useAppDispatch()
+    const DEBUG_TRADE = import.meta.env.VITE_API_DEBUG === 'true'
+
+    if (DEBUG_TRADE) {
+        console.debug('[MerchantDashboard][TradeTableRender]', {
+            loading,
+            dataLength: Array.isArray(data) ? data.length : 0,
+            firstRow: Array.isArray(data) && data.length > 0 ? data[0] : null,
+            pageIndex: tableData.pageIndex,
+            pageSize: tableData.pageSize,
+            total: tableData.total,
+        })
+    }
 
     const columns: ColumnDef<Trade>[] = useMemo(
         () => [
@@ -177,15 +188,14 @@ const TradeTable = ({ data, loading, tableData }: TradeTableProps) => {
                 accessorKey: 'status',
                 cell: (props) => {
                     const row = props.row.original
-                    // 将状态转换为数字类型的状态码
-                    let statusCode: number = 0
+                    let status: PaymentStatus = 'PENDING'
                     if (typeof row.status === 'string') {
-                        statusCode = statusMap[row.status as PaymentStatus] ?? 0
+                        status = (row.status as PaymentStatus) || 'PENDING'
                     } else if (typeof row.status === 'number') {
-                        statusCode = row.status
+                        status = statusCodeToStatus[row.status] || 'PENDING'
                     }
-                    
-                    const statusInfo = statusColor[statusCode] || statusColor[0]
+
+                    const statusInfo = PAYMENT_STATUS_META[status] || PAYMENT_STATUS_META.PENDING
                     
                     return (
                         <div className="flex items-center gap-2">

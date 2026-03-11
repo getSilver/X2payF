@@ -19,10 +19,8 @@ type FormModel = {
     channelName: string
     channels: string
     timezone: string
-    in_fee_rate: string
-    in_fixed_fee: string
-    out_fee_rate: string
-    out_fixed_fee: string
+    fee_rate_pair: string
+    fixed_fee_pair: string
     payment_methods: string
     single_txn_min: string
     single_txn_max: string
@@ -30,11 +28,38 @@ type FormModel = {
     primary: boolean
 }
 
+const pairPattern = /^\s*-?\d+(?:\.\d+)?\s*\/\s*-?\d+(?:\.\d+)?\s*$/
+
+const pairFieldSchema = (label: string) =>
+    Yup.string()
+        .required(`${label}不能为空`)
+        .test(
+            'slash-pair-format',
+            `${label}格式必须为 in/out，例如 0.1/3`,
+            (value) => pairPattern.test(value || '')
+        )
+
+const parseSlashPair = (value: string) => {
+    const [left = '0', right = '0'] = value.split('/')
+
+    return {
+        left: left.trim(),
+        right: right.trim(),
+    }
+}
+
+const formatSlashPair = (
+    left: string | number | null | undefined,
+    right: string | number | null | undefined
+) => `${left ?? 0}/${right ?? 0}`
+
 //渠道设置
 const validationSchema = Yup.object().shape({
     channelName: Yup.string().required('通道名不能为空'),
     channels: Yup.string().required('通道ID不能为空'),
     timezone: Yup.string().required('时区不能为空'),
+    fee_rate_pair: pairFieldSchema('费率'),
+    fixed_fee_pair: pairFieldSchema('单笔费用'),
 })
 
 const EditPaymentMethod = () => {
@@ -62,16 +87,20 @@ const EditPaymentMethod = () => {
             channelName,
             channels,
             timezone,
-            in_fee_rate,
-            in_fixed_fee,
-            out_fee_rate,
-            out_fixed_fee,
+            fee_rate_pair,
+            fixed_fee_pair,
             payment_methods,
             single_txn_min,
             single_txn_max,
             daily_limit,
             primary,
         } = values
+        const { left: inFeeRate, right: outFeeRate } = parseSlashPair(
+            fee_rate_pair
+        )
+        const { left: inFixedFee, right: outFixedFee } = parseSlashPair(
+            fixed_fee_pair
+        )
 
         // 使用 id 判断是否为新应用（id 存在表示编辑现有应用）
         const isNewApp = !selectedCard.id
@@ -88,10 +117,10 @@ const EditPaymentMethod = () => {
             id: selectedCard.id || '',
             channelName,
             channel_id: channels,
-            in_fee_rate: in_fee_rate || '',
-            out_fee_rate: out_fee_rate || '',
-            in_fixed_fee: in_fixed_fee || '',
-            out_fixed_fee: out_fixed_fee || '',
+            in_fee_rate: inFeeRate || '',
+            out_fee_rate: outFeeRate || '',
+            in_fixed_fee: inFixedFee || '',
+            out_fixed_fee: outFixedFee || '',
             currency: selectedCard.currency || merApp.currency || 'USD',
             timezone: timezone || '',
             payment_methods: paymentMethodList,
@@ -105,10 +134,10 @@ const EditPaymentMethod = () => {
         }
 
         const applicationConfig = {
-            in_fee_rate: parseFloat(in_fee_rate) || 0,
-            in_fixed_fee: parseInt(in_fixed_fee) || 0,
-            out_fee_rate: parseFloat(out_fee_rate) || 0,
-            out_fixed_fee: parseInt(out_fixed_fee) || 0,
+            in_fee_rate: parseFloat(inFeeRate) || 0,
+            in_fixed_fee: parseFloat(inFixedFee) || 0,
+            out_fee_rate: parseFloat(outFeeRate) || 0,
+            out_fixed_fee: parseFloat(outFixedFee) || 0,
             channels: channels ? [channels] : [],
             payment_methods: paymentMethodList,
             timezone: timezone || '',
@@ -183,10 +212,14 @@ const EditPaymentMethod = () => {
                         channelName: merApp.channelName || '',
                         channels: merApp.channel_id || '',
                         timezone: merApp.timezone || '',
-                        in_fee_rate: merApp.in_fee_rate || '0',
-                        in_fixed_fee: merApp.in_fixed_fee || '0',
-                        out_fee_rate: merApp.out_fee_rate || '0',
-                        out_fixed_fee: merApp.out_fixed_fee || '0',
+                        fee_rate_pair: formatSlashPair(
+                            merApp.in_fee_rate,
+                            merApp.out_fee_rate
+                        ),
+                        fixed_fee_pair: formatSlashPair(
+                            merApp.in_fixed_fee,
+                            merApp.out_fixed_fee
+                        ),
                         payment_methods: (merApp.payment_methods || []).join(','),
                         single_txn_min: String(merApp.single_txn_min || 0),
                         single_txn_max: String(merApp.single_txn_max || 0),
@@ -234,66 +267,44 @@ const EditPaymentMethod = () => {
                                 </FormItem>
                                 <div className="grid grid-cols-2 gap-4">
                                     <FormItem
-                                        label="in_fee_rate"
+                                        label="费率 (in/out)"
                                         invalid={
-                                            errors.in_fee_rate && touched.in_fee_rate
+                                            errors.fee_rate_pair &&
+                                            touched.fee_rate_pair
                                         }
-                                        errorMessage={errors.in_fee_rate}
+                                        errorMessage={errors.fee_rate_pair}
                                     >
                                         <Field
                                             type="text"
                                             autoComplete="off"
-                                            name="in_fee_rate"
+                                            name="fee_rate_pair"
                                             component={Input}
-                                            placeholder="0.5"
+                                            placeholder="0.1/3"
                                         />
                                     </FormItem>
                                     <FormItem
-                                        label="in_fixed_fee"
-                                        invalid={errors.in_fixed_fee && touched.in_fixed_fee}
-                                        errorMessage={errors.in_fixed_fee}
+                                        label="单笔费用 (in/out)"
+                                        invalid={
+                                            errors.fixed_fee_pair &&
+                                            touched.fixed_fee_pair
+                                        }
+                                        errorMessage={errors.fixed_fee_pair}
                                     >
                                         <Field
                                             type="text"
                                             autoComplete="off"
-                                            name="in_fixed_fee"
+                                            name="fixed_fee_pair"
                                             component={Input}
-                                            placeholder="10"
-                                        />
-                                    </FormItem>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <FormItem
-                                        label="out_fee_rate"
-                                    >
-                                        <Field
-                                            type="text"
-                                            autoComplete="off"
-                                            name="out_fee_rate"
-                                            component={Input}
-                                            placeholder="5"
-                                        />
-                                    </FormItem>
-                                    <FormItem
-                                        label="out_fixed_fee"
-                                    >
-                                        <Field
-                                            type="text"
-                                            autoComplete="off"
-                                            name="out_fixed_fee"
-                                            component={Input}
-                                            placeholder="32"
+                                            placeholder="5/20"
                                         />
                                     </FormItem>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <FormItem label="timezone">
-                                        <Field
-                                            type="text"
-                                            autoComplete="off"
-                                            name="timezone"
-                                            component={Input}
-                                            placeholder="Asia/Shanghai"
+                                        <Input
+                                            value={merApp.timezone || ''}
+                                            readOnly
+                                            disabled
                                         />
                                     </FormItem>
                                     <FormItem label="payment_methods (comma-separated)">

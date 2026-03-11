@@ -83,26 +83,6 @@ const appsRoute: Routes = [
         component: lazy(() => import('@/views/channel/ChannelNew')),
         authority: PLATFORM_ROLES,
     },
-
-    //支付设置
-    {
-        key: 'appsChannel.payment',
-        path: `${APP_PREFIX_PATH}/channel/payment`,
-        component: lazy(() => import('@/views/channel/PaymentList')),
-        authority: PLATFORM_ROLES,
-    },
-    {
-        key: 'appsChannel.paymentSet',
-        path: `${APP_PREFIX_PATH}/channel/payment-edit/:paymentId`,
-        component: lazy(() => import('@/views/channel/PaymentEdit')),
-        authority: PLATFORM_ROLES,
-    },
-    {
-        key: 'appsChannel.paymentNew',
-        path: `${APP_PREFIX_PATH}/channel/Payment-new`,
-        component: lazy(() => import('@/views/channel/PaymentNew')),
-        authority: PLATFORM_ROLES,
-    },
     //财务面板路由
     {
         key: 'appsFinances.dashboard',

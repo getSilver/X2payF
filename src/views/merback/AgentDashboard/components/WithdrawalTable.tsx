@@ -1,7 +1,6 @@
 import { useMemo } from 'react'
 import DataTable from '@/components/shared/DataTable'
 import { setTableData, useAppDispatch, Withdraw } from '../store'
-import { statusColor } from '@/views/merback/Dashboard/constants'
 import SharedActionIcon from '@/views/merback/Dashboard/components/SharedActionIcon'
 import cloneDeep from 'lodash/cloneDeep'
 import dayjs from 'dayjs'
@@ -30,6 +29,46 @@ const statusMap: Record<WithdrawalStatus, number> = {
     REJECTED: 3,
     CANCELLED: 4,
     CLOSED: 5,
+}
+
+const withdrawalStatusColor: Record<
+    number,
+    {
+        label: string
+        dotClass: string
+        textClass: string
+    }
+> = {
+    0: {
+        label: 'PENDING',
+        dotClass: 'bg-gray-400',
+        textClass: 'text-gray-600',
+    },
+    1: {
+        label: 'APPROVED',
+        dotClass: 'bg-blue-500',
+        textClass: 'text-blue-600',
+    },
+    2: {
+        label: 'COMPLETED',
+        dotClass: 'bg-emerald-500',
+        textClass: 'text-emerald-600',
+    },
+    3: {
+        label: 'REJECTED',
+        dotClass: 'bg-red-500',
+        textClass: 'text-red-600',
+    },
+    4: {
+        label: 'CANCELLED',
+        dotClass: 'bg-orange-500',
+        textClass: 'text-orange-600',
+    },
+    5: {
+        label: 'CLOSED',
+        dotClass: 'bg-gray-500',
+        textClass: 'text-gray-600',
+    },
 }
 
 const WithdrawalTable = ({ data, loading, tableData }: WithdrawalTableProps) => {
@@ -161,7 +200,7 @@ const WithdrawalTable = ({ data, loading, tableData }: WithdrawalTableProps) => 
                         statusCode = row.status
                     }
 
-                    const statusInfo = statusColor[statusCode] || statusColor[0]
+                    const statusInfo = withdrawalStatusColor[statusCode] || withdrawalStatusColor[0]
 
                     return (
                         <div className="flex items-center gap-2">

@@ -7,6 +7,7 @@ type FormFieldsName = {
     withdrawal_address: string
     withdrawal_fee_percent: string
     ip_whitelist: string
+    cashier_return_url_whitelist: string
 }
 
 type SocialLinkFormProps = {
@@ -59,6 +60,23 @@ const SocialLinkForm = (props: SocialLinkFormProps) => {
                     autoComplete="off"
                     name="ip_whitelist"
                     placeholder="127.0.0.1,10.0.0.1"
+                    component={Input}
+                    prefix={<HiShieldCheck className="text-xl" />}
+                />
+            </FormItem>
+            <FormItem
+                label="Cashier Return URL Whitelist (comma-separated)"
+                invalid={
+                    errors.cashier_return_url_whitelist &&
+                    touched.cashier_return_url_whitelist
+                }
+                errorMessage={errors.cashier_return_url_whitelist}
+            >
+                <Field
+                    type="text"
+                    autoComplete="off"
+                    name="cashier_return_url_whitelist"
+                    placeholder="merchant.example.com,app.example.com"
                     component={Input}
                     prefix={<HiShieldCheck className="text-xl" />}
                 />

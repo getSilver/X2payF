@@ -29,6 +29,10 @@ const CHANNEL_API = {
     CHANNEL_METRICS: (id: string) => `/api/v1/admin/channels/${id}/metrics`,
 }
 
+const SENSITIVE_OPERATION_HEADERS = {
+    'X-Confirmation-Token': 'confirm-1',
+}
+
 export async function apiCreateChannel(data: CreateChannelRequest) {
     return ApiService.fetchData<Channel, CreateChannelRequest>({
         url: CHANNEL_API.CHANNELS,
@@ -64,6 +68,7 @@ export async function apiDeleteChannel(channelId: string) {
     return ApiService.fetchData<{ channel_id: string; message: string }>({
         url: CHANNEL_API.CHANNEL_DETAIL(channelId),
         method: 'delete',
+        headers: SENSITIVE_OPERATION_HEADERS,
     })
 }
 
@@ -87,6 +92,7 @@ export async function apiSetAPIConfig(channelId: string, data: SetAPIConfigReque
         url: CHANNEL_API.CHANNEL_API_CONFIG(channelId),
         method: 'post',
         data,
+        headers: SENSITIVE_OPERATION_HEADERS,
     })
 }
 
@@ -111,6 +117,7 @@ export async function apiHotUpdateCredentials(channelId: string, data: HotUpdate
         url: CHANNEL_API.CHANNEL_CREDENTIALS(channelId),
         method: 'put',
         data,
+        headers: SENSITIVE_OPERATION_HEADERS,
     })
 }
 

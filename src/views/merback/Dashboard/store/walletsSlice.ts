@@ -1,11 +1,12 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
+import dayjs from 'dayjs'
 import {
     apiGetMerchantDailyReport,
     apiGetMerchantOrders,
-    apiGetMerchantWithdrawals,
-    apiGetMerchantOverview,
     apiGetMerchantApplications,
+    apiGetMerchantTransactionByType,
 } from '@/services/MerchantService'
+import { getTradeWithdrawProvider } from '@/services/tradeWithdrawProvider'
 import type { TableQueries } from '@/@types/common'
 import { getCurrencySymbol } from '@/utils/currencySymbols'
 
@@ -95,6 +96,11 @@ export type Wallet = {
     fiatValue: number   // 主要显示金额
     coinValue: number   // 次要显示金额
     growshrink: number  // 增长/冻结金额
+    secondaryType?: 'amount' | 'count'
+    secondarySuffix?: string
+    metaType?: 'percent' | 'amount' | 'none'
+    metaLabel?: string
+    metaValue?: number
 }
 
 export type Transaction = Trade[] | TransactionDetails[] | Withdraw[]
@@ -104,12 +110,16 @@ type GetTransctionHistoryDataResponse = {
     data: Transaction
 }
 
-type GetWalletDataResponse = Wallet[]
+type GetWalletDataResponse = {
+    wallets: Wallet[]
+    appId: string
+}
 
 export type CryptoWalletsState = {
-    startDate: number | null
-    endDate: number | null
+    startDate: number
+    endDate: number
     loading: boolean
+    currentAppId: string
     walletsData: Wallet[]
     transactionHistoryLoading: boolean
     transactionHistoryData: Transaction
@@ -122,12 +132,26 @@ export type CryptoWalletsState = {
 }
 
 export const SLICE_NAME = 'appWallets'
+const DEBUG_TRADE = import.meta.env.VITE_API_DEBUG === 'true'
+
+type WalletDataQuery = {
+    startDateOverride?: number
+    endDateOverride?: number
+}
+
+type TransactionHistoryQuery = ({ tab: string } & TableQueries) & {
+    startDateOverride?: number
+    endDateOverride?: number
+}
 
 export const getWalletData = createAsyncThunk(
     SLICE_NAME + '/getWalletData',
-    async (_, { getState }) => {
+    async (query: WalletDataQuery | undefined, { getState }) => {
         const state = getState() as { appWallets: { data: CryptoWalletsState } }
-        
+        const { startDate, endDate } = state.appWallets.data
+        const effectiveStartDate = query?.startDateOverride ?? startDate
+        const effectiveEndDate = query?.endDateOverride ?? endDate
+
         // 获取应用余额数据
         const applicationsRes = await apiGetMerchantApplications().catch(() => null)
         
@@ -139,6 +163,35 @@ export const getWalletData = createAsyncThunk(
         let totalAvailable = 0
         let totalFrozen = 0
         let currency = ''
+        let appId = ''
+        let payInAmount = 0
+        let payInCount = 0
+        let payOutAmount = 0
+        let payOutCount = 0
+
+        const parseAmountMap = (amountMap: unknown, targetCurrency: string): number => {
+            if (!amountMap || typeof amountMap !== 'object') {
+                return 0
+            }
+            const record = amountMap as Record<string, unknown>
+            const normalize = (value: unknown): number => {
+                if (typeof value === 'number') {
+                    return Number.isFinite(value) ? value : 0
+                }
+                if (typeof value === 'string') {
+                    const parsed = Number(value)
+                    return Number.isFinite(parsed) ? parsed : 0
+                }
+                return 0
+            }
+
+            if (targetCurrency && record[targetCurrency] !== undefined) {
+                return normalize(record[targetCurrency])
+            }
+
+            const firstValue = Object.values(record)[0]
+            return normalize(firstValue)
+        }
         
         if (applicationsRes?.data) {
             // 提取应用列表: applicationsRes.data.data
@@ -146,6 +199,9 @@ export const getWalletData = createAsyncThunk(
             const applications = Array.isArray(responseData.data) ? responseData.data : []
             
             applications.forEach((app: any) => {
+                if (!appId && typeof app.id === 'string' && app.id.trim()) {
+                    appId = app.id
+                }
                 // 将分转换为元（除以100）
                 totalBalance += (app.balance ?? 0) / 100
                 totalAvailable += (app.available_amount ?? 0) / 100
@@ -154,10 +210,18 @@ export const getWalletData = createAsyncThunk(
                 // 提取货币信息（优先从 config 中获取）
                 if (!currency) {
                     // config 可能是对象或 JSON 字符串
-                    const appConfig = typeof app.config === 'string' 
-                        ? JSON.parse(app.config) 
-                        : app.config
-                    currency = appConfig?.currency || app.currency || ''
+                    let appConfig: Record<string, unknown> = {}
+                    if (typeof app.config === 'string') {
+                        try {
+                            appConfig = JSON.parse(app.config)
+                        } catch {
+                            appConfig = {}
+                        }
+                    } else if (app.config && typeof app.config === 'object') {
+                        appConfig = app.config as Record<string, unknown>
+                    }
+                    const configCurrency = typeof appConfig.currency === 'string' ? appConfig.currency : ''
+                    currency = configCurrency || app.currency || ''
                 }
             })
         }
@@ -165,6 +229,37 @@ export const getWalletData = createAsyncThunk(
         // 如果没有获取到币种，使用默认值 USD
         if (!currency) {
             currency = 'USD'
+        }
+
+        if (appId) {
+            const endTime = dayjs.unix(effectiveEndDate)
+            const startTime = dayjs.unix(effectiveStartDate)
+
+            const rangeParams = {
+                app_id: appId,
+                start_time: startTime.toISOString(),
+                end_time: endTime.toISOString(),
+                currency,
+            } as const
+
+            const [payInRes, payOutRes] = await Promise.all([
+                apiGetMerchantTransactionByType({
+                    ...rangeParams,
+                    transaction_type: 'PAY_IN',
+                }).catch(() => null),
+                apiGetMerchantTransactionByType({
+                    ...rangeParams,
+                    transaction_type: 'PAY_OUT',
+                }).catch(() => null),
+            ])
+
+            const payInData = (payInRes?.data as any)?.data || payInRes?.data
+            const payOutData = (payOutRes?.data as any)?.data || payOutRes?.data
+
+            payInAmount = parseAmountMap(payInData?.amount, currency)
+            payInCount = Number(payInData?.count || 0)
+            payOutAmount = parseAmountMap(payOutData?.amount, currency)
+            payOutCount = Number(payOutData?.count || 0)
         }
         
         // 构建三张卡片的数据：代收、代付、余额
@@ -176,17 +271,23 @@ export const getWalletData = createAsyncThunk(
                 icon: '/img/others/pay-in.png',
                 symbol: currencySymbol,
                 name: '代收',
-                fiatValue: 0,            // 待后端提供 API
-                coinValue: 0,
+                fiatValue: payInAmount / 100,
+                coinValue: payInCount,
                 growshrink: 0,
+                secondaryType: 'count',
+                secondarySuffix: ' txns',
+                metaType: 'none',
             },
             {
                 icon: '/img/others/pay-out.png',
                 symbol: currencySymbol,
                 name: '代付',
-                fiatValue: 0,            // 待后端提供 API
-                coinValue: 0,
+                fiatValue: payOutAmount / 100,
+                coinValue: payOutCount,
                 growshrink: 0,
+                secondaryType: 'count',
+                secondarySuffix: ' txns',
+                metaType: 'none',
             },
             {
                 icon: '/img/others/wallet-icon.png',
@@ -195,22 +296,38 @@ export const getWalletData = createAsyncThunk(
                 fiatValue: totalAvailable,   // 可用余额
                 coinValue: totalBalance,     // 总余额
                 growshrink: totalFrozen,     // 冻结金额
+                metaType: 'amount',
+                metaLabel: 'Frozen',
+                metaValue: totalFrozen,
             },
         ]
         
-        return wallets
+        return {
+            wallets,
+            appId,
+        }
     }
 )
 
 export const getTransctionHistoryData = createAsyncThunk(
     SLICE_NAME + '/getTransctionHistoryData',
-    async (data: { tab: string } & TableQueries, { getState, rejectWithValue }) => {
+    async (data: TransactionHistoryQuery, { getState, rejectWithValue }) => {
         const state = getState() as { appWallets: { data: CryptoWalletsState } }
-        const { tab, pageIndex = 1, pageSize = 10, query = '', sort = { order: '', key: '' } } = data
-        const { startDate, endDate } = state.appWallets.data
+        const {
+            tab,
+            pageIndex = 1,
+            pageSize = 10,
+            query = '',
+            sort = { order: '', key: '' },
+            startDateOverride,
+            endDateOverride,
+        } = data
+        const { startDate, endDate, currentAppId } = state.appWallets.data
+        const effectiveStartDate = startDateOverride ?? startDate
+        const effectiveEndDate = endDateOverride ?? endDate
 
         // 创建缓存key（包含时间范围）
-        const cacheKey = `${tab}_${pageIndex}_${pageSize}_${query}_${sort.order}_${sort.key}_${startDate ?? ''}_${endDate ?? ''}`
+        const cacheKey = `${tab}_${pageIndex}_${pageSize}_${query}_${sort.order}_${sort.key}_${effectiveStartDate}_${effectiveEndDate}`
         const cachedData = state.appWallets.data.transactionHistoryCache[cacheKey]
 
         // 检查缓存是否有效（5分钟内有效）
@@ -220,20 +337,41 @@ export const getTransctionHistoryData = createAsyncThunk(
         }
 
         try {
+            const appId = currentAppId?.trim()
+            const keyword = (query || '').trim()
+            if (DEBUG_TRADE) {
+                console.debug('[MerchantDashboard][HistoryRequest]', {
+                    tab,
+                    pageIndex,
+                    pageSize,
+                    query: keyword,
+                    currentAppId: appId,
+                    effectiveStartDate,
+                    effectiveEndDate,
+                    effectiveStartISO: dayjs.unix(effectiveStartDate).toISOString(),
+                    effectiveEndISO: dayjs.unix(effectiveEndDate).toISOString(),
+                })
+            }
+
             // 构建查询参数
             const params = {
                 page: pageIndex,
                 page_size: pageSize,
-                query: query || undefined,
-                start_date: startDate ? new Date(startDate).toISOString() : undefined,
-                end_date: endDate ? new Date(endDate).toISOString() : undefined,
+                start_date: dayjs.unix(effectiveStartDate).format('YYYY-MM-DD'),
+                end_date: dayjs.unix(effectiveEndDate).format('YYYY-MM-DD'),
             }
 
             let response
             // 根据 tab 调用不同的 API
             if (tab === 'deposit') {
+                if (!appId) {
+                    throw new Error('app_id is required for merchant daily report')
+                }
                 // 日报数据
-                response = await apiGetMerchantDailyReport(params)
+                response = await apiGetMerchantDailyReport({
+                    ...params,
+                    app_id: appId,
+                })
                 // 后端响应结构: { code, message, data: { data: [...], total } }
                 const outerData = (response.data as any).data || response.data
                 return {
@@ -241,17 +379,69 @@ export const getTransctionHistoryData = createAsyncThunk(
                     data: outerData.data || outerData || [],
                 }
             } else if (tab === 'trade') {
+                const tradeParams = {
+                    page: pageIndex,
+                    page_size: pageSize,
+                    start_time: dayjs.unix(effectiveStartDate).toISOString(),
+                    end_time: dayjs.unix(effectiveEndDate).toISOString(),
+                }
+                if (DEBUG_TRADE) {
+                    console.debug('[MerchantDashboard][TradeParams]', tradeParams)
+                }
                 // 订单列表
-                response = await apiGetMerchantOrders(params)
+                const isPaymentID = /^pay_/i.test(keyword)
+
+                const buildTradeSearchParams = (searchAs: 'payment_id' | 'merchant_tx_id') => ({
+                    ...tradeParams,
+                    ...(searchAs === 'payment_id'
+                        ? { payment_id: keyword || undefined }
+                        : { merchant_tx_id: keyword || undefined }),
+                })
+
+                if (!keyword) {
+                    response = await apiGetMerchantOrders(tradeParams)
+                } else {
+                    const primarySearchField: 'payment_id' | 'merchant_tx_id' = isPaymentID
+                        ? 'payment_id'
+                        : 'merchant_tx_id'
+                    const fallbackSearchField: 'payment_id' | 'merchant_tx_id' = isPaymentID
+                        ? 'merchant_tx_id'
+                        : 'payment_id'
+
+                    response = await apiGetMerchantOrders(buildTradeSearchParams(primarySearchField))
+                    const primaryData = (response.data as any).data || response.data
+                    const primaryList = primaryData.list || []
+                    const primaryTotal = Number(primaryData.total || 0)
+
+                    // 主搜索无结果时，用另一个字段再查一次
+                    if (!primaryList.length && primaryTotal === 0) {
+                        response = await apiGetMerchantOrders(buildTradeSearchParams(fallbackSearchField))
+                    }
+                }
                 // 后端响应结构: { code, message, data: { list: [...], total } }
                 const responseData = (response.data as any).data || response.data
+                if (DEBUG_TRADE) {
+                    console.debug('[MerchantDashboard][TradeResponse]', {
+                        total: responseData.total || 0,
+                        listLength: Array.isArray(responseData.list)
+                            ? responseData.list.length
+                            : 0,
+                    })
+                }
                 return {
                     total: responseData.total || 0,
                     data: responseData.list || [],
                 }
             } else if (tab === 'withdrawal') {
-                // 提款记录 
-               response = await apiGetMerchantWithdrawals(params)
+                const provider = getTradeWithdrawProvider('merchant')
+                if (provider.requiresAppId && !appId) {
+                    throw new Error('app_id is required for merchant withdrawals')
+                }
+                // 提款记录
+                response = await provider.listWithdrawals({
+                    ...params,
+                    app_id: appId,
+                })
 
                 // 后端响应结构: { code, message, data: { list: [...], total } }
                 const responseData = (response.data as any).data || response.data
@@ -277,7 +467,7 @@ export const getTransctionHistoryData = createAsyncThunk(
             const { selectedTab, tableData } = state.appWallets.data
 
             // 每次都重新加载钱包数据（代收/代付/余额统计）
-            await dispatch(getWalletData())
+            await dispatch(getWalletData(undefined))
 
             // 加载交易历史数据
             await dispatch(
@@ -298,9 +488,10 @@ export const initialTableData: TableQueries = {
 }
 
 const initialState: CryptoWalletsState = {
-    startDate: null,
-    endDate: null,
+    startDate: dayjs().subtract(7, 'day').unix(),
+    endDate: dayjs().unix(),
     loading: true,
+    currentAppId: '',
     walletsData: [],
     transactionHistoryLoading: true,
     transactionHistoryData: [],
@@ -315,10 +506,10 @@ const walletsSlice = createSlice({
     name: `${SLICE_NAME}/state`,
     initialState,
     reducers: {
-        setStartDate: (state, action: PayloadAction<number | null>) => {
+        setStartDate: (state, action: PayloadAction<number>) => {
             state.startDate = action.payload
         },
-        setEndDate: (state, action: PayloadAction<number | null>) => {
+        setEndDate: (state, action: PayloadAction<number>) => {
             state.endDate = action.payload
         },
         setSelectedTab: (state, action) => {
@@ -345,7 +536,8 @@ const walletsSlice = createSlice({
         builder
             .addCase(getWalletData.fulfilled, (state, action) => {
                 state.loading = false
-                state.walletsData = action.payload
+                state.walletsData = action.payload.wallets
+                state.currentAppId = action.payload.appId
             })
             .addCase(getWalletData.pending, (state) => {
                 state.loading = true
@@ -360,9 +552,16 @@ const walletsSlice = createSlice({
                 state.tableData.total = payload.total
                 state.transactionHistoryData = payload.data
 
-                // 更新缓存 - 从state中获取tab信息
-                const { pageIndex = 1, pageSize = 10, query = '', sort = { order: '', key: '' } } = state.tableData
-                const cacheKey = `${state.selectedTab}_${pageIndex}_${pageSize}_${query}_${sort.order}_${sort.key}`
+                // 更新缓存：与读取缓存使用完全一致的 key（包含时间窗口）
+                const arg = (action as any).meta?.arg as TransactionHistoryQuery | undefined
+                const tab = arg?.tab || state.selectedTab
+                const pageIndex = arg?.pageIndex ?? state.tableData.pageIndex ?? 1
+                const pageSize = arg?.pageSize ?? state.tableData.pageSize ?? 10
+                const query = arg?.query ?? state.tableData.query ?? ''
+                const sort = arg?.sort ?? state.tableData.sort ?? { order: '', key: '' }
+                const effectiveStartDate = arg?.startDateOverride ?? state.startDate
+                const effectiveEndDate = arg?.endDateOverride ?? state.endDate
+                const cacheKey = `${tab}_${pageIndex}_${pageSize}_${query}_${sort.order}_${sort.key}_${effectiveStartDate}_${effectiveEndDate}`
                 state.transactionHistoryCache[cacheKey] = {
                     data: payload,
                     timestamp: Date.now()

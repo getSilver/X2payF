@@ -1,5 +1,5 @@
 import ApiService from './ApiService'
-import { MFA_ADMIN_API, USER_ADMIN_API } from '@/constants/api.constant'
+import { SELF_MFA_API, USER_ADMIN_API } from '@/constants/api.constant'
 import type {
     EnrollTOTPRequest,
     TOTPEnrollmentResponse,
@@ -18,7 +18,7 @@ import type {
  */
 export async function apiEnrollTOTP(data: EnrollTOTPRequest) {
     return ApiService.fetchData<TOTPEnrollmentResponse, EnrollTOTPRequest>({
-        url: MFA_ADMIN_API.TOTP_ENROLL,
+        url: SELF_MFA_API.TOTP_ENROLL,
         method: 'post',
         data,
     })
@@ -36,7 +36,7 @@ export async function apiVerifyTOTPEnrollment(
         { message: string; factor_id: string },
         VerifyTOTPEnrollmentRequest
     >({
-        url: MFA_ADMIN_API.TOTP_VERIFY,
+        url: SELF_MFA_API.TOTP_VERIFY_ENROLLMENT,
         method: 'post',
         data,
     })
@@ -51,7 +51,7 @@ export async function apiVerifyTOTPEnrollment(
  */
 export async function apiEnrollEmail(data: EnrollEmailRequest) {
     return ApiService.fetchData<MFAFactor, EnrollEmailRequest>({
-        url: MFA_ADMIN_API.EMAIL_ENROLL,
+        url: SELF_MFA_API.EMAIL_ENROLL,
         method: 'post',
         data,
     })
@@ -65,7 +65,7 @@ export async function apiEnrollEmail(data: EnrollEmailRequest) {
  */
 export async function apiListMFAFactors() {
     return ApiService.fetchData<MFAFactor[]>({
-        url: MFA_ADMIN_API.FACTORS,
+        url: SELF_MFA_API.FACTORS,
         method: 'get',
     })
 }
@@ -78,7 +78,7 @@ export async function apiListMFAFactors() {
  */
 export async function apiUnenrollFactor(factorId: string, code: string) {
     return ApiService.fetchData<{ message: string; factor_id: string }>({
-        url: MFA_ADMIN_API.factor(factorId),
+        url: SELF_MFA_API.factor(factorId),
         method: 'delete',
         data: { code },
     })

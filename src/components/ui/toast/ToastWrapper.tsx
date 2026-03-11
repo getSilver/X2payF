@@ -15,6 +15,7 @@ import { getPlacementTransition } from './transition'
 import { PLACEMENT } from '../utils/constants'
 import { createRoot } from 'react-dom/client'
 import { NotificationPlacement } from '../@types/placement'
+import createUID from '../utils/createUid'
 import type { DetailedReactHTMLElement, ReactNode } from 'react'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -41,7 +42,7 @@ const useMessages = (msgKey: string) => {
 
     const push = useCallback(
         (message: NodeProps) => {
-            const key = msgKey || '_' + Math.random().toString(36).substr(2, 12)
+            const key = msgKey || `_${createUID(12)}`
             setMessages([...messages, { key, visible: true, node: message }])
             return key
         },

@@ -15,8 +15,10 @@ import {
     apiUpdateMerchant,
 } from '@/services/api/AccountApi'
 import type { CreateApplicationRequest } from '@/services/api/AccountApi'
+import createUID from '@/components/ui/utils/createUid'
 import type {
     Merchant,
+    MerchantConfig,
     MerchantApplication,
     AccountStatus,
 } from '@/@types/account'
@@ -99,6 +101,7 @@ export type Customer = Merchant & {
         withdrawal_address: string
         withdrawal_fee_percent: string
         ip_whitelist: string
+        cashier_return_url_whitelist: string
     }
 }
 
@@ -132,6 +135,16 @@ export const getCustomer = createAsyncThunk(
             relation_status?: string
         }>
         const merchant = merchantBackend.data
+        let merchantConfig: MerchantConfig = {}
+        if (typeof merchant.config === 'string') {
+            try {
+                merchantConfig = JSON.parse(merchant.config) as MerchantConfig
+            } catch (error) {
+                console.warn('解析商户配置失败', error)
+            }
+        } else if (merchant.config) {
+            merchantConfig = merchant.config
+        }
         const isAgentAccount = data.id.startsWith('agent_')
         let relationFromList:
             | {
@@ -326,6 +339,9 @@ export const getCustomer = createAsyncThunk(
                     (merchant as unknown as { ip_whitelist?: string[] })
                         .ip_whitelist || []
                 ).join(','),
+                cashier_return_url_whitelist: (
+                    merchantConfig.cashier_return_url_whitelist || []
+                ).join(','),
             },
         }
 
@@ -373,6 +389,7 @@ export const putCustomer = createAsyncThunk(
             withdrawal_address?: string
             withdrawal_fee_percent?: number
             ip_whitelist?: string[]
+            config?: MerchantConfig
         } = {}
         if (data.name) {
             updateData.name = data.name
@@ -393,6 +410,26 @@ export const putCustomer = createAsyncThunk(
                 .map((item) => item.trim())
                 .filter((item) => item !== '')
         }
+        if (data.personalInfo?.cashier_return_url_whitelist !== undefined) {
+            let existingConfig: MerchantConfig = {}
+            if (typeof data.config === 'string') {
+                try {
+                    existingConfig = JSON.parse(data.config) as MerchantConfig
+                } catch (error) {
+                    console.warn('解析商户配置失败，使用空配置继续更新', error)
+                }
+            } else if (data.config) {
+                existingConfig = data.config
+            }
+
+            updateData.config = {
+                ...existingConfig,
+                cashier_return_url_whitelist: data.personalInfo.cashier_return_url_whitelist
+                    .split(',')
+                    .map((item) => item.trim())
+                    .filter((item) => item !== ''),
+            }
+        }
 
         await apiUpdateMerchant(data.id, updateData)
 
@@ -404,7 +441,7 @@ export const putCustomer = createAsyncThunk(
 export const createApplication = createAsyncThunk(
     SLICE_NAME + '/createApplication',
     async (data: { merchantId: string; name: string; config: CreateApplicationRequest['config'] }) => {
-        const requestId = `app_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+        const requestId = `app_${Date.now()}_${createUID(10)}`
         const response = await apiCreateApplication({
             request_id: requestId,
             merchant_id: data.merchantId,

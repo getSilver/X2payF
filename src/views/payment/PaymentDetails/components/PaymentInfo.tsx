@@ -3,7 +3,10 @@ import Avatar from '@/components/ui/Avatar'
 import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import { NumericFormat } from 'react-number-format'
+import Notification from '@/components/ui/Notification'
+import toast from '@/components/ui/toast'
 import RefundDialog from './RefundDialog'
+import { apiAdminResendPaymentNotification } from '@/services/PaymentService'
 import { getCurrencySymbol } from '@/utils/currencySymbols'
 
 type PaymentInfoProps = {
@@ -20,6 +23,7 @@ type PaymentInfoProps = {
 }
 
 const PaymentInfo = ({ data, onRefresh }: PaymentInfoProps) => {
+    const [isNotifying, setIsNotifying] = useState(false)
     const [refundDialogOpen, setRefundDialogOpen] = useState(false)
 
     // 只有支付成功的订单才能退款
@@ -28,6 +32,36 @@ const PaymentInfo = ({ data, onRefresh }: PaymentInfoProps) => {
     const handleRefundClick = () => {
         if (canRefund) {
             setRefundDialogOpen(true)
+        }
+    }
+
+    const handleNotifyClick = async () => {
+        if (!data?.payment_id) return
+
+        setIsNotifying(true)
+        try {
+            await apiAdminResendPaymentNotification(data.payment_id)
+
+            toast.push(
+                <Notification title="回调成功" type="success">
+                    通知已重新发送到商户回调地址
+                </Notification>,
+                { placement: 'top-center' }
+            )
+
+            if (onRefresh) {
+                onRefresh()
+            }
+        } catch (error: any) {
+            const errorMessage = error?.response?.data?.message || error?.message || '回调失败'
+            toast.push(
+                <Notification title="回调失败" type="danger">
+                    {errorMessage}
+                </Notification>,
+                { placement: 'top-center' }
+            )
+        } finally {
+            setIsNotifying(false)
         }
     }
 
@@ -62,7 +96,14 @@ const PaymentInfo = ({ data, onRefresh }: PaymentInfoProps) => {
                     </span>
                 </div>
                 <div className="grid grid-cols-3 gap-2">
-                    <Button className="w-full" variant="twoTone" color="yellow-500">
+                    <Button
+                        className="w-full"
+                        variant="twoTone"
+                        color="yellow-500"
+                        onClick={handleNotifyClick}
+                        loading={isNotifying}
+                        disabled={isNotifying}
+                    >
                         回调
                     </Button>
                     <Button 

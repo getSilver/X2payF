@@ -23,7 +23,7 @@ const Cover = ({ children, content, ...rest }: CoverProps) => {
                         Jump start your project with X2Pay
                     </h3>
                     <p className="text-lg text-white opacity-80 max-w-[700px]">
-                        X2Pay欢迎你
+                        Welcome
                     </p>
                 </div>
                 <span className="text-white">

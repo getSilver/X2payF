@@ -1,10 +1,7 @@
-import axios, { AxiosError, AxiosInstance, AxiosRequestConfig } from 'axios'
+import axios, { AxiosError, AxiosInstance } from 'axios'
 import appConfig from '@/configs/app.config'
 import { TOKEN_TYPE, REQUEST_HEADER_AUTH_KEY } from '@/constants/api.constant'
-import { PERSIST_STORE_NAME } from '@/constants/app.constant'
-import deepParseJson from '@/utils/deepParseJson'
 import store, { signOutSuccess } from '../store'
-import { createAuthHeaders } from './auth'
 import { RetryManager } from './retry'
 import {
     ApiError,
@@ -33,22 +30,13 @@ const API_CONFIG = {
     // API 基础 URL
     // Mock 模式下使用相对路径，否则使用环境变量配置的 URL
     baseURL: isMockEnabled ? appConfig.apiPrefix : (import.meta.env.VITE_API_URL || appConfig.apiPrefix),
-    // API 密钥（用于签名认证）
-    apiKey: import.meta.env.VITE_API_KEY || '',
-    // API 密钥对应的密钥
-    apiSecret: import.meta.env.VITE_API_SECRET || '',
     // 请求超时时间
     timeout: Number(import.meta.env.VITE_API_TIMEOUT) || 60000,
-    // 是否启用签名认证
-    enableSignature: import.meta.env.VITE_ENABLE_SIGNATURE === 'true',
     // 是否启用 Mock
     enableMock: isMockEnabled,
     // 是否启用调试模式
     debug: import.meta.env.VITE_API_DEBUG === 'true',
 }
-
-// 需要签名的 API 路径前缀
-const SIGNATURE_REQUIRED_PATHS = ['/api/v1/']
 
 // 不需要 Token 的 API 路径
 const NO_TOKEN_PATHS = [
@@ -61,8 +49,7 @@ const NO_TOKEN_PATHS = [
     '/api/v1/auth/mfa/send',
 ]
 
-// 401 状态码
-const UNAUTHORIZED_CODES = [401]
+const SESSION_INVALID_CODES = ['4006', '4007']
 
 // ==================== 重试管理器 ====================
 
@@ -79,6 +66,7 @@ const retryManager = new RetryManager({
 const BaseService: AxiosInstance = axios.create({
     timeout: API_CONFIG.timeout,
     baseURL: API_CONFIG.baseURL,
+    withCredentials: true,
     headers: {
         'Content-Type': 'application/json',
     },
@@ -98,22 +86,10 @@ BaseService.interceptors.request.use(
             }
         }
 
-        // 2. 添加 API 签名（如果需要且已配置）
-        if (shouldAddSignature(url) && API_CONFIG.apiKey && API_CONFIG.apiSecret) {
-            const method = config.method?.toUpperCase() || 'GET'
-            const path = url
-            const body = config.data ? JSON.stringify(config.data) : ''
-
-            const authHeaders = createAuthHeaders(
-                method,
-                path,
-                body,
-                API_CONFIG.apiKey,
-                API_CONFIG.apiSecret
-            )
-
-            // 合并认证头
-            Object.assign(config.headers, authHeaders)
+        // 2. 附带 CSRF Token（若后端启用）
+        const csrfToken = getCsrfToken()
+        if (csrfToken) {
+            config.headers['X-CSRF-Token'] = csrfToken
         }
 
         // 3. 调试日志
@@ -157,8 +133,8 @@ BaseService.interceptors.response.use(
         // 转换为统一的 ApiError
         const apiError = transformError(error)
 
-        // 401 自动登出
-        if (apiError.status && UNAUTHORIZED_CODES.includes(apiError.status)) {
+        // 仅在会话明确失效时自动登出，避免业务型 401 误触发退出
+        if (apiError.status === 401 && SESSION_INVALID_CODES.includes(apiError.code)) {
             store.dispatch(signOutSuccess())
         }
 
@@ -172,20 +148,7 @@ BaseService.interceptors.response.use(
  * 获取访问令牌
  */
 function getAccessToken(): string | null {
-    // 优先从 localStorage 获取
-    const rawPersistData = localStorage.getItem(PERSIST_STORE_NAME)
-    if (rawPersistData) {
-        try {
-            const persistData = deepParseJson(rawPersistData)
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const token = (persistData as any)?.auth?.session?.token
-            if (token) return token
-        } catch {
-            // 忽略解析错误
-        }
-    }
-
-    // 备选：从 Redux store 获取
+    // 仅从 Redux store 读取，避免直接操作 localStorage 中的凭据数据
     try {
         const { auth } = store.getState()
         return auth?.session?.token || null
@@ -201,13 +164,24 @@ function isNoTokenPath(url: string): boolean {
     return NO_TOKEN_PATHS.some((path) => url.includes(path))
 }
 
-/**
- * 判断是否需要添加签名
- */
-function shouldAddSignature(url: string): boolean {
-    if (!API_CONFIG.enableSignature) return false
-    if (API_CONFIG.enableMock) return false // Mock 模式不需要签名
-    return SIGNATURE_REQUIRED_PATHS.some((path) => url.includes(path))
+function getCsrfToken(): string {
+    if (typeof document === 'undefined') {
+        return ''
+    }
+
+    const fromMeta =
+        document
+            .querySelector('meta[name="csrf-token"]')
+            ?.getAttribute('content')
+            ?.trim() || ''
+    if (fromMeta) {
+        return fromMeta
+    }
+
+    const cookieMatch = document.cookie.match(
+        /(?:^|;\s*)csrf_token=([^;]+)(?:;|$)/i
+    )
+    return cookieMatch?.[1] ? decodeURIComponent(cookieMatch[1]) : ''
 }
 
 /**

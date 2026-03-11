@@ -18,6 +18,8 @@ export type PaymentMethod =
  */
 export type ChannelStatus = 'enabled' | 'disabled' | 'maintenance'
 
+export type FeeMode = 'UNIFIED' | 'BY_TXN_TYPE' | 'TIERED'
+
 /**
  * 创建渠道请求
  */
@@ -104,8 +106,6 @@ export interface ChannelListParams {
 export interface SetAuthConfigRequest {
     merchant_id: string
     app_id: string
-    secret_key: string
-    certificate?: string
 }
 
 /**
@@ -131,17 +131,17 @@ export interface TieredFeeRule {
 }
 
 /**
- * 费率配置请求（区分 Pay_In 和 Pay_Out）
+ * 费率配置请求
  */
 export interface SetFeeConfigRequest {
-    // Pay_In（代收）费率配置
-    pay_in_percentage_fee: string
-    pay_in_fixed_fee: string
-    pay_in_tiered_rules?: TieredFeeRule[]
-    // Pay_Out（代付）费率配置
-    pay_out_percentage_fee: string
-    pay_out_fixed_fee: string
-    pay_out_tiered_rules?: TieredFeeRule[]
+    fee_mode: FeeMode
+    unified_percentage_fee?: string
+    unified_fixed_fee?: string
+    pay_in_percentage_fee?: string
+    pay_in_fixed_fee?: string
+    pay_out_percentage_fee?: string
+    pay_out_fixed_fee?: string
+    tiered_rules?: TieredFeeRule[]
 }
 
 /**
@@ -165,7 +165,7 @@ export interface UpdateChannelStatusRequest {
  * 热更新凭据请求
  */
 export interface HotUpdateCredentialsRequest {
-    secret_key: string
+    secret_key?: string
     certificate?: string
 }
 
@@ -192,17 +192,17 @@ export interface APIConfigResponse {
 }
 
 /**
- * 费率配置响应（区分 Pay_In 和 Pay_Out）
+ * 费率配置响应
  */
 export interface FeeConfigResponse {
-    // Pay_In（代收）费率配置
+    fee_mode: FeeMode
+    unified_percentage_fee: string
+    unified_fixed_fee: string
     pay_in_percentage_fee: string
     pay_in_fixed_fee: string
-    pay_in_tiered_rules: TieredFeeRule[]
-    // Pay_Out（代付）费率配置
     pay_out_percentage_fee: string
     pay_out_fixed_fee: string
-    pay_out_tiered_rules: TieredFeeRule[]
+    tiered_rules: TieredFeeRule[]
 }
 
 /**

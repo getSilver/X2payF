@@ -27,7 +27,8 @@ const persistConfig = {
     key: PERSIST_STORE_NAME,
     keyPrefix: '',
     storage,
-    whitelist: ['auth', 'locale'],
+    // 持久化 auth，避免刷新页面后丢失登录态
+    whitelist: ['locale', 'auth'],
 }
 
 interface CustomStore extends Store<RootState, AnyAction> {

@@ -9,6 +9,7 @@ import { apiMerchantBackendCreateRefund } from '@/services/api/RefundApi'
 import type { CreateRefundRequest } from '@/@types/refund'
 import Notification from '@/components/ui/Notification'
 import toast from '@/components/ui/toast'
+import createUID from '@/components/ui/utils/createUid'
 
 type RefundDialogProps = {
     isOpen: boolean
@@ -19,17 +20,6 @@ type RefundDialogProps = {
     onSuccess?: () => void
 }
 
-const validationSchema = Yup.object().shape({
-    refund_amount: Yup.number()
-        .required('退款金额不能为空')
-        .positive('退款金额必须大于 0')
-        .test('max-amount', '退款金额不能超过订单金额', function(value) {
-            const { paymentAmount } = this.options.context as { paymentAmount: number }
-            return value ? value <= paymentAmount / 100 : false
-        }),
-    reason: Yup.string().max(200, '退款原因不能超过 200 个字符'),
-})
-
 const RefundDialog = ({
     isOpen,
     onClose,
@@ -39,13 +29,28 @@ const RefundDialog = ({
     onSuccess,
 }: RefundDialogProps) => {
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const validationSchema = Yup.object().shape({
+        refund_amount: Yup.number()
+            .required('退款金额不能为空')
+            .positive('退款金额必须大于 0')
+            .test('max-amount', '退款金额不能超过订单金额', (value) => {
+                const refundAmount = Number(value)
+                const orderAmountInCent = Number(paymentAmount)
+                if (!Number.isFinite(refundAmount) || !Number.isFinite(orderAmountInCent)) {
+                    return false
+                }
+                const refundAmountInCent = Math.round(refundAmount * 100)
+                return refundAmountInCent <= Math.round(orderAmountInCent)
+            }),
+        reason: Yup.string().max(200, '退款原因不能超过 200 个字符'),
+    })
 
     const handleSubmit = async (values: { refund_amount: number; reason: string }) => {
         setIsSubmitting(true)
         try {
             // 生成唯一的退款请求 ID
-            const merchantRefundId = `refund_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-            const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+            const merchantRefundId = `refund_${Date.now()}_${createUID(10)}`
+            const requestId = `req_${Date.now()}_${createUID(10)}`
 
             const refundData: CreateRefundRequest = {
                 payment_id: paymentId,
@@ -89,7 +94,6 @@ const RefundDialog = ({
                     reason: '',
                 }}
                 validationSchema={validationSchema}
-                context={{ paymentAmount }}
                 onSubmit={handleSubmit}
             >
                 {({ errors, touched }) => (

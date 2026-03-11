@@ -75,6 +75,7 @@ const EditCustomerProfile = () => {
             withdrawal_address,
             withdrawal_fee_percent,
             ip_whitelist,
+            cashier_return_url_whitelist,
             agent,
         } = values
 
@@ -126,6 +127,7 @@ const EditCustomerProfile = () => {
                     withdrawal_address,
                     withdrawal_fee_percent,
                     ip_whitelist,
+                    cashier_return_url_whitelist,
                     agent: newAgentId,
                 },
             }

@@ -52,6 +52,13 @@ export interface Merchant extends Account {
     withdrawal_address?: string
     withdrawal_fee_percent?: number
     ip_whitelist?: string[]
+    config?: string | MerchantConfig
+}
+
+export interface MerchantConfig {
+    cashier_allowed_origins?: string[]
+    cashier_allowed_referrer_hosts?: string[]
+    cashier_return_url_whitelist?: string[]
 }
 
 // ==================== 代理商相关 ====================

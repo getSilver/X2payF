@@ -5,16 +5,18 @@ import {
     PayloadAction,
 } from '@reduxjs/toolkit'
 import {
-    apiGetSalesOrders,
+    apiGetPayments,
     apiDeleteSalesOrders,
 } from '@/services/PaymentService'
 import type { TableQueries } from '@/@types/common'
-import type { PaymentStatus } from '@/@types/payment'
+import type { PaymentStatus, TransactionType } from '@/@types/payment'
 
 type Order = {
     id: string      //交易ID
     cid: string     //渠道ID
     mid: string     //商户ID
+    transaction_type: TransactionType
+    currency?: string
     date: number    //提交时间
     succDate: number    //成功时间Successful time
     customer: string
@@ -35,6 +37,30 @@ type GetSalesOrdersResponse = {
     total: number
 }
 
+type AdminPaymentsResponse = {
+    code: number
+    message: string
+    data: {
+        total: number
+        page: number
+        page_size: number
+        list: Array<{
+            payment_id: string
+            merchant_id: string
+            channel_id?: string
+            transaction_type?: TransactionType
+            created_at?: string
+            updated_at?: string
+            status: PaymentStatus
+            payment_method?: string
+            currency?: string
+            amount: number
+            settlement_amount?: number | null
+            merchant_fee?: number | null
+        }>
+    }
+}
+
 export type SalesOrderListState = {
     loading: boolean
     orderList: Orders
@@ -49,11 +75,46 @@ export const SLICE_NAME = 'salesOrderList'
 export const getOrders = createAsyncThunk(
     SLICE_NAME + '/getOrders',
     async (data: TableQueries) => {
-        const response = await apiGetSalesOrders<
-            GetSalesOrdersResponse,
-            TableQueries
-        >(data)
-        return response.data
+        const query = String(data.query || '').trim()
+        const isPaymentID = /^pay_/i.test(query)
+        const response = await apiGetPayments({
+            page: data.pageIndex,
+            page_size: data.pageSize,
+            payment_id: query ? (isPaymentID ? query : undefined) : undefined,
+            merchant_tx_id: query ? (isPaymentID ? undefined : query) : undefined,
+            query: query || undefined,
+        })
+
+        const payload = (response.data as unknown as AdminPaymentsResponse).data
+        const list = Array.isArray(payload?.list) ? payload.list : []
+
+        const mapped: Orders = list.map((item) => {
+            const createdAt = item.created_at ? Date.parse(item.created_at) : 0
+            const updatedAt = item.updated_at ? Date.parse(item.updated_at) : 0
+            return {
+                id: item.payment_id,
+                cid: item.channel_id || '',
+                mid: item.merchant_id || '',
+                transaction_type: item.transaction_type || 'PAY_IN',
+                currency: item.currency,
+                date: createdAt > 0 ? Math.floor(createdAt / 1000) : 0,
+                succDate: updatedAt > 0 ? Math.floor(updatedAt / 1000) : 0,
+                customer: item.merchant_id || '',
+                status: item.status,
+                paymentMetthod: item.payment_method || '',
+                paymentIdendifier: item.payment_id,
+                totalAmount: (item.settlement_amount ?? 0) / 100,
+                subAmount: item.amount / 100,
+                fee: (item.merchant_fee ?? 0) / 100,
+                amount: item.amount / 100,
+                channel: item.channel_id || '',
+            }
+        })
+
+        return {
+            data: mapped,
+            total: Number(payload?.total || 0),
+        } as GetSalesOrdersResponse
     }
 )
 

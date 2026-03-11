@@ -149,20 +149,36 @@ export type MerchantWalletResponse = {
 export type MerchantQueryParams = {
     page?: number
     page_size?: number
+    app_id?: string
     query?: string
+    payment_id?: string
+    merchant_tx_id?: string
     start_date?: string
     end_date?: string
+    start_time?: string
+    end_time?: string
 }
 
 export type MerchantOverviewParams = {
+    app_id?: string
     start_time?: string
     end_time?: string
 }
 
 export type MerchantTrendParams = {
+    app_id?: string
     start_time?: string
     end_time?: string
     granularity?: 'hour' | 'day' | 'week' | 'month'
+}
+
+export type MerchantTransactionByTypeParams = {
+    app_id: string
+    start_time: string
+    end_time: string
+    transaction_type: 'PAY_IN' | 'PAY_OUT'
+    currency?: string
+    status?: string
 }
 
 // ==================== 商户应用相关类型 ====================
@@ -183,10 +199,16 @@ export type MerchantAppConfig = {
     daily_limit?: number
     monthly_limit?: number
     settlement_limit?: number
-    withdrawal_address?: string      // 提款收款地址（如 USDT TRC-20 地址）
     withdrawal_fee_percent?: number  // 提款手续费百分比
     exchange_rate_sell?: number      // 汇率卖出加点
     exchange_rate_buy?: number       // 汇率买入加点
+}
+
+export type MerchantProfile = {
+    merchant_id: string
+    name?: string
+    contact_email?: string
+    withdrawal_address?: string
 }
 
 // 商户应用数据（匹配后端 ApplicationResponse）
@@ -243,6 +265,13 @@ export type TransactionByType = {
     pay_in_count: number
     pay_out_amount: number
     pay_out_count: number
+}
+
+export type MerchantTransactionTypeStat = {
+    transaction_type: string
+    count: number
+    amount: Record<string, number | string>
+    success_rate: number
 }
 
 // ==================== 商户报表相关类型 ====================
@@ -393,8 +422,8 @@ export async function apiGetMerchantTransactionSummary(params?: MerchantOverview
  * 路径：/api/v1/merchant/statistics/transactions/by-type
  * 使用 Bearer Token 认证
  */
-export async function apiGetMerchantTransactionByType(params?: MerchantOverviewParams) {
-    return ApiService.fetchData<TransactionByType>({
+export async function apiGetMerchantTransactionByType(params: MerchantTransactionByTypeParams) {
+    return ApiService.fetchData<MerchantTransactionTypeStat>({
         url: '/api/v1/merchant/statistics/transactions/by-type',
         method: 'get',
         params,
@@ -513,6 +542,33 @@ export async function apiUpdateMerchantApplicationConfig(appId: string, config: 
         url: `/api/v1/merchant/applications/${appId}`,
         method: 'put',
         data: { config },
+    })
+}
+
+/**
+ * 查询当前商户资料
+ * 路径：/api/v1/merchant/profile
+ * 使用 Bearer Token 认证
+ */
+export async function apiGetMerchantProfile() {
+    return ApiService.fetchData<MerchantProfile>({
+        url: '/api/v1/merchant/profile',
+        method: 'get',
+    })
+}
+
+/**
+ * 更新当前商户提现地址
+ * 路径：/api/v1/merchant/profile/withdrawal-address
+ * 使用 Bearer Token 认证
+ */
+export async function apiUpdateMerchantWithdrawalAddress(withdrawalAddress: string) {
+    return ApiService.fetchData<{ merchant_id: string; withdrawal_address: string; message: string }>({
+        url: '/api/v1/merchant/profile/withdrawal-address',
+        method: 'put',
+        data: {
+            withdrawal_address: withdrawalAddress,
+        },
     })
 }
 

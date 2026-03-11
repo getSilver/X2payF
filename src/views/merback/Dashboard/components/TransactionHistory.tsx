@@ -44,6 +44,17 @@ const TransactionHistory = () => {
 
     // 跟踪是否为首次渲染，首次渲染不发请求（由 Dashboard 初始化）
     const isFirstRenderRef = useRef(true)
+    // 标签切换时手动触发拉取后，跳过下一次 effect，避免重复请求
+    const skipNextEffectRef = useRef(false)
+    const requestTableData = useMemo(
+        () => ({
+            pageIndex: tableData.pageIndex,
+            pageSize: tableData.pageSize,
+            query: tableData.query,
+            sort: tableData.sort,
+        }),
+        [tableData.pageIndex, tableData.pageSize, tableData.query, tableData.sort]
+    )
 
     useEffect(() => {
         // 首次渲染跳过，由 Dashboard 的 initializeCryptoWallets 负责加载
@@ -51,16 +62,25 @@ const TransactionHistory = () => {
             isFirstRenderRef.current = false
             return
         }
-        
+
+        if (skipNextEffectRef.current) {
+            skipNextEffectRef.current = false
+            return
+        }
+
         // 后续参数变化时发起请求
-        dispatch(getTransctionHistoryData({ tab: selectedTab, ...tableData }))
-    }, [dispatch, selectedTab, tableData])
+        dispatch(getTransctionHistoryData({ tab: selectedTab, ...requestTableData }))
+    }, [dispatch, selectedTab, requestTableData])
 
     const handleTabChange = useCallback((val: string) => {
         dispatch(clearTransactionHistoryCache()) // 清除缓存
         dispatch(setTransactionHistoryData([]))
         dispatch(setSelectedTab(val))
         dispatch(setTableData(initialTableData))
+        if (val === 'deposit' || val === 'trade') {
+            skipNextEffectRef.current = true
+            dispatch(getTransctionHistoryData({ tab: val, ...initialTableData }))
+        }
     }, [dispatch])
 
     const inputRef = useRef(null)

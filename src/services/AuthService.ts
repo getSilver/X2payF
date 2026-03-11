@@ -4,6 +4,7 @@ import type {
     SignUpCredential,
     ForgotPassword,
     ResetPassword,
+    ChangePassword,
     SignInResponse,
     SignUpResponse,
     RequestMFAChallengeRequest,
@@ -65,6 +66,18 @@ export async function apiForgotPassword(data: ForgotPassword) {
 export async function apiResetPassword(data: ResetPassword) {
     return ApiService.fetchData({
         url: '/api/v1/auth/reset-password',
+        method: 'post',
+        data,
+    })
+}
+
+/**
+ * 当前登录用户修改密码
+ * 后端接口: POST /api/v1/auth/change-password
+ */
+export async function apiChangePassword(data: ChangePassword) {
+    return ApiService.fetchData({
+        url: '/api/v1/auth/change-password',
         method: 'post',
         data,
     })

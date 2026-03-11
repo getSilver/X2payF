@@ -23,6 +23,7 @@ type CustomerPersonalInfo = {
     withdrawal_address: string
     withdrawal_fee_percent: string
     ip_whitelist: string
+    cashier_return_url_whitelist: string
     agent: string
 }
 
@@ -54,6 +55,7 @@ const validationSchema = Yup.object().shape({
     withdrawal_address: Yup.string(),
     withdrawal_fee_percent: Yup.string(),
     ip_whitelist: Yup.string(),
+    cashier_return_url_whitelist: Yup.string(),
     img: Yup.string(),
     agent: Yup.string(),
 })
@@ -84,10 +86,9 @@ const CustomerForm = forwardRef<FormikRef, CustomerFormProps>((props, ref) => {
                             | { code?: string; name?: string }
                             | undefined
                         const timezone = assoc.timezone as
-                            | { name?: string; offset?: string }
+                            | { code?: string; name?: string; offset?: string }
                             | undefined
-                        const timezoneValue =
-                            timezone?.name || timezone?.offset || ''
+                        const timezoneValue = timezone?.code || ''
                         return {
                             value: timezoneValue,
                             label:
@@ -124,6 +125,8 @@ const CustomerForm = forwardRef<FormikRef, CustomerFormProps>((props, ref) => {
                 withdrawal_fee_percent:
                     customer?.personalInfo?.withdrawal_fee_percent || '0',
                 ip_whitelist: customer?.personalInfo?.ip_whitelist || '',
+                cashier_return_url_whitelist:
+                    customer?.personalInfo?.cashier_return_url_whitelist || '',
                 agent: customer?.personalInfo?.agent || '',
             }}
             validationSchema={validationSchema}

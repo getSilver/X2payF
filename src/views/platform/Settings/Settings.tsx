@@ -37,6 +37,7 @@ type Currency = {
     code?: string
     name?: string
     symbol?: string
+    version?: number
     status?: string
     enabled?: boolean
     is_active?: boolean
@@ -198,6 +199,7 @@ const Settings = () => {
     const [currencyEditingId, setCurrencyEditingId] = useState<string | null>(
         null
     )
+    const [currencyEditingVersion, setCurrencyEditingVersion] = useState<number>(0)
     const [currencyForm, setCurrencyForm] = useState<CurrencyForm>({
         name: '',
         code: '',
@@ -318,6 +320,7 @@ const Settings = () => {
 
     const openCurrencyCreate = () => {
         setCurrencyEditingId(null)
+        setCurrencyEditingVersion(0)
         setCurrencyForm({
             name: '',
             code: '',
@@ -329,6 +332,7 @@ const Settings = () => {
 
     const openCurrencyEdit = (currency: Currency) => {
         setCurrencyEditingId(currency.id || null)
+        setCurrencyEditingVersion(Number(currency.version || 0))
         setCurrencyForm({
             name: currency.name || '',
             code: currency.code || '',
@@ -432,9 +436,32 @@ const Settings = () => {
         setSaving((prev) => ({ ...prev, currency: true }))
         try {
             if (currencyEditingId) {
-                const response = await apiUpdatePlatformCurrency<Currency, CurrencyForm>(
+                const version =
+                    currencyEditingVersion ||
+                    Number(
+                        currencies.find((item) => item.id === currencyEditingId)
+                            ?.version || 0
+                    )
+                if (!version || version <= 0) {
+                    toast.push(
+                        <Notification
+                            title="Currency version is missing, please refresh and retry"
+                            type="warning"
+                        />,
+                        { placement: 'top-center' }
+                    )
+                    return
+                }
+                const updatePayload = {
+                    ...currencyForm,
+                    version,
+                }
+                const response = await apiUpdatePlatformCurrency<
+                    Currency,
+                    typeof updatePayload
+                >(
                     currencyEditingId,
-                    currencyForm
+                    updatePayload
                 )
                 const next = response.data as Currency
                 setCurrencies((prev) =>

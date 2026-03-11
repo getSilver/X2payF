@@ -85,14 +85,17 @@ const CustomerNew = () => {
                     .map((assoc: { 
                         id: string; 
                         currency?: { code?: string; name?: string }; 
-                        timezone?: { name?: string; offset?: string } 
+                        timezone?: { code?: string; name?: string; offset?: string } 
                     }) => ({
-                        value: assoc.id,
+                        value: assoc.timezone?.code || '',
                         label: [
                             assoc.currency?.code || assoc.currency?.name,
-                            assoc.timezone?.name || assoc.timezone?.offset
+                            assoc.timezone?.code ||
+                                assoc.timezone?.name ||
+                                assoc.timezone?.offset
                         ].filter(Boolean).join(' - ') || assoc.id,
                     }))
+                    .filter((option: { value: string }) => option.value !== '')
                 setLocationOptions(options)
             } catch (error) {
                 console.error('Failed to load associations:', error)

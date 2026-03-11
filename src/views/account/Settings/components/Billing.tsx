@@ -14,9 +14,22 @@ import { HiOutlineClipboardCopy, HiOutlineKey, HiExclamation } from 'react-icons
 
 import BillingHistory from './BillingHistory'
 import { Form, Formik } from 'formik'
+import { useAppSelector } from '@/store'
+import { AGENT } from '@/constants/roles.constant'
 
 import isLastChild from '@/utils/isLastChild'
-import { apiGetMerchantApplications, apiGenerateSecret, apiUpdateMerchantApplicationConfig, MerchantApplication, MerchantAppConfig } from '@/services/MerchantService'
+import {
+    apiGetMerchantApplications,
+    apiGenerateSecret,
+    apiGetMerchantProfile,
+    apiUpdateMerchantWithdrawalAddress,
+    MerchantApplication,
+    MerchantAppConfig,
+} from '@/services/MerchantService'
+import {
+    apiGetAgentProfile,
+    apiUpdateAgentWithdrawalAddress,
+} from '@/services/AgentMerchantService'
 
 
 type PaymentApp = {
@@ -30,7 +43,6 @@ type PaymentApp = {
     primary: boolean
     apiKey?: string
     apiSecret?: string
-    withdrawalAddress?: string  // 提款收款地址
 }
 
 type OtherPayemnt = {
@@ -83,7 +95,6 @@ const transformApplicationToPaymentMethod = (app: MerchantApplication): PaymentA
         primary: app.status === 'active',
         apiKey: app.api_key,
         apiSecret: app.api_secret,
-        withdrawalAddress: config.withdrawal_address || '',
     }
 }
 
@@ -103,6 +114,8 @@ const copyToClipboard = (text: string, label: string) => {
 }
 
 const Billing = () => {
+    const authority = useAppSelector((state) => state.auth.user.authority || [])
+    const isAgent = authority.includes(AGENT)
     const [data, setData] = useState<BillingData>({
         paymentMethods: [],
         otherMethod: [],
@@ -113,22 +126,33 @@ const Billing = () => {
     const [generatingAppId, setGeneratingAppId] = useState<string | null>(null)
     const [usdtAddress, setUsdtAddress] = useState('')
     const [savingAddress, setSavingAddress] = useState(false)
-    const [selectedAppForAddress, setSelectedAppForAddress] = useState<string | null>(null)
     
     const fetchData = async () => {
         try {
+            if (isAgent) {
+                const profileResp = await apiGetAgentProfile()
+                const profileData = (profileResp?.data as any)?.data || profileResp?.data
+                setData((prev) => ({
+                    ...prev,
+                    paymentMethods: [],
+                }))
+                setUsdtAddress(profileData?.withdrawal_address || '')
+                return
+            }
             const response = await apiGetMerchantApplications()
             // 后端返回的是数组，不是 { data: [] } 格式
             const applications = Array.isArray(response.data) ? response.data : (response.data?.data || [])
             const paymentMethods = applications.map(transformApplicationToPaymentMethod)
+            const profileResp = await apiGetMerchantProfile()
+            const profileData = (profileResp?.data as any)?.data || profileResp?.data
             setData(prev => ({
                 ...prev,
                 paymentMethods,
             }))
-        } catch (error) {
-            console.error('获取商户应用列表失败:', error)
+            setUsdtAddress(profileData?.withdrawal_address || '')
+        } catch {
             toast.push(
-                <Notification title="获取应用列表失败" type="danger" />,
+                <Notification title={isAgent ? '获取代理资料失败' : '获取应用列表失败'} type="danger" />,
                 { placement: 'top-center' }
             )
         }
@@ -153,6 +177,9 @@ const Billing = () => {
 
     // 生成 Secret
     const handleGenerateSecret = async (appId: string) => {
+        if (isAgent) {
+            return
+        }
         setGeneratingAppId(appId)
         try {
             const response = await apiGenerateSecret(appId)
@@ -164,8 +191,7 @@ const Billing = () => {
                 apiSecret: data.api_secret,
             })
             setSecretDialogOpen(true)
-        } catch (error) {
-            console.error('生成 Secret 失败:', error)
+        } catch {
             toast.push(
                 <Notification title="生成 Secret 失败" type="danger" />,
                 { placement: 'top-center' }
@@ -191,30 +217,20 @@ const Billing = () => {
             return
         }
 
-        // 如果只有一个应用，直接使用该应用
-        const targetAppId = selectedAppForAddress || (data.paymentMethods.length === 1 ? data.paymentMethods[0].cardId : null)
-        
-        if (!targetAppId) {
-            toast.push(
-                <Notification title="请先选择要保存地址的应用" type="warning" />,
-                { placement: 'top-center' }
-            )
-            return
-        }
-
         setSavingAddress(true)
         try {
-            await apiUpdateMerchantApplicationConfig(targetAppId, {
-                withdrawal_address: usdtAddress.trim(),
-            })
+            if (isAgent) {
+                await apiUpdateAgentWithdrawalAddress(usdtAddress.trim())
+            } else {
+                await apiUpdateMerchantWithdrawalAddress(usdtAddress.trim())
+            }
             toast.push(
                 <Notification title="USDT 地址保存成功" type="success" />,
                 { placement: 'top-center' }
             )
             // 刷新数据
             fetchData()
-        } catch (error) {
-            console.error('保存 USDT 地址失败:', error)
+        } catch {
             toast.push(
                 <Notification title="保存 USDT 地址失败" type="danger" />,
                 { placement: 'top-center' }
@@ -227,24 +243,7 @@ const Billing = () => {
     useEffect(() => {
         fetchData()
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
-
-    // 当应用列表加载后，初始化 USDT 地址
-    useEffect(() => {
-        if (data.paymentMethods.length > 0) {
-            // 如果只有一个应用，自动选择并加载其地址
-            if (data.paymentMethods.length === 1) {
-                setSelectedAppForAddress(data.paymentMethods[0].cardId)
-                setUsdtAddress(data.paymentMethods[0].withdrawalAddress || '')
-            } else if (selectedAppForAddress) {
-                // 如果已选择应用，加载该应用的地址
-                const selectedApp = data.paymentMethods.find(app => app.cardId === selectedAppForAddress)
-                if (selectedApp) {
-                    setUsdtAddress(selectedApp.withdrawalAddress || '')
-                }
-            }
-        }
-    }, [data.paymentMethods, selectedAppForAddress])
+    }, [isAgent])
 
     return (
         <>
@@ -274,6 +273,11 @@ const Billing = () => {
                                 {...validatorProps}
                             >
                                 <div className="rounded-lg border border-gray-200 dark:border-gray-600">
+                                    {isAgent && (
+                                        <div className="p-4 text-sm text-gray-500 dark:text-gray-400">
+                                            代理账号无需维护商户应用与 API 密钥。
+                                        </div>
+                                    )}
                                     {values?.paymentMethods?.map(
                                         (card, index) => (
                                             <div
@@ -387,20 +391,6 @@ const Billing = () => {
                                                 className="w-8 h-8 mr-3"
                                             />
                                             <div className="flex-1 flex gap-2">
-                                                {values.paymentMethods.length > 1 && (
-                                                    <select
-                                                        className="border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-sm"
-                                                        value={selectedAppForAddress || ''}
-                                                        onChange={(e) => setSelectedAppForAddress(e.target.value)}
-                                                    >
-                                                        <option value="">选择应用</option>
-                                                        {values.paymentMethods.map(app => (
-                                                            <option key={app.cardId} value={app.cardId}>
-                                                                {app.channelName}
-                                                            </option>
-                                                        ))}
-                                                    </select>
-                                                )}
                                                 <Input
                                                     placeholder="Enter USDT address for TRC-20 protocol"
                                                     className="flex-1"

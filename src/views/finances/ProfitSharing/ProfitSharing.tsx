@@ -1,54 +1,73 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import dayjs from 'dayjs'
 import AdaptableCard from '@/components/shared/AdaptableCard'
 import DataTable from '@/components/shared/DataTable'
 import Card from '@/components/ui/Card'
-import Button from '@/components/ui/Button'
+import Avatar from '@/components/ui/Avatar'
+import DatePicker from '@/components/ui/DatePicker'
 import Input from '@/components/ui/Input'
-import Dialog from '@/components/ui/Dialog'
+import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
+import Select from '@/components/ui/Select'
 import Notification from '@/components/ui/Notification'
 import toast from '@/components/ui/toast'
 import {
-    apiGetProfitSharingStatistics,
-    apiGetProfitSharingSchedules,
-    apiGetProfitSharingScheduleDetail,
-    apiCreateProfitSharingSchedule,
-    apiUpdateProfitSharingSchedule,
-    apiUpdateProfitSharingRules,
-    apiDeleteProfitSharingSchedule,
-    apiEnableProfitSharingSchedule,
-    apiDisableProfitSharingSchedule,
-    apiPauseProfitSharingSchedule,
-    apiResumeProfitSharingSchedule,
-    apiTriggerProfitSharingSchedule,
-    apiGetProfitSharingTasks,
-    apiGetProfitSharingTaskDetail,
-    apiGetProfitSharingTaskRecords,
-    apiGetProfitSharingRecords,
-    apiExportProfitSharingReport,
-    type ProfitSharingStatistics,
-    type ProfitSharingSchedule,
-    type ProfitSharingTask,
-    type ProfitSharingRecord,
-    type ProfitSharingSchedulePayload,
+    apiGetSettlementProfitSharingRecords,
+    apiGetSettlementProfitSharingStatistics,
+    type SettlementProfitSharingRecord,
+    type SettlementProfitSharingStatistics,
 } from '@/services/FinanceService'
 import type { ColumnDef } from '@/components/shared/DataTable'
+import type { ReactNode } from 'react'
+import {
+    components,
+    type ControlProps,
+    type OptionProps,
+    type SingleValue,
+} from 'react-select'
+import {
+    HiCheck,
+    HiOutlineChartBar,
+    HiOutlineCurrencyDollar,
+    HiOutlineCheckCircle,
+    HiOutlineClock,
+    HiOutlineExclamationCircle,
+} from 'react-icons/hi'
 
-type ScheduleFormState = {
-    name: string
-    description: string
-    currency: string
-    rules: string
+type Filters = {
+    appId: string
+    recipientId: string
+    status: string
+    startTime: string
+    endTime: string
 }
 
-type ScheduleAction =
-    | 'enable'
-    | 'disable'
-    | 'pause'
-    | 'resume'
-    | 'trigger'
-    | 'delete'
+const dateFormat = 'MMM DD, YYYY'
+const { DatePickerRange } = DatePicker
+const { Control } = components
+
+type StatusOption = {
+    value: string
+    label: string
+    color: string
+}
+
+const statusOptions: StatusOption[] = [
+    { value: '', label: 'All Status', color: 'bg-gray-500' },
+    { value: 'PENDING', label: 'PENDING', color: 'bg-amber-500' },
+    { value: 'PROCESSING', label: 'PROCESSING', color: 'bg-blue-500' },
+    { value: 'COMPLETED', label: 'COMPLETED', color: 'bg-emerald-500' },
+    { value: 'FAILED', label: 'FAILED', color: 'bg-red-500' },
+    { value: 'CANCELLED', label: 'CANCELLED', color: 'bg-gray-500' },
+]
+
+const defaultStats: SettlementProfitSharingStatistics = {
+    total_records: 0,
+    total_amount: 0,
+    completed_amount: 0,
+    pending_amount: 0,
+    failed_amount: 0,
+}
 
 const statusColorMap: Record<
     string,
@@ -57,15 +76,31 @@ const statusColorMap: Record<
         textClass: string
     }
 > = {
-    ENABLED: { dotClass: 'bg-emerald-500', textClass: 'text-emerald-500' },
-    DISABLED: { dotClass: 'bg-gray-500', textClass: 'text-gray-500' },
-    PAUSED: { dotClass: 'bg-amber-500', textClass: 'text-amber-500' },
-    RUNNING: { dotClass: 'bg-blue-500', textClass: 'text-blue-500' },
     PENDING: { dotClass: 'bg-amber-500', textClass: 'text-amber-500' },
-    SUCCESS: { dotClass: 'bg-emerald-500', textClass: 'text-emerald-500' },
+    PROCESSING: { dotClass: 'bg-blue-500', textClass: 'text-blue-500' },
+    COMPLETED: { dotClass: 'bg-emerald-500', textClass: 'text-emerald-500' },
     FAILED: { dotClass: 'bg-red-500', textClass: 'text-red-500' },
     CANCELLED: { dotClass: 'bg-gray-500', textClass: 'text-gray-500' },
 }
+
+const toRFC3339 = (value: string) => {
+    if (!value) {
+        return undefined
+    }
+    const d = dayjs(value)
+    return d.isValid() ? d.toISOString() : undefined
+}
+
+const formatDateTime = (value?: string) =>
+    value ? dayjs(value).format('YYYY-MM-DD HH:mm:ss') : '-'
+
+const formatAmount = (amount?: number) =>
+    new Intl.NumberFormat('en-US', {
+        maximumFractionDigits: 0,
+    }).format(Number(amount || 0))
+
+const defaultStartTime = dayjs().startOf('day').format('YYYY-MM-DDTHH:mm:ss')
+const defaultEndTime = dayjs().endOf('day').format('YYYY-MM-DDTHH:mm:ss')
 
 const getErrorMessage = (error: unknown) => {
     if (error instanceof Error) return error.message
@@ -75,18 +110,6 @@ const getErrorMessage = (error: unknown) => {
     }
     return 'Request failed'
 }
-
-const safeAmount = (amount?: number) =>
-    Number.isFinite(amount) ? Number(amount) : 0
-
-const formatAmount = (amount?: number) =>
-    new Intl.NumberFormat('en-US', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    }).format(safeAmount(amount))
-
-const formatDateTime = (value?: string) =>
-    value ? dayjs(value).format('YYYY-MM-DD HH:mm:ss') : '-'
 
 const renderStatus = (status?: string) => {
     if (!status) return <span>-</span>
@@ -102,68 +125,103 @@ const renderStatus = (status?: string) => {
     )
 }
 
-const defaultStats: ProfitSharingStatistics = {
-    total_amount: 0,
-    total_records: 0,
-    success_amount: 0,
-    pending_amount: 0,
-    active_schedules: 0,
-    pending_tasks: 0,
+const CustomStatusOption = ({
+    innerProps,
+    label,
+    data,
+    isSelected,
+}: OptionProps<StatusOption>) => (
+    <div
+        className={`flex items-center justify-between p-2 cursor-pointer ${
+            isSelected
+                ? 'bg-gray-100 dark:bg-gray-500'
+                : 'hover:bg-gray-50 dark:hover:bg-gray-600'
+        }`}
+        {...innerProps}
+    >
+        <div className="flex items-center gap-2">
+            <Badge innerClass={data.color} />
+            <span>{label}</span>
+        </div>
+        {isSelected && <HiCheck className="text-emerald-500 text-xl" />}
+    </div>
+)
+
+const CustomStatusControl = ({
+    children,
+    ...props
+}: ControlProps<StatusOption>) => {
+    const selected = props.getValue()[0]
+    return (
+        <Control {...props}>
+            {selected && (
+                <Badge
+                    className="ltr:ml-4 rtl:mr-4"
+                    innerClass={selected.color}
+                />
+            )}
+            {children}
+        </Control>
+    )
 }
 
-const defaultForm: ScheduleFormState = {
-    name: '',
-    description: '',
-    currency: 'USD',
-    rules: '',
+type StatisticCardProps = {
+    icon: ReactNode
+    avatarClass: string
+    label: string
+    value: string | number
 }
+
+const StatisticCard = ({ icon, avatarClass, label, value }: StatisticCardProps) => (
+    <Card bordered>
+        <div className="flex items-center gap-4">
+            <Avatar className={avatarClass} icon={icon} size={48} />
+            <div>
+                <p className="text-sm text-gray-500">{label}</p>
+                <h3>{value}</h3>
+            </div>
+        </div>
+    </Card>
+)
 
 const ProfitSharing = () => {
-    const [statistics, setStatistics] = useState<ProfitSharingStatistics>(defaultStats)
+    const [filters, setFilters] = useState<Filters>({
+        appId: '',
+        recipientId: '',
+        status: '',
+        startTime: defaultStartTime,
+        endTime: defaultEndTime,
+    })
+
+    const [stats, setStats] = useState<SettlementProfitSharingStatistics>(defaultStats)
+    const [records, setRecords] = useState<SettlementProfitSharingRecord[]>([])
+
     const [loadingStats, setLoadingStats] = useState(false)
-
-    const [schedules, setSchedules] = useState<ProfitSharingSchedule[]>([])
-    const [scheduleTotal, setScheduleTotal] = useState(0)
-    const [schedulePage, setSchedulePage] = useState(1)
-    const [schedulePageSize, setSchedulePageSize] = useState(10)
-    const [scheduleKeyword, setScheduleKeyword] = useState('')
-    const [loadingSchedules, setLoadingSchedules] = useState(false)
-
-    const [tasks, setTasks] = useState<ProfitSharingTask[]>([])
-    const [taskTotal, setTaskTotal] = useState(0)
-    const [taskPage, setTaskPage] = useState(1)
-    const [taskPageSize, setTaskPageSize] = useState(10)
-    const [loadingTasks, setLoadingTasks] = useState(false)
-    const [selectedTask, setSelectedTask] = useState<ProfitSharingTask | null>(null)
-    const [loadingTaskRecords, setLoadingTaskRecords] = useState(false)
-    const [taskRecords, setTaskRecords] = useState<ProfitSharingRecord[]>([])
-    const [taskRecordsTotal, setTaskRecordsTotal] = useState(0)
-    const [taskRecordsPage, setTaskRecordsPage] = useState(1)
-    const [taskRecordsPageSize, setTaskRecordsPageSize] = useState(10)
-
-    const [records, setRecords] = useState<ProfitSharingRecord[]>([])
-    const [recordTotal, setRecordTotal] = useState(0)
-    const [recordPage, setRecordPage] = useState(1)
-    const [recordPageSize, setRecordPageSize] = useState(10)
-    const [recordTaskIdFilter, setRecordTaskIdFilter] = useState('')
     const [loadingRecords, setLoadingRecords] = useState(false)
-    const [exporting, setExporting] = useState(false)
 
-    const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false)
-    const [scheduleSubmitting, setScheduleSubmitting] = useState(false)
-    const [editingSchedule, setEditingSchedule] = useState<ProfitSharingSchedule | null>(
-        null
-    )
-    const [form, setForm] = useState<ScheduleFormState>(defaultForm)
+    const [pageIndex, setPageIndex] = useState(1)
+    const [pageSize, setPageSize] = useState(10)
+    const [total, setTotal] = useState(0)
 
-    const loadStatistics = async () => {
+    const handleDateRangeChange = (value: [Date | null, Date | null]) => {
+        const [start, end] = value
+        setFilters((prev) => ({
+            ...prev,
+            startTime: start ? dayjs(start).startOf('day').format('YYYY-MM-DDTHH:mm:ss') : '',
+            endTime: end ? dayjs(end).endOf('day').format('YYYY-MM-DDTHH:mm:ss') : '',
+        }))
+    }
+
+    const loadStats = useCallback(async () => {
         setLoadingStats(true)
         try {
-            const result = await apiGetProfitSharingStatistics()
-            setStatistics({
-                ...defaultStats,
-                ...result,
+            const result = await apiGetSettlementProfitSharingStatistics({
+                app_id: filters.appId || undefined,
+                recipient_id: filters.recipientId || undefined,
+                start_time: toRFC3339(filters.startTime),
+                end_time: toRFC3339(filters.endTime),
             })
+            setStats(result)
         } catch (error) {
             toast.push(
                 <Notification type="danger" title="Load failed">
@@ -173,381 +231,95 @@ const ProfitSharing = () => {
         } finally {
             setLoadingStats(false)
         }
-    }
+    }, [filters])
 
-    const loadSchedules = async () => {
-        setLoadingSchedules(true)
-        try {
-            const result = await apiGetProfitSharingSchedules({
-                page: schedulePage,
-                page_size: schedulePageSize,
-                keyword: scheduleKeyword || undefined,
-            })
-            setSchedules(result.list)
-            setScheduleTotal(result.total)
-        } catch (error) {
-            toast.push(
-                <Notification type="danger" title="Load schedules failed">
-                    {getErrorMessage(error)}
-                </Notification>
-            )
-        } finally {
-            setLoadingSchedules(false)
-        }
-    }
-
-    const loadTasks = async () => {
-        setLoadingTasks(true)
-        try {
-            const result = await apiGetProfitSharingTasks({
-                page: taskPage,
-                page_size: taskPageSize,
-            })
-            setTasks(result.list)
-            setTaskTotal(result.total)
-        } catch (error) {
-            toast.push(
-                <Notification type="danger" title="Load tasks failed">
-                    {getErrorMessage(error)}
-                </Notification>
-            )
-        } finally {
-            setLoadingTasks(false)
-        }
-    }
-
-    const loadRecords = async () => {
+    const loadRecords = useCallback(async () => {
         setLoadingRecords(true)
         try {
-            const result = await apiGetProfitSharingRecords({
-                page: recordPage,
-                page_size: recordPageSize,
-                task_id: recordTaskIdFilter || undefined,
+            const result = await apiGetSettlementProfitSharingRecords({
+                app_id: filters.appId || undefined,
+                recipient_id: filters.recipientId || undefined,
+                status: (filters.status || undefined) as
+                    | 'PENDING'
+                    | 'PROCESSING'
+                    | 'COMPLETED'
+                    | 'FAILED'
+                    | 'CANCELLED'
+                    | undefined,
+                start_time: toRFC3339(filters.startTime),
+                end_time: toRFC3339(filters.endTime),
+                page: pageIndex,
+                page_size: pageSize,
             })
             setRecords(result.list)
-            setRecordTotal(result.total)
+            setTotal(result.total)
         } catch (error) {
             toast.push(
-                <Notification type="danger" title="Load records failed">
+                <Notification type="danger" title="Load failed">
                     {getErrorMessage(error)}
                 </Notification>
             )
         } finally {
             setLoadingRecords(false)
         }
-    }
-
-    const loadTaskRecords = async (taskId: string) => {
-        setLoadingTaskRecords(true)
-        try {
-            const [detail, recordsResult] = await Promise.all([
-                apiGetProfitSharingTaskDetail(taskId),
-                apiGetProfitSharingTaskRecords(taskId, {
-                    page: taskRecordsPage,
-                    page_size: taskRecordsPageSize,
-                }),
-            ])
-            setSelectedTask(detail)
-            setTaskRecords(recordsResult.list)
-            setTaskRecordsTotal(recordsResult.total)
-        } catch (error) {
-            toast.push(
-                <Notification type="danger" title="Load task detail failed">
-                    {getErrorMessage(error)}
-                </Notification>
-            )
-        } finally {
-            setLoadingTaskRecords(false)
-        }
-    }
+    }, [filters, pageIndex, pageSize])
 
     useEffect(() => {
-        loadStatistics()
-    }, [])
-
-    useEffect(() => {
-        loadSchedules()
-    }, [schedulePage, schedulePageSize])
-
-    useEffect(() => {
-        loadTasks()
-    }, [taskPage, taskPageSize])
+        loadStats()
+    }, [loadStats])
 
     useEffect(() => {
         loadRecords()
-    }, [recordPage, recordPageSize])
+    }, [loadRecords])
 
-    useEffect(() => {
-        if (!selectedTask?.id) return
-        loadTaskRecords(selectedTask.id)
-    }, [taskRecordsPage, taskRecordsPageSize])
-
-    const refreshAll = async () => {
-        await Promise.all([loadStatistics(), loadSchedules(), loadTasks(), loadRecords()])
+    const onSearch = async () => {
+        setPageIndex(1)
+        await Promise.all([loadStats(), loadRecords()])
     }
 
-    const openCreateScheduleDialog = () => {
-        setEditingSchedule(null)
-        setForm(defaultForm)
-        setScheduleDialogOpen(true)
+    const onStatusFilterChange = (selected: SingleValue<StatusOption>) => {
+        setFilters((prev) => ({
+            ...prev,
+            status: selected?.value || '',
+        }))
     }
 
-    const openEditScheduleDialog = async (id: string) => {
-        setScheduleSubmitting(true)
-        try {
-            const detail = await apiGetProfitSharingScheduleDetail(id)
-            setEditingSchedule(detail)
-            setForm({
-                name: detail.name ?? '',
-                description: detail.description ?? '',
-                currency: detail.currency ?? 'USD',
-                rules: detail.rules ?? '',
-            })
-            setScheduleDialogOpen(true)
-        } catch (error) {
-            toast.push(
-                <Notification type="danger" title="Load schedule detail failed">
-                    {getErrorMessage(error)}
-                </Notification>
-            )
-        } finally {
-            setScheduleSubmitting(false)
-        }
-    }
-
-    const submitSchedule = async () => {
-        if (!form.name.trim()) {
-            toast.push(
-                <Notification type="warning" title="Validation">
-                    Schedule name is required
-                </Notification>
-            )
-            return
-        }
-        setScheduleSubmitting(true)
-        const payload: ProfitSharingSchedulePayload = {
-            name: form.name.trim(),
-            description: form.description.trim() || undefined,
-            currency: form.currency.trim() || undefined,
-            rules: form.rules.trim() || undefined,
-        }
-        try {
-            if (editingSchedule?.id) {
-                await apiUpdateProfitSharingSchedule(editingSchedule.id, payload)
-                if (typeof payload.rules === 'string') {
-                    await apiUpdateProfitSharingRules(editingSchedule.id, payload.rules)
-                }
-            } else {
-                await apiCreateProfitSharingSchedule(payload)
-            }
-            setScheduleDialogOpen(false)
-            await Promise.all([loadSchedules(), loadStatistics()])
-            toast.push(
-                <Notification type="success" title="Saved">
-                    Schedule saved successfully
-                </Notification>
-            )
-        } catch (error) {
-            toast.push(
-                <Notification type="danger" title="Save failed">
-                    {getErrorMessage(error)}
-                </Notification>
-            )
-        } finally {
-            setScheduleSubmitting(false)
-        }
-    }
-
-    const handleScheduleAction = async (row: ProfitSharingSchedule, action: ScheduleAction) => {
-        setScheduleSubmitting(true)
-        try {
-            if (action === 'enable') await apiEnableProfitSharingSchedule(row.id)
-            if (action === 'disable') await apiDisableProfitSharingSchedule(row.id)
-            if (action === 'pause') await apiPauseProfitSharingSchedule(row.id)
-            if (action === 'resume') await apiResumeProfitSharingSchedule(row.id)
-            if (action === 'trigger') await apiTriggerProfitSharingSchedule(row.id)
-            if (action === 'delete') await apiDeleteProfitSharingSchedule(row.id)
-            await Promise.all([loadSchedules(), loadStatistics(), loadTasks()])
-            toast.push(
-                <Notification type="success" title="Success">
-                    {`${action} action completed`}
-                </Notification>
-            )
-        } catch (error) {
-            toast.push(
-                <Notification type="danger" title="Action failed">
-                    {getErrorMessage(error)}
-                </Notification>
-            )
-        } finally {
-            setScheduleSubmitting(false)
-        }
-    }
-
-    const handleExport = async () => {
-        setExporting(true)
-        try {
-            const blob = await apiExportProfitSharingReport({
-                task_id: recordTaskIdFilter || undefined,
-            })
-            const filename = `profit-sharing-report-${dayjs().format('YYYYMMDD-HHmmss')}.csv`
-            const url = URL.createObjectURL(blob)
-            const anchor = document.createElement('a')
-            anchor.href = url
-            anchor.download = filename
-            document.body.appendChild(anchor)
-            anchor.click()
-            document.body.removeChild(anchor)
-            URL.revokeObjectURL(url)
-            toast.push(
-                <Notification type="success" title="Exported">
-                    Report downloaded successfully
-                </Notification>
-            )
-        } catch (error) {
-            toast.push(
-                <Notification type="danger" title="Export failed">
-                    {getErrorMessage(error)}
-                </Notification>
-            )
-        } finally {
-            setExporting(false)
-        }
-    }
-
-    const scheduleColumns: ColumnDef<ProfitSharingSchedule>[] = useMemo(
+    const columns: ColumnDef<SettlementProfitSharingRecord>[] = useMemo(
         () => [
-            { header: 'Name', accessorKey: 'name' },
-            { header: 'Currency', accessorKey: 'currency' },
             {
-                header: 'Status',
-                accessorKey: 'status',
-                cell: (props) => renderStatus(props.row.original.status),
+                header: 'ID',
+                accessorKey: 'id',
+                cell: (props) => (
+                    <span className="font-semibold">{props.row.original.id}</span>
+                ),
             },
             {
-                header: 'Next Execute',
-                accessorKey: 'next_execute_at',
-                cell: (props) => formatDateTime(props.row.original.next_execute_at),
+                header: 'App ID',
+                accessorKey: 'app_id',
             },
             {
-                header: 'Last Execute',
-                accessorKey: 'last_execute_at',
-                cell: (props) => formatDateTime(props.row.original.last_execute_at),
-            },
-            {
-                header: 'Operation',
-                id: 'schedule_ops',
+                header: 'Recipient',
+                accessorKey: 'recipient_id',
                 cell: (props) => {
                     const row = props.row.original
                     return (
-                        <div className="flex flex-wrap justify-end gap-2">
-                            <Button size="xs" onClick={() => openEditScheduleDialog(row.id)}>
-                                Edit
-                            </Button>
-                            {row.status === 'ENABLED' && (
-                                <Button
-                                    size="xs"
-                                    onClick={() => handleScheduleAction(row, 'pause')}
-                                >
-                                    Pause
-                                </Button>
-                            )}
-                            {row.status === 'PAUSED' && (
-                                <Button
-                                    size="xs"
-                                    onClick={() => handleScheduleAction(row, 'resume')}
-                                >
-                                    Resume
-                                </Button>
-                            )}
-                            {row.status === 'DISABLED' ? (
-                                <Button
-                                    size="xs"
-                                    variant="solid"
-                                    onClick={() => handleScheduleAction(row, 'enable')}
-                                >
-                                    Enable
-                                </Button>
-                            ) : (
-                                <Button
-                                    size="xs"
-                                    onClick={() => handleScheduleAction(row, 'disable')}
-                                >
-                                    Disable
-                                </Button>
-                            )}
-                            <Button
-                                size="xs"
-                                variant="solid"
-                                onClick={() => handleScheduleAction(row, 'trigger')}
-                            >
-                                Trigger
-                            </Button>
-                            <Button
-                                size="xs"
-                                color="red-600"
-                                onClick={() => handleScheduleAction(row, 'delete')}
-                            >
-                                Delete
-                            </Button>
+                        <div>
+                            <div className="font-semibold">{row.recipient_id}</div>
+                            <div className="text-xs text-gray-500">{row.recipient_type}</div>
                         </div>
                     )
                 },
             },
-        ],
-        []
-    )
-
-    const taskColumns: ColumnDef<ProfitSharingTask>[] = useMemo(
-        () => [
-            { header: 'Task ID', accessorKey: 'id' },
-            { header: 'Schedule ID', accessorKey: 'schedule_id' },
-            {
-                header: 'Status',
-                accessorKey: 'status',
-                cell: (props) => renderStatus(props.row.original.status),
-            },
-            { header: 'Trigger', accessorKey: 'trigger_mode' },
-            {
-                header: 'Start Time',
-                accessorKey: 'started_at',
-                cell: (props) => formatDateTime(props.row.original.started_at),
-            },
-            {
-                header: 'Finish Time',
-                accessorKey: 'finished_at',
-                cell: (props) => formatDateTime(props.row.original.finished_at),
-            },
-            {
-                header: 'Operation',
-                id: 'task_ops',
-                cell: (props) => (
-                    <Button
-                        size="xs"
-                        onClick={() => {
-                            setTaskRecordsPage(1)
-                            loadTaskRecords(props.row.original.id)
-                        }}
-                    >
-                        Detail
-                    </Button>
-                ),
-            },
-        ],
-        []
-    )
-
-    const recordColumns: ColumnDef<ProfitSharingRecord>[] = useMemo(
-        () => [
-            { header: 'Record ID', accessorKey: 'id' },
-            { header: 'Task ID', accessorKey: 'task_id' },
-            { header: 'Schedule ID', accessorKey: 'schedule_id' },
             {
                 header: 'Amount',
                 accessorKey: 'amount',
                 cell: (props) => formatAmount(props.row.original.amount),
             },
-            { header: 'Currency', accessorKey: 'currency' },
+            {
+                header: 'Rate %',
+                accessorKey: 'percentage',
+                cell: (props) => `${props.row.original.percentage ?? 0}`,
+            },
             {
                 header: 'Status',
                 accessorKey: 'status',
@@ -558,261 +330,146 @@ const ProfitSharing = () => {
                 accessorKey: 'created_at',
                 cell: (props) => formatDateTime(props.row.original.created_at),
             },
+            {
+                header: 'Completed At',
+                accessorKey: 'completed_at',
+                cell: (props) => formatDateTime(props.row.original.completed_at),
+            },
         ],
         []
     )
 
     return (
-        <AdaptableCard className="h-full" bodyClass="h-full overflow-auto">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                <div>
-                    <h3 className="mb-1">Profit Sharing</h3>
-                    <p className="text-sm text-gray-500">
-                        Statistics, schedules, tasks and records in one page
-                    </p>
-                </div>
-                <div className="flex gap-2">
-                    <Button size="sm" loading={exporting} onClick={handleExport}>
-                        Export Report
-                    </Button>
-                    <Button size="sm" variant="solid" onClick={refreshAll}>
-                        Refresh
-                    </Button>
-                </div>
-            </div>
-
-            <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <Card>
-                    <p className="text-sm text-gray-500">Total Amount</p>
-                    <h4>{formatAmount(statistics.total_amount)}</h4>
-                </Card>
-                <Card>
-                    <p className="text-sm text-gray-500">Total Records</p>
-                    <h4>{statistics.total_records}</h4>
-                </Card>
-                <Card>
-                    <p className="text-sm text-gray-500">Active Schedules</p>
-                    <h4>{statistics.active_schedules}</h4>
-                </Card>
-                <Card>
-                    <p className="text-sm text-gray-500">Pending Tasks</p>
-                    <h4>{statistics.pending_tasks}</h4>
-                </Card>
-            </div>
-
-            <Card className="mb-6">
-                <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-                    <h5>Schedules</h5>
-                    <div className="flex gap-2">
-                        <Input
-                            value={scheduleKeyword}
-                            placeholder="Search by name"
-                            onChange={(event) => setScheduleKeyword(event.target.value)}
-                        />
-                        <Button
+        <AdaptableCard className="h-full" bodyClass="h-full">
+            <div className="flex flex-col gap-4">
+                <div className="lg:flex items-center justify-between mb-4 gap-3">
+                    <div>
+                        <h3>Profit Sharing</h3>
+                        <p className="text-sm text-gray-500">Settlement profit-sharing records and statistics</p>
+                    </div>
+                    <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+                        <DatePickerRange
+                            dropdownPlacement="bottom-end"
+                            value={[
+                                filters.startTime ? dayjs(filters.startTime).toDate() : null,
+                                filters.endTime ? dayjs(filters.endTime).toDate() : null,
+                            ]}
+                            inputFormat={dateFormat}
                             size="sm"
-                            onClick={() => {
-                                if (schedulePage !== 1) {
-                                    setSchedulePage(1)
-                                } else {
-                                    loadSchedules()
-                                }
-                            }}
-                        >
-                            Search
-                        </Button>
-                        <Button size="sm" variant="solid" onClick={openCreateScheduleDialog}>
-                            New Schedule
-                        </Button>
+                            onChange={handleDateRangeChange}
+                        />
                     </div>
                 </div>
-                <DataTable
-                    columns={scheduleColumns}
-                    data={schedules}
-                    loading={loadingSchedules || scheduleSubmitting}
-                    pagingData={{
-                        total: scheduleTotal,
-                        pageIndex: schedulePage,
-                        pageSize: schedulePageSize,
-                    }}
-                    onPaginationChange={setSchedulePage}
-                    onSelectChange={(value) => {
-                        setSchedulePageSize(Number(value))
-                        setSchedulePage(1)
-                    }}
-                />
-            </Card>
 
-            <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+                    <StatisticCard
+                        icon={<HiOutlineChartBar />}
+                        avatarClass="!bg-indigo-600"
+                        label="Total Records"
+                        value={stats.total_records}
+                    />
+                    <StatisticCard
+                        icon={<HiOutlineCurrencyDollar />}
+                        avatarClass="!bg-blue-500"
+                        label="Total Amount"
+                        value={formatAmount(stats.total_amount)}
+                    />
+                    <StatisticCard
+                        icon={<HiOutlineCheckCircle />}
+                        avatarClass="!bg-emerald-500"
+                        label="Completed Amount"
+                        value={formatAmount(stats.completed_amount)}
+                    />
+                    <StatisticCard
+                        icon={<HiOutlineClock />}
+                        avatarClass="!bg-amber-500"
+                        label="Pending Amount"
+                        value={formatAmount(stats.pending_amount)}
+                    />
+                    <StatisticCard
+                        icon={<HiOutlineExclamationCircle />}
+                        avatarClass="!bg-red-500"
+                        label="Failed Amount"
+                        value={formatAmount(stats.failed_amount)}
+                    />
+                </div>
+
                 <Card>
-                    <h5 className="mb-4">Tasks</h5>
+                    <div className="mb-4 md:flex items-center justify-between">
+                        <div className="md:flex items-center gap-3">
+                            <Input
+                                className="mb-4"
+                                placeholder="App ID"
+                                value={filters.appId}
+                                onChange={(event) =>
+                                    setFilters((prev) => ({ ...prev, appId: event.target.value }))
+                                }
+                            />
+                            <Input
+                                className="mb-4"
+                                placeholder="Recipient ID"
+                                value={filters.recipientId}
+                                onChange={(event) =>
+                                    setFilters((prev) => ({ ...prev, recipientId: event.target.value }))
+                                }
+                            />
+                        </div>
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="min-w-[140px]">
+                                <Select<StatusOption>
+                                    options={statusOptions}
+                                    size="sm"
+                                    components={{
+                                        Option: CustomStatusOption,
+                                        Control: CustomStatusControl,
+                                    }}
+                                    value={statusOptions.filter((option) => option.value === filters.status)}
+                                    onChange={onStatusFilterChange}
+                                />
+                            </div>
+                            <Button
+                                size="sm"
+                                variant="solid"
+                                loading={loadingStats || loadingRecords}
+                                onClick={onSearch}
+                            >
+                                Search
+                            </Button>
+                            <Button
+                                size="sm"
+                                onClick={() => {
+                                    setFilters({
+                                        appId: '',
+                                        recipientId: '',
+                                        status: '',
+                                        startTime: defaultStartTime,
+                                        endTime: defaultEndTime,
+                                    })
+                                    setPageIndex(1)
+                                }}
+                            >
+                                Reset
+                            </Button>
+                        </div>
+                    </div>
+
                     <DataTable
-                        columns={taskColumns}
-                        data={tasks}
-                        loading={loadingTasks}
+                        columns={columns}
+                        data={records}
+                        loading={loadingRecords || loadingStats}
                         pagingData={{
-                            total: taskTotal,
-                            pageIndex: taskPage,
-                            pageSize: taskPageSize,
+                            total,
+                            pageIndex,
+                            pageSize,
                         }}
-                        onPaginationChange={setTaskPage}
-                        onSelectChange={(value) => {
-                            setTaskPageSize(Number(value))
-                            setTaskPage(1)
+                        onPaginationChange={(page) => setPageIndex(page)}
+                        onSelectChange={(size) => {
+                            setPageSize(Number(size))
+                            setPageIndex(1)
                         }}
                     />
                 </Card>
-
-                <Card>
-                    <div className="mb-4 flex items-center justify-between">
-                        <h5>Selected Task Detail</h5>
-                        {selectedTask?.id && (
-                            <span className="text-xs text-gray-500">Task: {selectedTask.id}</span>
-                        )}
-                    </div>
-                    {selectedTask ? (
-                        <>
-                            <div className="mb-3 grid grid-cols-1 gap-2 md:grid-cols-2">
-                                <div>
-                                    <p className="text-xs text-gray-500">Schedule ID</p>
-                                    <p>{selectedTask.schedule_id}</p>
-                                </div>
-                                <div>
-                                    <p className="text-xs text-gray-500">Status</p>
-                                    {renderStatus(selectedTask.status)}
-                                </div>
-                                <div>
-                                    <p className="text-xs text-gray-500">Started At</p>
-                                    <p>{formatDateTime(selectedTask.started_at)}</p>
-                                </div>
-                                <div>
-                                    <p className="text-xs text-gray-500">Finished At</p>
-                                    <p>{formatDateTime(selectedTask.finished_at)}</p>
-                                </div>
-                            </div>
-                            <DataTable
-                                columns={recordColumns}
-                                data={taskRecords}
-                                loading={loadingTaskRecords}
-                                pagingData={{
-                                    total: taskRecordsTotal,
-                                    pageIndex: taskRecordsPage,
-                                    pageSize: taskRecordsPageSize,
-                                }}
-                                onPaginationChange={setTaskRecordsPage}
-                                onSelectChange={(value) => {
-                                    setTaskRecordsPageSize(Number(value))
-                                    setTaskRecordsPage(1)
-                                }}
-                            />
-                        </>
-                    ) : (
-                        <p className="text-sm text-gray-500">
-                            Select a task from the task table to view detail records
-                        </p>
-                    )}
-                </Card>
             </div>
-
-            <Card className="mt-6">
-                <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-                    <h5>Profit Sharing Records</h5>
-                    <div className="flex gap-2">
-                        <Input
-                            value={recordTaskIdFilter}
-                            placeholder="Filter by task id"
-                            onChange={(event) => setRecordTaskIdFilter(event.target.value)}
-                        />
-                        <Button
-                            size="sm"
-                            onClick={() => {
-                                if (recordPage !== 1) {
-                                    setRecordPage(1)
-                                } else {
-                                    loadRecords()
-                                }
-                            }}
-                        >
-                            Search
-                        </Button>
-                    </div>
-                </div>
-                <DataTable
-                    columns={recordColumns}
-                    data={records}
-                    loading={loadingRecords || loadingStats}
-                    pagingData={{
-                        total: recordTotal,
-                        pageIndex: recordPage,
-                        pageSize: recordPageSize,
-                    }}
-                    onPaginationChange={setRecordPage}
-                    onSelectChange={(value) => {
-                        setRecordPageSize(Number(value))
-                        setRecordPage(1)
-                    }}
-                />
-            </Card>
-
-            <Dialog
-                isOpen={scheduleDialogOpen}
-                onClose={() => setScheduleDialogOpen(false)}
-                onRequestClose={() => setScheduleDialogOpen(false)}
-                width={680}
-            >
-                <h5 className="mb-4">{editingSchedule ? 'Edit Schedule' : 'New Schedule'}</h5>
-                <div className="grid grid-cols-1 gap-4">
-                    <div>
-                        <p className="mb-1 text-sm text-gray-500">Name</p>
-                        <Input
-                            value={form.name}
-                            onChange={(event) =>
-                                setForm((prev) => ({ ...prev, name: event.target.value }))
-                            }
-                        />
-                    </div>
-                    <div>
-                        <p className="mb-1 text-sm text-gray-500">Currency</p>
-                        <Input
-                            value={form.currency}
-                            onChange={(event) =>
-                                setForm((prev) => ({ ...prev, currency: event.target.value }))
-                            }
-                        />
-                    </div>
-                    <div>
-                        <p className="mb-1 text-sm text-gray-500">Description</p>
-                        <Input
-                            textArea
-                            rows={3}
-                            value={form.description}
-                            onChange={(event) =>
-                                setForm((prev) => ({
-                                    ...prev,
-                                    description: event.target.value,
-                                }))
-                            }
-                        />
-                    </div>
-                    <div>
-                        <p className="mb-1 text-sm text-gray-500">Rules (JSON or text)</p>
-                        <Input
-                            textArea
-                            rows={6}
-                            value={form.rules}
-                            onChange={(event) =>
-                                setForm((prev) => ({ ...prev, rules: event.target.value }))
-                            }
-                        />
-                    </div>
-                </div>
-                <div className="mt-4 flex justify-end gap-2">
-                    <Button onClick={() => setScheduleDialogOpen(false)}>Cancel</Button>
-                    <Button variant="solid" loading={scheduleSubmitting} onClick={submitSchedule}>
-                        Save
-                    </Button>
-                </div>
-            </Dialog>
         </AdaptableCard>
     )
 }

@@ -19,117 +19,149 @@ import reducer, {
 import { injectReducer } from '@/store'
 import { useLocation, useNavigate } from 'react-router-dom'
 
-import ChannelForm, {
-    FormModel,
-    SetSubmitting,
-    OnDeleteCallback,
-} from '@/views/channel/ChannelForm'
+import ChannelForm, { FormModel, OnDeleteCallback, SetSubmitting } from '@/views/channel/ChannelForm'
 import isEmpty from 'lodash/isEmpty'
+import type { SetFeeConfigRequest } from '@/@types/channel'
 
 injectReducer('channelEdit', reducer)
+
+const majorToMinor = (value?: string) => {
+    const numericValue = Number(value || '0')
+    if (!Number.isFinite(numericValue)) {
+        return '0'
+    }
+
+    return String(Math.round(numericValue * 100))
+}
+
+const minorToMajor = (value?: string) => {
+    const numericValue = Number(value || '0')
+    if (!Number.isFinite(numericValue)) {
+        return '0.00'
+    }
+
+    return (numericValue / 100).toFixed(2)
+}
+
+const buildFeeConfigPayload = (values: FormModel): SetFeeConfigRequest => {
+    const base: SetFeeConfigRequest = {
+        fee_mode: values.fee_mode,
+    }
+
+    if (values.fee_mode === 'UNIFIED') {
+        return {
+            ...base,
+            unified_percentage_fee: values.unified_percentage_fee,
+            unified_fixed_fee: majorToMinor(values.unified_fixed_fee),
+        }
+    }
+
+    if (values.fee_mode === 'TIERED') {
+        return {
+            ...base,
+            tiered_rules: (values.tiered_rules || []).map((rule) => ({
+                ...rule,
+                fixed_fee: majorToMinor(rule.fixed_fee),
+            })),
+        }
+    }
+
+    return {
+        ...base,
+        pay_in_percentage_fee: values.pay_in_percentage_fee,
+        pay_in_fixed_fee: majorToMinor(values.pay_in_fixed_fee),
+        pay_out_percentage_fee: values.pay_out_percentage_fee,
+        pay_out_fixed_fee: majorToMinor(values.pay_out_fixed_fee),
+    }
+}
 
 const ChannelEdit = () => {
     const dispatch = useAppDispatch()
     const location = useLocation()
     const navigate = useNavigate()
 
-    const channelData = useAppSelector(
-        (state) => state.channelEdit.data.channelData
-    )
-    const channelConfig = useAppSelector(
-        (state) => state.channelEdit.data.channelConfig
-    )
-    const loading = useAppSelector(
-        (state) => state.channelEdit.data.loading
-    )
-    const configLoading = useAppSelector(
-        (state) => state.channelEdit.data.configLoading
-    )
+    const channelData = useAppSelector((state) => state.channelEdit.data.channelData)
+    const channelConfig = useAppSelector((state) => state.channelEdit.data.channelConfig)
+    const loading = useAppSelector((state) => state.channelEdit.data.loading)
+    const configLoading = useAppSelector((state) => state.channelEdit.data.configLoading)
 
     const fetchData = (channelId: string) => {
         dispatch(getChannel(channelId))
         dispatch(getChannelConfig(channelId))
     }
 
-    const handleFormSubmit = async (
-        values: FormModel,
-        setSubmitting: SetSubmitting
-    ) => {
+    const handleFormSubmit = async (values: FormModel, setSubmitting: SetSubmitting) => {
         if (!channelData?.id) return
-        
+
         setSubmitting(true)
         try {
-            // 1. 更新渠道基本信息
-            await dispatch(updateChannel({
-                channelId: channelData.id,
-                updates: {
-                    name: values.name,
-                    display_name: values.display_name,
-                    supported_currencies: values.supported_currencies,
-                    supported_payment_methods: values.supported_payment_methods,
-                    supported_transaction_types: values.supported_transaction_types,
-                }
-            })).unwrap()
-            
-            // 2. 更新 API 配置
-            // 编辑模式：如果用户输入了新密钥或证书，使用热更新接口；否则使用普通配置接口
-            if ((values.secret_key && values.secret_key.trim()) || (values.certificate && values.certificate.trim())) {
-                // 用户输入了新密钥或证书，使用热更新凭据接口（立即生效）
-                await dispatch(hotUpdateCredentials({
+            await dispatch(
+                updateChannel({
                     channelId: channelData.id,
-                    credentials: {
-                        secret_key: values.secret_key || '',
-                        certificate: values.certificate || '',
-                    }
-                })).unwrap()
-            }
-            
-            // 更新其他 API 配置（端点、超时等）
-            await dispatch(setAPIConfig({
-                channelId: channelData.id,
-                config: {
-                    production_endpoint: values.production_endpoint,
-                    test_endpoint: values.test_endpoint,
-                    timeout: parseInt(values.timeout) || 30,
-                    retry_count: parseInt(values.retry_count) || 3,
-                    retry_interval: parseInt(values.retry_interval) || 1000,
-                    auth_config: {
-                        merchant_id: values.merchant_id,
-                        app_id: values.app_id,
-                        secret_key: '', // 密钥已通过热更新接口更新，这里传空
+                    updates: {
+                        name: values.name,
+                        display_name: values.display_name,
+                        supported_currencies: values.supported_currencies,
+                        supported_payment_methods: values.supported_payment_methods,
+                        supported_transaction_types: values.supported_transaction_types,
                     },
-                }
-            })).unwrap()
-            
-            // 3. 更新费率配置（区分 Pay_In 和 Pay_Out）
-            await dispatch(setFeeConfig({
-                channelId: channelData.id,
-                config: {
-                    pay_in_percentage_fee: values.pay_in_percentage_fee,
-                    pay_in_fixed_fee: values.pay_in_fixed_fee,
-                    pay_out_percentage_fee: values.pay_out_percentage_fee,
-                    pay_out_fixed_fee: values.pay_out_fixed_fee,
-                }
-            })).unwrap()
-            
-            // 4. 更新限额配置
-            await dispatch(setLimitConfig({
-                channelId: channelData.id,
-                config: {
-                    min_amount: values.min_amount,
-                    max_amount: values.max_amount,
-                    daily_limit: values.daily_limit,
-                }
-            })).unwrap()
-            
+                }),
+            ).unwrap()
+
+            if ((values.secret_key && values.secret_key.trim()) || (values.certificate && values.certificate.trim())) {
+                await dispatch(
+                    hotUpdateCredentials({
+                        channelId: channelData.id,
+                        credentials: {
+                            secret_key: values.secret_key || '',
+                            certificate: values.certificate || '',
+                        },
+                    }),
+                ).unwrap()
+            }
+
+            await dispatch(
+                setAPIConfig({
+                    channelId: channelData.id,
+                    config: {
+                        production_endpoint: values.production_endpoint,
+                        test_endpoint: values.test_endpoint,
+                        timeout: parseInt(values.timeout) || 30,
+                        retry_count: parseInt(values.retry_count) || 3,
+                        retry_interval: parseInt(values.retry_interval) || 1000,
+                        auth_config: {
+                            merchant_id: values.merchant_id,
+                            app_id: values.app_id,
+                        },
+                    },
+                }),
+            ).unwrap()
+
+            await dispatch(
+                setFeeConfig({
+                    channelId: channelData.id,
+                    config: buildFeeConfigPayload(values),
+                }),
+            ).unwrap()
+
+            await dispatch(
+                setLimitConfig({
+                    channelId: channelData.id,
+                    config: {
+                        min_amount: values.min_amount,
+                        max_amount: values.max_amount,
+                        daily_limit: values.daily_limit,
+                    },
+                }),
+            ).unwrap()
+
             popNotification('更新')
         } catch (error) {
-            console.error('更新渠道失败:', error)
             toast.push(
                 <Notification title="更新失败" type="danger" duration={2500}>
                     渠道更新失败，请重试
                 </Notification>,
-                { placement: 'top-center' }
+                { placement: 'top-center' },
             )
         } finally {
             setSubmitting(false)
@@ -142,7 +174,7 @@ const ChannelEdit = () => {
 
     const handleDelete = async (setDialogOpen: OnDeleteCallback) => {
         if (!channelData?.id) return
-        
+
         setDialogOpen(false)
         try {
             await dispatch(deleteChannel(channelData.id)).unwrap()
@@ -152,33 +184,27 @@ const ChannelEdit = () => {
                 <Notification title="删除失败" type="danger" duration={2500}>
                     渠道删除失败，请重试
                 </Notification>,
-                { placement: 'top-center' }
+                { placement: 'top-center' },
             )
         }
     }
 
     const popNotification = (keyword: string) => {
         toast.push(
-            <Notification
-                title={`${keyword}成功`}
-                type="success"
-                duration={2500}
-            >
+            <Notification title={`${keyword}成功`} type="success" duration={2500}>
                 渠道已成功{keyword}
             </Notification>,
             {
                 placement: 'top-center',
-            }
+            },
         )
         navigate('/app/channel')
     }
 
     useEffect(() => {
-        const path = location.pathname.substring(
-            location.pathname.lastIndexOf('/') + 1
-        )
+        const path = location.pathname.substring(location.pathname.lastIndexOf('/') + 1)
         fetchData(path)
-        
+
         return () => {
             dispatch(resetChannelData())
         }
@@ -200,7 +226,6 @@ const ChannelEdit = () => {
                             supported_currencies: channelData.supported_currencies,
                             supported_payment_methods: channelData.supported_payment_methods,
                             supported_transaction_types: channelData.supported_transaction_types,
-                            // API 配置
                             production_endpoint: channelConfig?.api_config?.production_endpoint || '',
                             test_endpoint: channelConfig?.api_config?.test_endpoint || '',
                             timeout: channelConfig?.api_config?.timeout?.toString() || '30',
@@ -208,16 +233,20 @@ const ChannelEdit = () => {
                             retry_interval: channelConfig?.api_config?.retry_interval?.toString() || '1000',
                             merchant_id: channelConfig?.api_config?.auth_config?.merchant_id || '',
                             app_id: channelConfig?.api_config?.auth_config?.app_id || '',
-                            secret_key: '', // 密钥不从后端返回，编辑时需要重新输入
-                            certificate: '', // 证书不从后端返回，编辑时需要重新上传
+                            secret_key: '',
+                            certificate: '',
                             certificateInfo: undefined,
-                            // Pay_In 费率配置
+                            fee_mode: channelConfig?.fee_config?.fee_mode || 'BY_TXN_TYPE',
+                            unified_percentage_fee: channelConfig?.fee_config?.unified_percentage_fee || '0',
+                            unified_fixed_fee: minorToMajor(channelConfig?.fee_config?.unified_fixed_fee),
                             pay_in_percentage_fee: channelConfig?.fee_config?.pay_in_percentage_fee || '0',
-                            pay_in_fixed_fee: channelConfig?.fee_config?.pay_in_fixed_fee || '0',
-                            // Pay_Out 费率配置
+                            pay_in_fixed_fee: minorToMajor(channelConfig?.fee_config?.pay_in_fixed_fee),
                             pay_out_percentage_fee: channelConfig?.fee_config?.pay_out_percentage_fee || '0',
-                            pay_out_fixed_fee: channelConfig?.fee_config?.pay_out_fixed_fee || '0',
-                            // 限额配置
+                            pay_out_fixed_fee: minorToMajor(channelConfig?.fee_config?.pay_out_fixed_fee),
+                            tiered_rules: (channelConfig?.fee_config?.tiered_rules || []).map((rule) => ({
+                                ...rule,
+                                fixed_fee: minorToMajor(rule.fixed_fee),
+                            })),
                             min_amount: channelConfig?.limit_config?.min_amount || '0',
                             max_amount: channelConfig?.limit_config?.max_amount || '0',
                             daily_limit: channelConfig?.limit_config?.daily_limit || '0',

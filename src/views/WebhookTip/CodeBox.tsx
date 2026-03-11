@@ -1,11 +1,9 @@
-import SyntaxHighlighter from '@/components/shared/SyntaxHighlighter'
-
 interface CodeBoxProps {
     content: string | object
     language?: string
 }
 
-const CodeBox = ({ content, language = 'json' }: CodeBoxProps) => {
+const CodeBox = ({ content }: CodeBoxProps) => {
     // 格式化内容：如果是对象，自动转为格式化的JSON字符串
     const formatContent = (input: string | object): string => {
         if (typeof input === 'object') {
@@ -18,9 +16,9 @@ const CodeBox = ({ content, language = 'json' }: CodeBoxProps) => {
 
     return (
         <div className="px-10 pb-6">
-            <SyntaxHighlighter className="text-base" language={language}>
-                {formattedContent}
-            </SyntaxHighlighter>
+            <pre className="overflow-x-auto rounded-lg bg-gray-900 p-4 text-sm text-gray-100">
+                <code>{formattedContent}</code>
+            </pre>
         </div>
     )
 }

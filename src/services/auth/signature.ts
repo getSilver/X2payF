@@ -1,4 +1,5 @@
 import CryptoJS from 'crypto-js'
+import { secureRandomString } from '@/utils/secureRandom'
 
 /**
  * 签名数据接口
@@ -74,15 +75,7 @@ function normalizeBody(body: string): string {
  * 生成随机 nonce
  */
 export function generateNonce(length = 16): string {
-    const chars =
-        'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
-    let result = ''
-
-    for (let i = 0; i < length; i++) {
-        result += chars.charAt(Math.floor(Math.random() * chars.length))
-    }
-
-    return result
+    return secureRandomString(length)
 }
 
 /**

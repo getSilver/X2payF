@@ -17,6 +17,12 @@ export type LoginSession = {
     user_id: string
 }
 
+export type LoginMFAFactor = {
+    id: string
+    factor_type: 'totp' | 'email'
+    friendly_name: string
+}
+
 /**
  * 登录响应
  */
@@ -24,6 +30,7 @@ export type SignInResponse = {
     requires_mfa: boolean
     session?: LoginSession
     user_id?: string
+    available_factors?: LoginMFAFactor[]
     message: string
 }
 
@@ -88,6 +95,15 @@ export type ForgotPassword = {
 export type ResetPassword = {
     token: string
     password: string
+}
+
+/**
+ * 修改当前登录用户密码请求参数
+ */
+export type ChangePassword = {
+    current_password: string
+    new_password: string
+    confirm_password: string
 }
 
 // ==================== 兼容旧代码的类型别名 ====================

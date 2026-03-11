@@ -24,6 +24,12 @@ import {
     apiUpdateApplicationConfig,
 } from '@/services/api/AccountApi'
 
+const isStrictIanaTimezoneCode = (value: string) => {
+    const timezone = value.trim()
+    if (!timezone) return false
+    return /^[A-Za-z_]+(?:\/[A-Za-z0-9_\-+]+)+$/.test(timezone)
+}
+
 type DrawerFooterProps = {
     onSaveClick?: () => void
     onCancel?: () => void
@@ -74,14 +80,25 @@ const CustomerEditDialog = () => {
             withdrawal_address,
             withdrawal_fee_percent,
             ip_whitelist,
+            cashier_return_url_whitelist,
             agent,
         } = values
 
         // 处理代理商绑定/解绑逻辑
         const oldAgentId = (selectedCustomer as Customer).personalInfo?.agent || (selectedCustomer as Customer).agent_id || ''
         const newAgentId = agent || ''
-        const oldLocation =
-            (selectedCustomer as Customer).personalInfo?.location || ''
+        const oldLocation = ((selectedCustomer as Customer).personalInfo?.location || '').trim()
+        const nextLocation = (location || '').trim()
+
+        if (nextLocation && nextLocation !== oldLocation && !isStrictIanaTimezoneCode(nextLocation)) {
+            toast.push(
+                <Notification title="时区格式错误" type="warning">
+                    仅允许 timezone.code（IANA），例如 America/Sao_Paulo
+                </Notification>,
+                { placement: 'top-center' }
+            )
+            return
+        }
         
         try {
             let agentChanged = false
@@ -120,6 +137,7 @@ const CustomerEditDialog = () => {
                     withdrawal_address,
                     withdrawal_fee_percent,
                     ip_whitelist,
+                    cashier_return_url_whitelist,
                     agent: newAgentId,
                 },
             }
@@ -127,7 +145,7 @@ const CustomerEditDialog = () => {
             // 调用后端更新商户信息
             await dispatch(putCustomer(updatedData as Customer)).unwrap()
 
-            if (location && location !== oldLocation && selectedCustomer.id) {
+            if (nextLocation && nextLocation !== oldLocation && selectedCustomer.id) {
                 const applicationsResponse = await apiGetMerchantApplications(
                     selectedCustomer.id
                 )
@@ -140,7 +158,7 @@ const CustomerEditDialog = () => {
                 const appId = applications[0]?.id
                 if (appId) {
                     await apiUpdateApplicationConfig(appId, {
-                        timezone: location,
+                        timezone: nextLocation,
                     })
                 }
             }

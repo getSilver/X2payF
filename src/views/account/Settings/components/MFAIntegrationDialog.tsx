@@ -7,6 +7,7 @@ import toast from '@/components/ui/toast'
 import { QRCodeSVG } from 'qrcode.react'
 import {
     apiEnrollTOTP,
+    apiEnrollEmail,
     apiVerifyTOTPEnrollment,
     apiListMFAFactors,
     apiUnenrollFactor,
@@ -31,13 +32,16 @@ const MFAIntegrationDialog = ({
     onClose,
     onSuccess,
 }: MFAIntegrationDialogProps) => {
-    const [step, setStep] = useState<'list' | 'enroll' | 'verify' | 'unenroll'>('list')
+    const [step, setStep] = useState<
+        'list' | 'enroll' | 'verify' | 'email' | 'unenroll'
+    >('list')
     const [mfaEnrollment, setMfaEnrollment] =
         useState<MFAEnrollmentState | null>(null)
     const [verificationCode, setVerificationCode] = useState('')
     const [factors, setFactors] = useState<MFAFactor[]>([])
     const [loading, setLoading] = useState(false)
     const [showSecret, setShowSecret] = useState(false)
+    const [emailAddress, setEmailAddress] = useState('')
     // 解绑相关状态
     const [unenrollFactorId, setUnenrollFactorId] = useState<string | null>(null)
     const [unenrollCode, setUnenrollCode] = useState('')
@@ -58,6 +62,40 @@ const MFAIntegrationDialog = ({
                     title="加载 MFA 因子失败"
                     type="danger"
                 >
+                    {error?.response?.data?.message || '请稍后重试'}
+                </Notification>,
+                { placement: 'top-center' }
+            )
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const enrollEmailFactor = async () => {
+        if (!emailAddress.trim()) {
+            toast.push(
+                <Notification title="请输入邮箱地址" type="warning" />,
+                { placement: 'top-center' }
+            )
+            return
+        }
+
+        try {
+            setLoading(true)
+            await apiEnrollEmail({
+                email: emailAddress.trim(),
+            })
+            toast.push(
+                <Notification title="邮箱验证绑定成功" type="success" />,
+                { placement: 'top-center' }
+            )
+            setEmailAddress('')
+            setStep('list')
+            await loadFactors()
+            onSuccess?.()
+        } catch (error: any) {
+            toast.push(
+                <Notification title="绑定邮箱验证失败" type="danger">
                     {error?.response?.data?.message || '请稍后重试'}
                 </Notification>,
                 { placement: 'top-center' }
@@ -196,6 +234,7 @@ const MFAIntegrationDialog = ({
         setMfaEnrollment(null)
         setVerificationCode('')
         setShowSecret(false)
+        setEmailAddress('')
         setUnenrollFactorId(null)
         setUnenrollCode('')
     }
@@ -263,8 +302,12 @@ const MFAIntegrationDialog = ({
             )}
 
             <div className="mt-6 flex justify-end gap-2">
-                <Button variant="plain" onClick={handleClose}>
-                    关闭
+                <Button
+                    variant="plain"
+                    onClick={() => setStep('email')}
+                    disabled={loading}
+                >
+                    添加邮箱验证
                 </Button>
                 <Button
                     variant="solid"
@@ -272,6 +315,39 @@ const MFAIntegrationDialog = ({
                     loading={loading}
                 >
                     添加验证器应用
+                </Button>
+            </div>
+        </div>
+    )
+
+    const renderEmailStep = () => (
+        <div>
+            <h4 className="mb-1">添加邮箱验证</h4>
+            <p className="text-sm text-gray-500 mb-4">
+                输入用于接收 MFA 验证码的邮箱地址
+            </p>
+
+            <Input
+                type="email"
+                placeholder="name@example.com"
+                value={emailAddress}
+                onChange={(e) => setEmailAddress(e.target.value)}
+            />
+
+            <div className="mt-6 flex justify-end gap-2">
+                <Button
+                    variant="plain"
+                    onClick={() => setStep('list')}
+                >
+                    返回
+                </Button>
+                <Button
+                    variant="solid"
+                    onClick={enrollEmailFactor}
+                    loading={loading}
+                    disabled={!emailAddress.trim()}
+                >
+                    绑定邮箱验证
                 </Button>
             </div>
         </div>
@@ -432,6 +508,7 @@ const MFAIntegrationDialog = ({
                 {step === 'list' && renderFactorList()}
                 {step === 'enroll' && renderEnrollStep()}
                 {step === 'verify' && renderVerifyStep()}
+                {step === 'email' && renderEmailStep()}
                 {step === 'unenroll' && renderUnenrollStep()}
             </div>
         </Dialog>

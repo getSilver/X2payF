@@ -1,5 +1,4 @@
-import { useRef, useEffect, useCallback, useMemo } from 'react'
-import ApexChart from 'react-apexcharts'
+import { useRef, useEffect, useCallback, useMemo, useState } from 'react'
 import {
     apexLineChartDefaultOption,
     apexBarChartDefaultOption,
@@ -9,11 +8,13 @@ import {
 import { DIR_RTL } from '@/constants/theme.constant'
 import type { ApexOptions } from 'apexcharts'
 import type { Direction } from '@/@types/theme'
-import type { ReactNode } from 'react'
+import type { ComponentType, ReactNode } from 'react'
+import type { Props as ApexChartProps } from 'react-apexcharts'
 
 const notDonut = ['line', 'bar', 'area']
 
 type ChartType = 'line' | 'bar' | 'area' | 'donut'
+type ApexChartComponent = ComponentType<ApexChartProps>
 
 export interface ChartProps {
     series?: ApexOptions['series']
@@ -45,6 +46,8 @@ const Chart = (props: ChartProps) => {
     } = props
 
     const chartRef = useRef<HTMLDivElement>(null)
+    const [ApexChartComponent, setApexChartComponent] =
+        useState<ApexChartComponent | null>(null)
 
     const chartDefaultOption = useMemo(() => {
         switch (type) {
@@ -88,6 +91,20 @@ const Chart = (props: ChartProps) => {
         }
     }, [type, setLegendOffset])
 
+    useEffect(() => {
+        let mounted = true
+
+        import('react-apexcharts').then((module) => {
+            if (mounted) {
+                setApexChartComponent(module.default as ApexChartComponent)
+            }
+        })
+
+        return () => {
+            mounted = false
+        }
+    }, [])
+
     if (notDonut.includes(type as ChartType)) {
         options.xaxis.categories = xAxis
     }
@@ -112,15 +129,22 @@ const Chart = (props: ChartProps) => {
             style={direction === DIR_RTL ? { direction: 'ltr' } : {}}
             className="chartRef"
         >
-            <ApexChart
-                options={options}
-                type={type}
-                series={series}
-                width={width}
-                height={height}
-                className={className}
-                {...rest}
-            />
+            {ApexChartComponent ? (
+                <ApexChartComponent
+                    options={options}
+                    type={type}
+                    series={series}
+                    width={width}
+                    height={height}
+                    className={className}
+                    {...rest}
+                />
+            ) : (
+                <div
+                    className={className}
+                    style={{ width, height }}
+                />
+            )}
         </div>
     )
 }

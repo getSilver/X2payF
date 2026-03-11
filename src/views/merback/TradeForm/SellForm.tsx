@@ -9,8 +9,14 @@ import { Field, Form, Formik, FieldProps } from 'formik'
 import { components, ControlProps, OptionProps, GroupBase } from 'react-select'
 import { HiCheck } from 'react-icons/hi'
 import { currencyList, Currency, getCurrencyIcon } from './options.data'
-import { apiGetMerchantApplications, MerchantApplication, MerchantAppConfig } from '@/services/MerchantService'
+import { MerchantApplication, MerchantAppConfig } from '@/services/MerchantService'
+import {
+    getTradeWithdrawProvider,
+    resolveProviderTypeByPath,
+} from '@/services/tradeWithdrawProvider'
+import { apiGetAgentProfit } from '@/services/AgentMerchantService'
 import { apiGetExchangeRateByQuoteCurrency } from '@/services/PlatformSettingsService'
+import { useLocation } from 'react-router-dom'
 import * as Yup from 'yup'
 
 export type FormModel = {
@@ -119,6 +125,10 @@ const defaultValidationSchema = Yup.object().shape({
 
 const SellForm = (props: SellFormProps) => {
     const { onSell, amount, symbol } = props
+    const location = useLocation()
+    const provider = getTradeWithdrawProvider(
+        resolveProviderTypeByPath(location.pathname)
+    )
     const [appCurrencies, setAppCurrencies] = useState<Currency[]>([])
     const [loading, setLoading] = useState(false)
     const [selectedCurrency, setSelectedCurrency] = useState<Currency | null>(null)
@@ -129,15 +139,37 @@ const SellForm = (props: SellFormProps) => {
         const loadAppCurrencies = async () => {
             setLoading(true)
             try {
-                const response = await apiGetMerchantApplications()
+                const isAgentProvider = provider.type === 'agent'
+                let agentProfitBalance = 0
+
+                if (isAgentProvider) {
+                    try {
+                        const profitResponse = await apiGetAgentProfit()
+                        const profitData =
+                            (profitResponse.data as any)?.data || profitResponse.data
+                        const parsedProfitBalance = Number(profitData?.profit_balance)
+                        agentProfitBalance = Number.isFinite(parsedProfitBalance)
+                            ? parsedProfitBalance
+                            : 0
+                    } catch (error) {
+                        console.error('加载代理分润余额失败:', error)
+                    }
+                }
+
+                const response = await provider.listApplications()
+                const responseData = (response as any)?.data
                 console.log('API 响应:', response)
                 
                 // 尝试多种数据结构
                 let apps: MerchantApplication[] = []
-                if (response.data?.data) {
-                    apps = response.data.data
-                } else if (Array.isArray(response.data)) {
-                    apps = response.data as unknown as MerchantApplication[]
+                if (Array.isArray(responseData?.data?.list)) {
+                    apps = responseData.data.list as MerchantApplication[]
+                } else if (Array.isArray(responseData?.data)) {
+                    apps = responseData.data as MerchantApplication[]
+                } else if (Array.isArray(responseData?.list)) {
+                    apps = responseData.list as MerchantApplication[]
+                } else if (Array.isArray(responseData)) {
+                    apps = responseData as MerchantApplication[]
                 }
                 
                 console.log('解析后的应用列表:', apps)
@@ -145,8 +177,8 @@ const SellForm = (props: SellFormProps) => {
                 // 将应用转换为币种选项（需要异步获取汇率）
                 const appCurrencyPromises = apps
                     .filter((app: MerchantApplication) => {
-                        // 获取币种：可能在 app.currency 或 app.config.currency
-                        const currency = app.currency || (typeof app.config === 'object' ? (app.config as MerchantAppConfig)?.currency : null)
+                        // 币种唯一来源：商户 app 顶层字段 app.currency
+                        const currency = app.currency
                         const isActive = app.status === 'active'
                         console.log(`应用 ${app.name}: currency=${currency}, status=${app.status}, isActive=${isActive}`)
                         return currency && isActive
@@ -164,8 +196,8 @@ const SellForm = (props: SellFormProps) => {
                             config = app.config as MerchantAppConfig
                         }
                         
-                        // 获取币种（优先使用 app.currency，其次使用 config.currency）
-                        const currency = app.currency || config.currency || 'USD'
+                        // 币种唯一来源：商户 app 顶层字段 app.currency
+                        const currency = app.currency || 'USD'
                         
                         // 获取卖出汇率加点百分比（默认 0.5%）
                         const markupPercent = config.exchange_rate_sell || 0.5
@@ -187,6 +219,14 @@ const SellForm = (props: SellFormProps) => {
                         // 计算实际汇率：基础汇率 × (1 + 加点百分比/100)
                         const effectiveRate = baseRate * (1 + markupPercent / 100)
                         
+                        const parsedAvailableAmount = Number(app.available_amount)
+                        const appAvailableAmount = Number.isFinite(parsedAvailableAmount)
+                            ? parsedAvailableAmount
+                            : 0
+                        const availableAmount = isAgentProvider
+                            ? agentProfitBalance
+                            : appAvailableAmount
+
                         console.log(`创建币种选项: ${currency} (${app.name}), baseRate=${baseRate}, markup=${markupPercent}%, effectiveRate=${effectiveRate}, balance=${app.available_amount}`)
                         
                         return {
@@ -197,14 +237,31 @@ const SellForm = (props: SellFormProps) => {
                             rate: effectiveRate,
                             isAppCurrency: true,
                             appId: app.id,
-                            availableBalance: app.available_amount || 0,
+                            // 唯一来源：应用可用余额 available_amount（分）
+                            availableBalance: availableAmount,
                             // 保存基础汇率和加点百分比，用于显示
                             baseRate: baseRate,
                             markupPercent: markupPercent,
                         }
                     })
                 
-                const appCurrencyOptions = await Promise.all(appCurrencyPromises)
+                let appCurrencyOptions = await Promise.all(appCurrencyPromises)
+
+                if (isAgentProvider && appCurrencyOptions.length === 0) {
+                    appCurrencyOptions = [
+                        {
+                            label: 'USD',
+                            img: getCurrencyIcon('USD'),
+                            value: 'USD_AGENT',
+                            rate: 1,
+                            isAppCurrency: true,
+                            appId: '',
+                            availableBalance: agentProfitBalance,
+                            baseRate: 1,
+                            markupPercent: 0,
+                        },
+                    ]
+                }
                 console.log('最终币种选项:', appCurrencyOptions)
                 setAppCurrencies(appCurrencyOptions)
             } catch (error) {
@@ -215,7 +272,7 @@ const SellForm = (props: SellFormProps) => {
         }
         
         loadAppCurrencies()
-    }, [])
+    }, [provider])
 
     // 合并区块链币种和应用币种
     const allCurrencies: Currency[] = [
@@ -253,6 +310,13 @@ const SellForm = (props: SellFormProps) => {
                 enableReinitialize={true}
                 validationSchema={validationSchema}
                 onSubmit={(values, { setSubmitting }) => {
+                    if (values.isAppCurrency) {
+                        const availableBalance = Number(values.availableBalance)
+                        if (!Number.isFinite(availableBalance) || availableBalance <= 0) {
+                            setSubmitting(false)
+                            return
+                        }
+                    }
                     onSell(values, setSubmitting)
                 }}
             >
@@ -312,25 +376,30 @@ const SellForm = (props: SellFormProps) => {
                                                         values.cryptoSymbol
                                                 )}
                                                 onChange={(currency) => {
+                                                    const selectedValue = currency?.value || ''
+                                                    const selectedOption = allCurrencies.find(
+                                                        (item) => item.value === selectedValue
+                                                    )
+
                                                     form.setFieldValue(
                                                         field.name,
-                                                        currency?.value
+                                                        selectedValue
                                                     )
                                                     form.setFieldValue(
                                                         'rate',
-                                                        currency?.rate
+                                                        selectedOption?.rate || 1
                                                     )
                                                     // 重新计算金额：当前 price / 新汇率
                                                     const currentPrice = form.values.price || 1
-                                                    const newRate = currency?.rate || 1
+                                                    const newRate = selectedOption?.rate || 1
                                                     const newAmount = currentPrice / newRate
                                                     form.setFieldValue(
                                                         'amount',
                                                         parseFloat(newAmount.toFixed(2))
                                                     )
                                                     // 设置应用币种相关字段
-                                                    const isAppCurrency = currency?.isAppCurrency || false
-                                                    const availableBalance = currency?.availableBalance || 0
+                                                    const isAppCurrency = selectedOption?.isAppCurrency || false
+                                                    const availableBalance = selectedOption?.availableBalance || 0
                                                     
                                                     form.setFieldValue(
                                                         'isAppCurrency',
@@ -338,13 +407,13 @@ const SellForm = (props: SellFormProps) => {
                                                     )
                                                     form.setFieldValue(
                                                         'appId',
-                                                        currency?.appId || ''
+                                                        selectedOption?.appId || ''
                                                     )
                                                     form.setFieldValue(
                                                         'currency',
                                                         isAppCurrency 
-                                                            ? currency?.value.split('_')[0] 
-                                                            : currency?.value
+                                                            ? (selectedOption?.value || '').split('_')[0] 
+                                                            : selectedValue
                                                     )
                                                     form.setFieldValue(
                                                         'availableBalance',
@@ -353,13 +422,13 @@ const SellForm = (props: SellFormProps) => {
                                                     // 设置基础汇率和加点百分比
                                                     form.setFieldValue(
                                                         'baseRate',
-                                                        currency?.baseRate || currency?.rate || 1
+                                                        selectedOption?.baseRate || selectedOption?.rate || 1
                                                     )
                                                     form.setFieldValue(
                                                         'markupPercent',
-                                                        currency?.markupPercent || 0
+                                                        selectedOption?.markupPercent || 0
                                                     )
-                                                    setSelectedCurrency(currency)
+                                                    setSelectedCurrency(selectedOption || null)
                                                     // 动态更新验证 schema
                                                     setValidationSchema(
                                                         createValidationSchema(availableBalance, isAppCurrency)

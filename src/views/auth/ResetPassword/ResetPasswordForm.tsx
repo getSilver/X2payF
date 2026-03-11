@@ -4,13 +4,13 @@ import Button from '@/components/ui/Button'
 import Alert from '@/components/ui/Alert'
 import PasswordInput from '@/components/shared/PasswordInput'
 import ActionLink from '@/components/shared/ActionLink'
-import { apiResetPassword } from '@/services/AuthService'
+import { apiChangePassword } from '@/services/AuthService'
 import useTimeOutMessage from '@/utils/hooks/useTimeOutMessage'
 import { useNavigate } from 'react-router-dom'
 import { Field, Form, Formik } from 'formik'
 import * as Yup from 'yup'
 import type { CommonProps } from '@/@types/common'
-import type { AxiosError } from 'axios'
+import store, { clearUser, signOutSuccess } from '@/store'
 
 interface ResetPasswordFormProps extends CommonProps {
     disableSubmit?: boolean
@@ -18,16 +18,27 @@ interface ResetPasswordFormProps extends CommonProps {
 }
 
 type ResetPasswordFormSchema = {
-    password: string
+    currentPassword: string
+    newPassword: string
     confirmPassword: string
 }
 
 const validationSchema = Yup.object().shape({
-    password: Yup.string().required('Please enter your password'),
-    confirmPassword: Yup.string().oneOf(
-        [Yup.ref('password')],
-        'Your passwords do not match'
-    ),
+    currentPassword: Yup.string().required('Please enter your current password'),
+    newPassword: Yup.string()
+        .required('Please enter your new password')
+        .min(12, 'Password must be at least 12 characters')
+        .matches(/[A-Z]/, 'Password must contain at least one uppercase letter')
+        .matches(/[a-z]/, 'Password must contain at least one lowercase letter')
+        .matches(/[0-9]/, 'Password must contain at least one number')
+        .matches(/[^A-Za-z0-9]/, 'Password must contain at least one special character')
+        .notOneOf(
+            [Yup.ref('currentPassword')],
+            'New password must be different from current password'
+        ),
+    confirmPassword: Yup.string()
+        .required('Please confirm your new password')
+        .oneOf([Yup.ref('newPassword')], 'Your passwords do not match'),
 })
 
 const ResetPasswordForm = (props: ResetPasswordFormProps) => {
@@ -43,20 +54,21 @@ const ResetPasswordForm = (props: ResetPasswordFormProps) => {
         values: ResetPasswordFormSchema,
         setSubmitting: (isSubmitting: boolean) => void
     ) => {
-        const { password } = values
-        const token = new URLSearchParams(window.location.search).get('token') || ''
         setSubmitting(true)
         try {
-            const resp = await apiResetPassword({ token, password })
+            const resp = await apiChangePassword({
+                current_password: values.currentPassword,
+                new_password: values.newPassword,
+                confirm_password: values.confirmPassword,
+            })
             if (resp.data) {
+                store.dispatch(signOutSuccess())
+                store.dispatch(clearUser())
                 setSubmitting(false)
                 setResetComplete(true)
             }
         } catch (errors) {
-            setMessage(
-                (errors as AxiosError<{ message: string }>)?.response?.data
-                    ?.message || (errors as Error).toString()
-            )
+            setMessage(errors instanceof Error ? errors.message : 'Request failed')
             setSubmitting(false)
         }
     }
@@ -70,15 +82,13 @@ const ResetPasswordForm = (props: ResetPasswordFormProps) => {
             <div className="mb-6">
                 {resetComplete ? (
                     <>
-                        <h3 className="mb-1">Reset done</h3>
-                        <p>Your password has been successfully reset</p>
+                        <h3 className="mb-1">Password updated</h3>
+                        <p>Your password has been successfully updated</p>
                     </>
                 ) : (
                     <>
-                        <h3 className="mb-1">Set new password</h3>
-                        <p>
-                            Your new password must different to previos password
-                        </p>
+                        <h3 className="mb-1">Reset password</h3>
+                        <p>Enter your current password and set a new password</p>
                     </>
                 )}
             </div>
@@ -89,8 +99,9 @@ const ResetPasswordForm = (props: ResetPasswordFormProps) => {
             )}
             <Formik
                 initialValues={{
-                    password: '123Qwe1',
-                    confirmPassword: '123Qwe1',
+                    currentPassword: '',
+                    newPassword: '',
+                    confirmPassword: '',
                 }}
                 validationSchema={validationSchema}
                 onSubmit={(values, { setSubmitting }) => {
@@ -107,16 +118,32 @@ const ResetPasswordForm = (props: ResetPasswordFormProps) => {
                             {!resetComplete ? (
                                 <>
                                     <FormItem
-                                        label="Password"
+                                        label="Current Password"
                                         invalid={
-                                            errors.password && touched.password
+                                            errors.currentPassword &&
+                                            touched.currentPassword
                                         }
-                                        errorMessage={errors.password}
+                                        errorMessage={errors.currentPassword}
                                     >
                                         <Field
                                             autoComplete="off"
-                                            name="password"
-                                            placeholder="Password"
+                                            name="currentPassword"
+                                            placeholder="Current Password"
+                                            component={PasswordInput}
+                                        />
+                                    </FormItem>
+                                    <FormItem
+                                        label="New Password"
+                                        invalid={
+                                            errors.newPassword &&
+                                            touched.newPassword
+                                        }
+                                        errorMessage={errors.newPassword}
+                                    >
+                                        <Field
+                                            autoComplete="off"
+                                            name="newPassword"
+                                            placeholder="New Password"
                                             component={PasswordInput}
                                         />
                                     </FormItem>

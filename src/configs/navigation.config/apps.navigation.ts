@@ -115,16 +115,6 @@ const appsNavigation: NavigationTree[] = [
                         subMenu: [],
                     },
                     {
-                        key: 'appsChannel.payment',
-                        path: `${APP_PREFIX_PATH}/channel/payment`,
-                        title: 'Payment Set',
-                        translateKey: 'nav.appsChannel.paymentSet',
-                        icon: '',
-                        type: NAV_ITEM_TYPE_ITEM,
-                        authority: PLATFORM_ROLES,
-                        subMenu: [],
-                    },
-                    {
                         key: 'appsChannel.channel',
                         path: `${APP_PREFIX_PATH}/channel/`,
                         title: 'Channel',

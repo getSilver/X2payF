@@ -1,4 +1,5 @@
 import { ApiError, ErrorType, NetworkError, SystemError } from '../errors'
+import { secureRandomFloat } from '@/utils/secureRandom'
 
 /**
  * 重试配置
@@ -141,7 +142,7 @@ export class RetryManager {
 
         // 添加随机抖动（±10%）
         if (this.config.enableJitter) {
-            const jitter = delay * 0.1 * Math.random()
+            const jitter = delay * 0.1 * secureRandomFloat()
             delay += jitter
         }
 

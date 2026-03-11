@@ -9,6 +9,7 @@ import Notification from '@/components/ui/Notification'
 import { HiOutlineRefresh } from 'react-icons/hi'
 import { apiAdminCreateRefund } from '@/services/api/RefundApi'
 import type { CreateRefundRequest } from '@/@types/refund'
+import createUID from '@/components/ui/utils/createUid'
 
 interface RefundDialogProps {
     isOpen: boolean
@@ -22,7 +23,7 @@ interface RefundDialogProps {
 // 生成商户退款单号
 const generateMerchantRefundId = () => {
     const timestamp = Date.now()
-    const random = Math.random().toString(36).substr(2, 9)
+    const random = createUID(10)
     return `refund_${timestamp}_${random}`
 }
 
@@ -81,7 +82,7 @@ const RefundDialog = ({
             const requestData: CreateRefundRequest = {
                 payment_id: paymentId,
                 merchant_refund_id: merchantRefundId.trim(),
-                request_id: `refund_req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                request_id: `refund_req_${Date.now()}_${createUID(10)}`,
                 refund_amount: amountInCents,
                 reason: reason.trim() || '管理员发起退款',
             }

@@ -19,7 +19,7 @@ import appConfig from '@/configs/app.config'
 import { REDIRECT_URL_KEY } from '@/constants/app.constant'
 import { useNavigate } from 'react-router-dom'
 import useQuery from './useQuery'
-import type { SignInCredential } from '@/@types/auth'
+import type { LoginMFAFactor, SignInCredential } from '@/@types/auth'
 
 type Status = 'success' | 'failed' | 'mfa_required'
 
@@ -114,6 +114,11 @@ function useAuth() {
         (state) => state.auth.session
     )
 
+    const getPreferredMFAFactor = (
+        factors: LoginMFAFactor[]
+    ): LoginMFAFactor | undefined =>
+        factors.find((factor) => factor.factor_type === 'totp') || factors[0]
+
     /**
      * 用户登录
      * @param values 登录凭证
@@ -133,10 +138,22 @@ function useAuth() {
 
                 // 检查是否需要 MFA 验证
                 if (loginData.requires_mfa) {
+                    const availableFactors = Array.isArray(
+                        loginData.available_factors
+                    )
+                        ? (loginData.available_factors as LoginMFAFactor[])
+                        : []
+                    const preferredFactor = getPreferredMFAFactor(
+                        availableFactors
+                    )
+
                     // 需要 MFA，保存用户 ID 等待验证
                     dispatch(
                         setMFAPending({
                             userId: loginData.user_id || '',
+                            factorId: preferredFactor?.id,
+                            factorType: preferredFactor?.factor_type,
+                            availableFactors,
                         })
                     )
                     return {
@@ -257,7 +274,7 @@ function useAuth() {
      */
     const verifyMFA = async (
         code: string,
-        factorType: 'totp' | 'email' = 'totp'
+        factorType: 'totp' | 'email' = mfaPending?.factorType || 'totp'
     ): Promise<MFAVerifyResult> => {
         if (!mfaPending?.userId) {
             return {

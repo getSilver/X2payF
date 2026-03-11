@@ -26,7 +26,12 @@ import useThemeClass from '@/utils/hooks/useThemeClass'
 import { useNavigate } from 'react-router-dom'
 import cloneDeep from 'lodash/cloneDeep'
 import dayjs from 'dayjs'
-import type { PaymentOrder, PaymentStatus, TransactionType } from '@/@types/payment'
+import {
+    PAYMENT_STATUS_META,
+    type PaymentOrder,
+    type PaymentStatus,
+    type TransactionType,
+} from '@/@types/payment'
 import type {
     DataTableResetHandle,
     OnSortParam,
@@ -61,51 +66,6 @@ const ActionIcon = ({ type }: { type: TransactionType }) => {
                 />
             )
     }
-}
-
-const orderStatusColor: Record<
-    PaymentStatus,
-    {
-        label: string
-        dotClass: string
-        textClass: string
-    }
-> = {
-    SUCCESS: {
-        label: 'Paid',
-        dotClass: 'bg-emerald-500',
-        textClass: 'text-emerald-500',
-    },
-    PENDING: {
-        label: 'Pending',
-        dotClass: 'bg-amber-500',
-        textClass: 'text-amber-500',
-    },
-    PROCESSING: {
-        label: 'Processing',
-        dotClass: 'bg-amber-500',
-        textClass: 'text-amber-500',
-    },
-    FAILED: {
-        label: 'Failed',
-        dotClass: 'bg-red-500',
-        textClass: 'text-red-500',
-    },
-    CANCELLED: {
-        label: 'Cancelled',
-        dotClass: 'bg-gray-500',
-        textClass: 'text-gray-500',
-    },
-    CLOSED: {
-        label: 'Closed',
-        dotClass: 'bg-gray-500',
-        textClass: 'text-gray-500',
-    },
-    REFUNDED: {
-        label: 'Refund',
-        dotClass: 'bg-red-500',
-        textClass: 'text-red-500',
-    },
 }
 
 type PaymentMethod = PaymentOrder['payment_method']
@@ -263,8 +223,17 @@ const OrdersTable = () => {
                 cell: (props) => <OrderColumn row={props.row.original} />,
             },
             {
-                header: 'Channel渠道ID',
-                accessorKey: 'channel_id',
+                header: 'Channel渠道',
+                accessorKey: 'channel_display_name',
+                cell: (props) => {
+                    const { channel_display_name, channel_name, channel_id } =
+                        props.row.original
+                    return (
+                        <span>
+                            {channel_display_name || channel_name || channel_id || '-'}
+                        </span>
+                    )
+                },
             },
             {
                 header: 'Date创建时间',
@@ -285,15 +254,14 @@ const OrdersTable = () => {
                 accessorKey: 'status',
                 cell: (props) => {
                     const status = props.row.original.status
+                    const statusInfo = PAYMENT_STATUS_META[status] || PAYMENT_STATUS_META.PENDING
                     return (
                         <div className="flex items-center">
-                            <Badge
-                                className={orderStatusColor[status].dotClass}
-                            />
+                            <Badge className={statusInfo.dotClass} />
                             <span
-                                className={`ml-2 rtl:mr-2 capitalize font-semibold ${orderStatusColor[status].textClass}`}
+                                className={`ml-2 rtl:mr-2 capitalize font-semibold ${statusInfo.textClass}`}
                             >
-                                {orderStatusColor[status].label}
+                                {statusInfo.label}
                             </span>
                         </div>
                     )
@@ -303,8 +271,7 @@ const OrdersTable = () => {
                 header: 'Payment Method',
                 accessorKey: 'payment_method',
                 cell: (props) => {
-                    const { payment_method, merchant_tx_id } =
-                        props.row.original
+                    const { payment_method } = props.row.original
                     return (
                         <span className="flex items-center">
                             <PaymentMethodImage
@@ -312,7 +279,7 @@ const OrdersTable = () => {
                                 payment_method={payment_method}
                             />
                             <span className="ltr:ml-2 rtl:mr-2">
-                                {merchant_tx_id}
+                                {payment_method}
                             </span>
                         </span>
                     )

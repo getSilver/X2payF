@@ -6,7 +6,7 @@ import { useAppSelector } from '@/store'
 import { Link } from 'react-router-dom'
 import classNames from 'classnames'
 import { HiOutlineUser, HiOutlineCog, HiOutlineLogout } from 'react-icons/hi'
-import { MERCHANT_ROLES } from '@/constants/roles.constant'
+import { AGENT, MERCHANT_ROLES } from '@/constants/roles.constant'
 import type { CommonProps } from '@/@types/common'
 
 type DropdownList = {
@@ -17,7 +17,11 @@ type DropdownList = {
 
 // 根据用户角色获取设置页面路径
 const getSettingsPath = (authority: string[] = []) => {
+    const isAgent = authority.includes(AGENT)
     const isMerchant = authority.some(role => MERCHANT_ROLES.includes(role))
+    if (isAgent) {
+        return '/agent/account/settings/profile'
+    }
     return isMerchant ? '/mer/account/settings/profile' : '/account/settings/profile'
 }
 

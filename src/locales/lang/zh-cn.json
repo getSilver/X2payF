@@ -143,9 +143,8 @@
     },
     "paymentDetails": {
         "customerInfo": {
-            "title": "凭证",
-            "payment": "支付",
-            "receipt": "收据"
+            "payment": "收款方",
+            "receipt": "付款方"
         }
     }
 }

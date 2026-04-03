@@ -171,7 +171,7 @@ const getValidationSchema = (type: 'edit' | 'new') =>
         production_endpoint: Yup.string().url('请输入有效的URL').required('生产环境端点必填'),
         test_endpoint: Yup.string().url('请输入有效的URL').notRequired(),
         merchant_id: Yup.string().required('商户ID必填'),
-        app_id: Yup.string().required('应用ID必填'),
+        app_id: Yup.string().notRequired(),
         secret_key:
             type === 'edit' ? Yup.string().notRequired() : Yup.string().required('密钥必填'),
         certificate: Yup.string().notRequired(),

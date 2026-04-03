@@ -36,7 +36,7 @@ const OrdersTableTools = () => {
             {selectedRows.length > 0 && <BatchDeleteButton />}
             <OrderTableSearch />
             <OrderFilter />
-            <Link download to="/data/order-list.csv" target="_blank">
+            <Link download to="#" target="_blank">
                 <Button block size="sm" icon={<HiArrowDownTray />}>
                     Export
                 </Button>

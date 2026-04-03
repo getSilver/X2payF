@@ -1,0 +1,8 @@
+{
+    "paymentDetails": {
+        "customerInfo": {
+            "payment": "Recebedor",
+            "receipt": "Pagador"
+        }
+    }
+}

@@ -143,9 +143,8 @@
     },
     "paymentDetails": {
         "customerInfo": {
-            "title": "Voucher",
-            "payment": "Payment",
-            "receipt": "Receipt"
+            "payment": "Payee",
+            "receipt": "Payer"
         }
     }
 }

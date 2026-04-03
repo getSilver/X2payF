@@ -15,6 +15,7 @@ import type { CommonProps } from '@/@types/common'
 const languageList = [
     { label: 'English', value: 'en', flag: 'us' },
     { label: 'Chinese', value: 'zh-cn', flag: 'cn' },
+    { label: 'Brazil', value: 'pt-br', flag: 'br' },
 ]
 
 const _LanguageSelector = ({ className }: CommonProps) => {

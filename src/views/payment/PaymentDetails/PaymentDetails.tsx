@@ -24,6 +24,9 @@ type OrderDetailsResponse = PaymentOrder &
         customer: {
             name: string
             img: string
+            amount?: number | null
+            currency?: string
+            successTime?: string
             paymentInfo: {
                 line1: string
                 line2: string
@@ -63,6 +66,22 @@ const fallbackText = (value?: string) => {
     return '-'
 }
 
+const parseExtra = (extra?: string) => {
+    if (!extra || !extra.trim()) {
+        return {}
+    }
+
+    try {
+        const parsed = JSON.parse(extra)
+        if (parsed && typeof parsed === 'object') {
+            return parsed as Record<string, string>
+        }
+    } catch {
+    }
+
+    return {}
+}
+
 const mapPaymentDetail = (detail: PaymentOrder): OrderDetailsResponse => {
     const paymentInfo = {
         line1: fallbackText(detail.account_name),
@@ -70,14 +89,28 @@ const mapPaymentDetail = (detail: PaymentOrder): OrderDetailsResponse => {
         line3: fallbackText(detail.account_number),
         line4: fallbackText(detail.account_type),
     }
+    const extra = parseExtra(detail.extra)
+    const receiptInfo = {
+        line1: fallbackText(extra.sender_name),
+        line2: fallbackText(extra.sender_document),
+        line3: fallbackText(extra.sender_bank),
+        line4: '-',
+    }
+    const successTime =
+        detail.status === 'SUCCESS'
+            ? fallbackText(detail.settled_at || detail.updated_at)
+            : '-'
 
     return {
         ...detail,
         customer: {
-            name: '-',
+            name: fallbackText(detail.end_to_end),
             img: '',
+            amount: detail.amount ?? null,
+            currency: detail.currency,
+            successTime,
             paymentInfo,
-            receiptInfo: paymentInfo,
+            receiptInfo,
         },
     }
 }

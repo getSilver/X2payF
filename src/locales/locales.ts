@@ -3,6 +3,7 @@ import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 import en from './lang/en.json'
 import zh_cn from './lang/zh-cn.json'
+import pt_br from './lang/pt-br.json'
 import appConfig from '@/configs/app.config'
 
 const resources = {
@@ -11,6 +12,9 @@ const resources = {
     },
     zhCn: {
         translation: zh_cn
+    },
+    ptBr: {
+        translation: pt_br,
     },
 }
 
@@ -28,6 +32,7 @@ export const dateLocales: {
 } = {
     en: () => import('dayjs/locale/en'),
     zhCn: () => import('dayjs/locale/zh-cn'),
+    ptBr: () => import('dayjs/locale/pt-br'),
 }
 
 export default i18n

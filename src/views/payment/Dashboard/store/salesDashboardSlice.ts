@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
 import dayjs from 'dayjs'
-import { apiGetSalesDashboardData } from '@/services/PaymentService'
+import { apiGetSalesDashboardData } from '@/services/SalesService'
 
 type Statistic = {
     value: number

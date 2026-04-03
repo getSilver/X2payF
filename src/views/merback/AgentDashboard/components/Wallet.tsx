@@ -12,8 +12,8 @@ const Wallet = () => {
 
     return (
         <div className="grid lg:grid-cols-3 2xl:grid-cols-3 gap-4">
-            <WalletCard title="Pay-in" data={data[0] || {}} />
-            <WalletCard title="Pay-out" data={data[1] || {}} />
+            <WalletCard title="PayIn" data={data[0] || {}} />
+            <WalletCard title="PayOut" data={data[1] || {}} />
             <WalletCard title="Balance" data={data[2] || {}} />
         </div>
     )

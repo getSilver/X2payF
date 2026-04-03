@@ -108,7 +108,7 @@ const OrdersTable = () => {
     const columns: ColumnDef<Order>[] = useMemo(
         () => [
             {
-                header: '类型',
+                header: 'type',
                 accessorKey: 'transaction_type',
                 cell: (props) => {
                     const row = props.row.original
@@ -134,7 +134,7 @@ const OrdersTable = () => {
                 },
             },
             {
-                header: '时间',
+                header: 'date',
                 accessorKey: 'created_at',
                 cell: (props) => {
                     const row = props.row.original
@@ -142,7 +142,7 @@ const OrdersTable = () => {
                 },
             },
             {
-                header: '变动额',
+                header: 'amount',
                 accessorKey: 'amount',
                 cell: (props) => {
                     const { amount, currency, transaction_type } = props.row.original
@@ -163,7 +163,7 @@ const OrdersTable = () => {
                 },
             },
             {
-                header: '前后余额',
+                header: 'balance after',
                 accessorKey: 'balance_after',
                 cell: (props) => {
                     const { balance_before, balance_after, currency } = props.row.original
@@ -179,7 +179,7 @@ const OrdersTable = () => {
                 },
             },
             {
-                header: '关联交易号',
+                header: 'Payment Id',
                 accessorKey: 'payment_id',
                 cell: (props) => <OrderColumn row={props.row.original} />,
             },
@@ -202,7 +202,7 @@ const OrdersTable = () => {
                 },
             },
             {
-                header: '状态',
+                header: 'status',
                 accessorKey: 'status',
                 cell: (props) => {
                     const { status } = props.row.original

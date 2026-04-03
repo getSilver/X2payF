@@ -4,10 +4,7 @@ import {
     current,
     PayloadAction,
 } from '@reduxjs/toolkit'
-import {
-    apiGetPayments,
-    apiDeleteSalesOrders,
-} from '@/services/PaymentService'
+import { apiGetPayments } from '@/services/PaymentService'
 import type { TableQueries } from '@/@types/common'
 import type { PaymentStatus, TransactionType } from '@/@types/payment'
 
@@ -117,14 +114,6 @@ export const getOrders = createAsyncThunk(
         } as GetSalesOrdersResponse
     }
 )
-
-export const deleteOrders = async (data: { id: string | string[] }) => {
-    const response = await apiDeleteSalesOrders<
-        boolean,
-        { id: string | string[] }
-    >(data)
-    return response.data
-}
 
 const initialState: SalesOrderListState = {
     loading: false,

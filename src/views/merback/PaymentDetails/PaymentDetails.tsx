@@ -17,9 +17,11 @@ import { PAYMENT_STATUS_META, type PaymentStatus } from '@/@types/payment'
 type OrderDetailsResponse = {
     payment_id?: string
     merchant_tx_id?: string
+    end_to_end?: string
     status?: PaymentStatus
     progress_status?: number
     amount?: number | null
+    extra?: string
     settlement_amount?: number | null
     merchant_fee?: number | null
     settled_at?: string | null
@@ -40,6 +42,9 @@ type OrderDetailsResponse = {
     customer?: {
         name: string
         img: string
+        amount?: number | null
+        currency?: string
+        successTime?: string
         paymentInfo: {
             line1: string
             line2: string
@@ -78,6 +83,22 @@ const fallbackText = (value?: string) => {
     return '-'
 }
 
+const parseExtra = (extra?: string) => {
+    if (!extra || !extra.trim()) {
+        return {}
+    }
+
+    try {
+        const parsed = JSON.parse(extra)
+        if (parsed && typeof parsed === 'object') {
+            return parsed as Record<string, string>
+        }
+    } catch {
+    }
+
+    return {}
+}
+
 const isValidSuccessSettlement = (detail: Partial<OrderDetailsResponse>) => {
     if (detail.status !== 'SUCCESS') {
         return true
@@ -99,14 +120,28 @@ const mapPaymentDetail = (detail: any): OrderDetailsResponse => {
         line3: fallbackText(detail.account_number),
         line4: fallbackText(detail.account_type),
     }
+    const extra = parseExtra(detail.extra)
+    const receiptInfo = {
+        line1: fallbackText(extra.sender_name),
+        line2: fallbackText(extra.sender_document),
+        line3: fallbackText(extra.sender_bank),
+        line4: '-',
+    }
+    const successTime =
+        detail.status === 'SUCCESS'
+            ? fallbackText(detail.settled_at || detail.updated_at)
+            : '-'
 
     return {
         ...detail,
         customer: {
-            name: '-',
+            name: fallbackText(detail.end_to_end),
             img: '',
+            amount: detail.amount ?? null,
+            currency: detail.currency,
+            successTime,
             paymentInfo,
-            receiptInfo: paymentInfo,
+            receiptInfo,
         },
     }
 }

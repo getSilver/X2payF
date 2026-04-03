@@ -4,7 +4,10 @@ import path from "path";
 import dynamicImport from 'vite-plugin-dynamic-import'
 
 // https://vitejs.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  const isProd = mode === 'production'
+
+  return {
   plugins: [react({
     babel: {
       plugins: [
@@ -28,6 +31,13 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: 'build'
+    outDir: 'build',
+    minify: isProd ? 'terser' : 'esbuild',
+    terserOptions: isProd ? {
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
+      },
+    } : undefined,
   }
-});
+}})

@@ -1,7 +1,7 @@
 import axios, { AxiosError, AxiosInstance } from 'axios'
 import appConfig from '@/configs/app.config'
 import { TOKEN_TYPE, REQUEST_HEADER_AUTH_KEY } from '@/constants/api.constant'
-import store, { signOutSuccess } from '../store'
+import store, { clearUser, signOutSuccess } from '../store'
 import { RetryManager } from './retry'
 import {
     ApiError,
@@ -29,7 +29,7 @@ const isMockEnabled = import.meta.env.VITE_ENABLE_MOCK !== undefined
 const API_CONFIG = {
     // API 基础 URL
     // Mock 模式下使用相对路径，否则使用环境变量配置的 URL
-    baseURL: isMockEnabled ? appConfig.apiPrefix : (import.meta.env.VITE_API_URL || appConfig.apiPrefix),
+    baseURL: isMockEnabled ? appConfig.apiPrefix : (import.meta.env.VITE_API_URL || ''),
     // 请求超时时间
     timeout: Number(import.meta.env.VITE_API_TIMEOUT) || 60000,
     // 是否启用 Mock
@@ -50,6 +50,7 @@ const NO_TOKEN_PATHS = [
 ]
 
 const SESSION_INVALID_CODES = ['4006', '4007']
+let isSigningOut = false
 
 // ==================== 重试管理器 ====================
 
@@ -133,14 +134,47 @@ BaseService.interceptors.response.use(
         // 转换为统一的 ApiError
         const apiError = transformError(error)
 
-        // 仅在会话明确失效时自动登出，避免业务型 401 误触发退出
-        if (apiError.status === 401 && SESSION_INVALID_CODES.includes(apiError.code)) {
-            store.dispatch(signOutSuccess())
+        // 受保护接口返回 401 时，统一回收登录态，避免页面停留在“已登录但无数据”的状态
+        if (shouldSignOutOnUnauthorized(error, apiError)) {
+            forceSignOut()
         }
 
         return Promise.reject(apiError)
     }
 )
+
+function shouldSignOutOnUnauthorized(error: AxiosError, apiError: ApiError): boolean {
+    if (apiError.status !== 401) {
+        return false
+    }
+
+    const requestUrl = error.config?.url || ''
+    if (isNoTokenPath(requestUrl)) {
+        return false
+    }
+
+    // 兼容后端返回标准业务码（会话失效）和通用 401（token 过期/无效）
+    if (SESSION_INVALID_CODES.includes(apiError.code)) {
+        return true
+    }
+
+    return true
+}
+
+function forceSignOut() {
+    if (isSigningOut) {
+        return
+    }
+    isSigningOut = true
+
+    store.dispatch(signOutSuccess())
+    store.dispatch(clearUser())
+
+    // 让路由守卫立即生效；下一次事件循环后允许后续登出动作
+    setTimeout(() => {
+        isSigningOut = false
+    }, 0)
+}
 
 // ==================== 辅助函数 ====================
 

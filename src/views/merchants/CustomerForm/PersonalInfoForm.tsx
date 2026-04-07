@@ -23,7 +23,6 @@ const formatRegisterTime = (value: Date) => {
 type FormFieldsName = {
     upload: string
     name: string
-    agent: string
     email: string
     location: string
     birthday: Date
@@ -98,7 +97,7 @@ const PersonalInfoForm = (props: PersonalInfoFormProps) => {
                 </Field>
             </FormItem>
             <FormItem
-                label="Name"
+                label="Username"
                 invalid={errors.name && touched.name}
                 errorMessage={errors.name}
             >
@@ -106,13 +105,13 @@ const PersonalInfoForm = (props: PersonalInfoFormProps) => {
                     type="text"
                     autoComplete="off"
                     name="name"
-                    placeholder="Name"
+                    placeholder="Username"
                     component={Input}
                     prefix={<HiUserCircle className="text-xl" />}
                 />
             </FormItem>
             <FormItem
-                label="Email"
+                label="Login Email"
                 invalid={errors.email && touched.email}
                 errorMessage={errors.email}
             >
@@ -120,7 +119,7 @@ const PersonalInfoForm = (props: PersonalInfoFormProps) => {
                     type="email"
                     autoComplete="off"
                     name="email"
-                    placeholder="Email"
+                    placeholder="Login Email"
                     component={Input}
                     prefix={<HiEnvelope className="text-xl" />}
                 />
@@ -163,20 +162,6 @@ const PersonalInfoForm = (props: PersonalInfoFormProps) => {
                         prefix={<HiMapPin className="text-xl" />}
                     />
                 )}
-            </FormItem>
-            <FormItem
-                label="Agent代理"
-                invalid={errors.agent && touched.agent}
-                errorMessage={errors.agent}
-            >
-                <Field
-                    type="text"
-                    autoComplete="off"
-                    name="agent"
-                    placeholder="Agent"
-                    component={Input}
-                    prefix={<HiUserCircle className="text-xl" />}
-                />
             </FormItem>
             <FormItem
                 label="Birthday注册时间"

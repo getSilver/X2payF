@@ -48,6 +48,9 @@ export interface CreateMerchantRequest {
 export interface Merchant extends Account {
     name: string
     contact_email: string
+    owner_user_id?: string
+    owner_username?: string
+    owner_email?: string
     agent_id?: string
     withdrawal_address?: string
     withdrawal_fee_percent?: number

@@ -3,6 +3,7 @@ import {
     apiGetMerchant,
     apiGetMerchantApplications,
     apiGetAgentAppRelations,
+    apiGetAppAgentRelations,
     apiUpdateAccountStatus,
     apiCreateApplication,
     apiDeleteApplication,
@@ -10,8 +11,6 @@ import {
     apiUpdateAppAgentRelation,
     apiDeactivateAppAgentRelation,
     apiDeleteAppAgentRelation,
-    apiBindMerchantAgent,
-    apiUnbindMerchantAgent,
     apiUpdateMerchant,
 } from '@/services/api/AccountApi'
 import type { CreateApplicationRequest } from '@/services/api/AccountApi'
@@ -64,11 +63,14 @@ export type PaymentMethod = {
     entityId?: string
     appId?: string
     agentId?: string
+    relationId?: string
     relationStatus?: string
     payInFixedProfitSharing?: number
     payOutFixedProfitSharing?: number
     payInPercentageProfitSharing?: number
     payOutPercentageProfitSharing?: number
+    settlementLimit?: number
+    relationWithdrawalFeePercent?: number
     // 兼容代理分润组件的既有字段
     payIn?: string
     payOut?: string
@@ -95,7 +97,6 @@ export type Customer = Merchant & {
     personalInfo?: {
         location: string
         title: string
-        agent: string
         birthday: string
         merchantID: string
         withdrawal_address: string
@@ -160,11 +161,74 @@ export const getCustomer = createAsyncThunk(
             | undefined
 
         let applications: MerchantApplication[] = []
+        let appRelationsByAppId: Record<
+            string,
+            {
+                id: string
+                app_id: string
+                agent_id: string
+                pay_in_fixed_profit_sharing?: number
+                pay_out_fixed_profit_sharing?: number
+                pay_in_percentage_profit_sharing?: number
+                pay_out_percentage_profit_sharing?: number
+                settlement_limit?: number
+                withdrawal_fee_percent?: number
+                status?: string
+            }
+        > = {}
         if (data.id.startsWith('mch_')) {
             try {
                 const applicationsResponse = await apiGetMerchantApplications(data.id)
                 const applicationsBackend = applicationsResponse.data as unknown as BackendResponse<MerchantApplication[]>
                 applications = applicationsBackend.data || []
+                if (applications.length > 0) {
+                    const relationResults = await Promise.all(
+                        applications.map(async (app) => {
+                            try {
+                                const relationResponse =
+                                    await apiGetAppAgentRelations(app.id)
+                                const relationBackend =
+                                    relationResponse.data as unknown as BackendResponse<
+                                        Array<{
+                                            id: string
+                                            app_id: string
+                                            agent_id: string
+                                            pay_in_fixed_profit_sharing?: number
+                                            pay_out_fixed_profit_sharing?: number
+                                            pay_in_percentage_profit_sharing?: number
+                                            pay_out_percentage_profit_sharing?: number
+                                            settlement_limit?: number
+                                            withdrawal_fee_percent?: number
+                                            status?: string
+                                        }>
+                                    >
+                                const relations = relationBackend.data || []
+                                const activeRelation =
+                                    relations.find(
+                                        (item) => item.status === 'active'
+                                    ) || relations[0]
+                                return activeRelation
+                                    ? [app.id, activeRelation] as const
+                                    : null
+                            } catch (error) {
+                                console.warn(
+                                    `获取应用 ${app.id} 的代理关系失败`,
+                                    error
+                                )
+                                return null
+                            }
+                        })
+                    )
+                    appRelationsByAppId = relationResults.reduce(
+                        (acc, item) => {
+                            if (item) {
+                                acc[item[0]] = item[1]
+                            }
+                            return acc
+                        },
+                        {} as typeof appRelationsByAppId
+                    )
+                }
             } catch (error) {
                 console.warn('获取应用列表失败，可能不是商户账户', error)
             }
@@ -274,6 +338,7 @@ export const getCustomer = createAsyncThunk(
                   ]
               })()
             : applications.map((app) => {
+                  const relation = appRelationsByAppId[app.id]
                   let config: Record<string, unknown> = {}
                   if (typeof app.config === 'string') {
                       try {
@@ -309,13 +374,28 @@ export const getCustomer = createAsyncThunk(
                       available_amount: app.available_amount ?? 0,
                       configType: 'application',
                       entityId: app.id,
+                      appId: app.id,
+                      agentId: relation?.agent_id || '',
+                      relationStatus: relation?.status || '',
+                      relationId: relation?.id || '',
+                      payInFixedProfitSharing:
+                          relation?.pay_in_fixed_profit_sharing ?? 0,
+                      payOutFixedProfitSharing:
+                          relation?.pay_out_fixed_profit_sharing ?? 0,
+                      payInPercentageProfitSharing:
+                          relation?.pay_in_percentage_profit_sharing ?? 0,
+                      payOutPercentageProfitSharing:
+                          relation?.pay_out_percentage_profit_sharing ?? 0,
+                      settlementLimit: relation?.settlement_limit ?? 0,
+                      relationWithdrawalFeePercent:
+                          relation?.withdrawal_fee_percent ?? 0,
                   }
               })
 
         const customerData: Customer = {
             ...merchant,
-            email: merchant.contact_email,
-            name: merchant.name,
+            email: merchant.owner_email || merchant.contact_email,
+            name: merchant.owner_username || merchant.name,
             img: '',
             role: merchant.account_type,
             lastOnline: new Date(merchant.updated_at).getTime() / 1000,
@@ -325,7 +405,6 @@ export const getCustomer = createAsyncThunk(
                         (item) => item.configType === 'application'
                     )?.timezone || '',
                 title: merchant.account_type,
-                agent: merchant.agent_id || '',
                 birthday: merchant.created_at,
                 merchantID: merchant.id,
                 withdrawal_address:
@@ -384,19 +463,11 @@ export const putCustomer = createAsyncThunk(
     SLICE_NAME + '/putCustomer',
     async (data: Customer) => {
         const updateData: {
-            name?: string
-            contact_email?: string
             withdrawal_address?: string
             withdrawal_fee_percent?: number
             ip_whitelist?: string[]
             config?: MerchantConfig
         } = {}
-        if (data.name) {
-            updateData.name = data.name
-        }
-        if (data.email) {
-            updateData.contact_email = data.email
-        }
         if (data.personalInfo?.withdrawal_address !== undefined) {
             updateData.withdrawal_address = data.personalInfo.withdrawal_address
         }
@@ -440,12 +511,18 @@ export const putCustomer = createAsyncThunk(
 // 创建商户应用
 export const createApplication = createAsyncThunk(
     SLICE_NAME + '/createApplication',
-    async (data: { merchantId: string; name: string; config: CreateApplicationRequest['config'] }) => {
+    async (data: {
+        merchantId: string
+        name: string
+        currency: string
+        config: CreateApplicationRequest['config']
+    }) => {
         const requestId = `app_${Date.now()}_${createUID(10)}`
         const response = await apiCreateApplication({
             request_id: requestId,
             merchant_id: data.merchantId,
             name: data.name,
+            currency: data.currency,
             config: data.config,
         })
         const backendData = response.data as unknown as BackendResponse<MerchantApplication>
@@ -622,27 +699,6 @@ export const deleteAgentRateConfig = createAsyncThunk(
     async (data: { relationId: string }) => {
         await apiDeleteAppAgentRelation(data.relationId)
         return data.relationId
-    }
-)
-
-
-// 绑定商户到代理商
-export const bindMerchantAgent = createAsyncThunk(
-    SLICE_NAME + '/bindMerchantAgent',
-    async (data: { merchantId: string; agentId: string }) => {
-        const response = await apiBindMerchantAgent(data.merchantId, data.agentId)
-        const backendData = response.data as unknown as BackendResponse<{ merchant_id: string; agent_id: string; message: string }>
-        return backendData.data
-    }
-)
-
-// 解绑商户与代理商
-export const unbindMerchantAgent = createAsyncThunk(
-    SLICE_NAME + '/unbindMerchantAgent',
-    async (data: { merchantId: string }) => {
-        const response = await apiUnbindMerchantAgent(data.merchantId)
-        const backendData = response.data as unknown as BackendResponse<{ merchant_id: string; message: string }>
-        return backendData.data
     }
 )
 
@@ -909,20 +965,6 @@ const customerDetailSlice = createSlice({
                 state.paymentMethodData = state.paymentMethodData.filter(
                     (item) => item.entityId !== relationId && item.id !== relationId
                 )
-            })
-            .addCase(bindMerchantAgent.fulfilled, (state, action) => {
-                const agentId = action.payload?.agent_id || action.meta.arg.agentId
-                state.profileData.agent_id = agentId
-                if (state.profileData.personalInfo) {
-                    state.profileData.personalInfo.agent = agentId
-                }
-                state.agentBindDialog = false
-            })
-            .addCase(unbindMerchantAgent.fulfilled, (state) => {
-                state.profileData.agent_id = ''
-                if (state.profileData.personalInfo) {
-                    state.profileData.personalInfo.agent = ''
-                }
             })
     },
 })

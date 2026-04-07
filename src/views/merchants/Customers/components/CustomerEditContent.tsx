@@ -42,7 +42,6 @@ const CustomerEditContent = forwardRef<FormikRef>((_, ref) => {
             withdrawal_fee_percent: '0',
             ip_whitelist: '',
             cashier_return_url_whitelist: '',
-            agent: '', // UnifiedAccount 类型不包含 agent_id，此页面不支持编辑代理商
         },
     }
 

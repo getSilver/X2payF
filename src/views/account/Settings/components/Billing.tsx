@@ -84,14 +84,15 @@ const parseAppConfig = (config: MerchantAppConfig | string | undefined): Merchan
 // 将商户应用数据转换为 PaymentMethod 格式
 const transformApplicationToPaymentMethod = (app: MerchantApplication): PaymentApp => {
     const config = parseAppConfig(app.config)
+    const currency = (app.currency || '').trim()
     return {
         cardId: app.id,
         channelName: app.name,
-        paymentMethod: config.currency || app.currency || 'USD',
-        in: String(config.pay_in_percentage_fee || 0),
-        out: String(config.pay_out_percentage_fee || 0),
-        singleIn: String(config.pay_in_fixed_fee || 0),
-        singleOut: String(config.pay_out_fixed_fee || 0),
+        paymentMethod: currency || '-',
+        in: String(config.in_fee_rate ?? config.pay_in_percentage_fee ?? 0),
+        out: String(config.out_fee_rate ?? config.pay_out_percentage_fee ?? 0),
+        singleIn: String(config.in_fixed_fee ?? config.pay_in_fixed_fee ?? 0),
+        singleOut: String(config.out_fixed_fee ?? config.pay_out_fixed_fee ?? 0),
         primary: app.status === 'active',
         apiKey: app.api_key,
         apiSecret: app.api_secret,

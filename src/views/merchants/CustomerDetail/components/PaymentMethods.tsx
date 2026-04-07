@@ -196,6 +196,20 @@ const PaymentMethods = () => {
                                                     {card.single_txn_min || 0}/
                                                     {card.single_txn_max || 0}/
                                                     {card.daily_limit || 0}
+                                                    <span> | </span>
+                                                    代理:{' '}
+                                                    {card.agentId || 'Unbound'}
+                                                    <span> | </span>
+                                                    代理状态:{' '}
+                                                    {card.relationStatus || 'unbound'}
+                                                    <span> | </span>
+                                                    代理费率:{' '}
+                                                    {card.payInPercentageProfitSharing || 0}/
+                                                    {card.payOutPercentageProfitSharing || 0}
+                                                    <span> | </span>
+                                                    代理单笔费:{' '}
+                                                    {card.payInFixedProfitSharing || 0}/
+                                                    {card.payOutFixedProfitSharing || 0}
                                                 </span>
                                             )}
                                         </div>
@@ -222,7 +236,7 @@ const PaymentMethods = () => {
                                                 )
                                             }
                                         >
-                                            Edit
+                                            {card.agentId ? 'Edit / Rebind Agent' : 'Edit / Bind Agent'}
                                         </Button>
                                     </div>
                                 </div>

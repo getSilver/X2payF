@@ -52,13 +52,11 @@ const CustomerNew = () => {
         password: Yup.string().min(6, 'Password must be at least 6 characters').required('Password is required'),
         location: Yup.string(),
         birthday: Yup.date(),
-        agent: Yup.string(),
     })
 
     const initialValues: ExtendedFormModel = {
         upload: '',
         name: '',
-        agent: '',
         email: '',
         location: '',
         birthday: new Date(),

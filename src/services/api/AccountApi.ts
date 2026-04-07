@@ -31,8 +31,9 @@ const ACCOUNT_API = {
     MERCHANT_LIST: '/api/v1/admin/merchants',
     MERCHANT_DETAIL: (id: string) => `/api/v1/admin/merchants/${id}/details`,
     MERCHANT_UPDATE: (id: string) => `/api/v1/admin/merchants/${id}`,
+    MERCHANT_OWNER_USER_UPDATE: (id: string) =>
+        `/api/v1/admin/merchants/${id}/owner-user`,
     MERCHANT_APPLICATIONS: (id: string) => `/api/v1/admin/merchants/${id}/applications`,
-    MERCHANT_AGENT: (id: string) => `/api/v1/admin/merchants/${id}/agent`,
     
     // 搴旂敤绠＄悊
     APPLICATIONS: '/api/v1/admin/applications',
@@ -188,6 +189,7 @@ export interface CreateApplicationRequest {
     request_id: string
     merchant_id: string
     name: string
+    currency: string
     config: {
         // 应用配置（严格后端字段）
         in_fee_rate?: number
@@ -217,11 +219,18 @@ export async function apiCreateApplication(data: CreateApplicationRequest) {
 /**
  * 鏇存柊搴旂敤閰嶇疆
  */
-export async function apiUpdateApplicationConfig(appId: string, config: CreateApplicationRequest['config']) {
+export async function apiUpdateApplicationConfig(
+    appId: string,
+    payload: {
+        name?: string
+        currency?: string
+        config: CreateApplicationRequest['config']
+    }
+) {
     return ApiService.fetchData<{ app_id: string; message: string }>({
         url: ACCOUNT_API.APPLICATION_CONFIG(appId),
         method: 'put',
-        data: { config },
+        data: payload,
     })
 }
 
@@ -270,6 +279,28 @@ export async function apiGetAgentAppRelations(agentId: string) {
     })
 }
 
+export async function apiGetAppAgentRelations(appId: string) {
+    return ApiService.fetchData<
+        Array<{
+            id: string
+            app_id: string
+            agent_id: string
+            pay_in_fixed_profit_sharing?: number
+            pay_out_fixed_profit_sharing?: number
+            pay_in_percentage_profit_sharing?: number
+            pay_out_percentage_profit_sharing?: number
+            settlement_limit?: number
+            withdrawal_fee_percent?: number
+            status?: string
+            created_at?: string
+            updated_at?: string
+        }>
+    >({
+        url: ACCOUNT_API.APPLICATION_DETAIL(appId) + '/agent-relations',
+        method: 'get',
+    })
+}
+
 export async function apiGetAgents(params?: AccountListParams) {
     return ApiService.fetchData<Agent[]>({
         url: ACCOUNT_API.AGENT_LIST,
@@ -300,6 +331,8 @@ export interface CreateAppAgentRelationRequest {
     pay_out_fixed_profit_sharing?: number
     pay_in_percentage_profit_sharing?: number
     pay_out_percentage_profit_sharing?: number
+    settlement_limit?: number
+    withdrawal_fee_percent?: number
 }
 
 export interface UpdateAppAgentRelationRequest {
@@ -307,6 +340,8 @@ export interface UpdateAppAgentRelationRequest {
     pay_out_fixed_profit_sharing?: number
     pay_in_percentage_profit_sharing?: number
     pay_out_percentage_profit_sharing?: number
+    settlement_limit?: number
+    withdrawal_fee_percent?: number
 }
 
 export async function apiCreateAppAgentRelation(data: CreateAppAgentRelationRequest) {
@@ -379,27 +414,6 @@ export async function apiGetChannelPartners(params?: AccountListParams) {
 }
 
 /**
- * 缁戝畾鍟嗘埛鍒颁唬鐞嗗晢
- */
-export async function apiBindMerchantAgent(merchantId: string, agentId: string) {
-    return ApiService.fetchData<{ merchant_id: string; agent_id: string; message: string }>({
-        url: ACCOUNT_API.MERCHANT_AGENT(merchantId),
-        method: 'put',
-        data: { agent_id: agentId },
-    })
-}
-
-/**
- * 瑙ｇ粦鍟嗘埛涓庝唬鐞嗗晢
- */
-export async function apiUnbindMerchantAgent(merchantId: string) {
-    return ApiService.fetchData<{ merchant_id: string; message: string }>({
-        url: ACCOUNT_API.MERCHANT_AGENT(merchantId),
-        method: 'delete',
-    })
-}
-
-/**
  * 鏇存柊鍟嗘埛淇℃伅
  */
 export async function apiUpdateMerchant(
@@ -419,3 +433,24 @@ export async function apiUpdateMerchant(
         data,
     })
 }
+
+export async function apiUpdateMerchantOwnerUser(
+    merchantId: string,
+    data: {
+        username?: string
+        email?: string
+    }
+) {
+    return ApiService.fetchData<{
+        merchant_id: string
+        user_id: string
+        username: string
+        email: string
+        message: string
+    }>({
+        url: ACCOUNT_API.MERCHANT_OWNER_USER_UPDATE(merchantId),
+        method: 'put',
+        data,
+    })
+}
+

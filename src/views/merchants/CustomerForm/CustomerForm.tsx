@@ -24,7 +24,6 @@ type CustomerPersonalInfo = {
     withdrawal_fee_percent: string
     ip_whitelist: string
     cashier_return_url_whitelist: string
-    agent: string
 }
 
 export type Customer = BaseCustomerInfo & CustomerPersonalInfo
@@ -57,7 +56,6 @@ const validationSchema = Yup.object().shape({
     ip_whitelist: Yup.string(),
     cashier_return_url_whitelist: Yup.string(),
     img: Yup.string(),
-    agent: Yup.string(),
 })
 
 const { TabNav, TabList, TabContent } = Tabs
@@ -127,7 +125,6 @@ const CustomerForm = forwardRef<FormikRef, CustomerFormProps>((props, ref) => {
                 ip_whitelist: customer?.personalInfo?.ip_whitelist || '',
                 cashier_return_url_whitelist:
                     customer?.personalInfo?.cashier_return_url_whitelist || '',
-                agent: customer?.personalInfo?.agent || '',
             }}
             validationSchema={validationSchema}
             onSubmit={(values, { setSubmitting }) => {

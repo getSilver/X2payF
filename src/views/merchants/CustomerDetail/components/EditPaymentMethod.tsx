@@ -3,21 +3,36 @@ import Button from '@/components/ui/Button'
 import Dialog from '@/components/ui/Dialog'
 import Checkbox from '@/components/ui/Checkbox'
 import { FormItem, FormContainer } from '@/components/ui/Form'
+import Select from '@/components/ui/Select'
 import { Field, Form, Formik } from 'formik'
+import { useEffect, useState } from 'react'
 import {
-    updatePaymentMethodData,
     closeEditPaymentMethodDialog,
     createApplication,
+    getCustomer,
     useAppDispatch,
     useAppSelector,
 } from '../store'
-import { apiUpdateApplicationConfig } from '@/services/api/AccountApi'
-import cloneDeep from 'lodash/cloneDeep'
+import {
+    apiCreateAppAgentRelation,
+    apiDeleteAppAgentRelation,
+    apiUpdateApplicationConfig,
+    apiUpdateAppAgentRelation,
+} from '@/services/api/AccountApi'
+import { apiGetPlatformAssociations } from '@/services/PlatformSettingsService'
+import type { SingleValue } from 'react-select'
 import * as Yup from 'yup'
+
+type CurrencyAssociationOption = {
+    value: string
+    label: string
+    timezone: string
+}
 
 type FormModel = {
     channelName: string
     channels: string
+    currency: string
     timezone: string
     fee_rate_pair: string
     fixed_fee_pair: string
@@ -25,6 +40,9 @@ type FormModel = {
     single_txn_min: string
     single_txn_max: string
     daily_limit: string
+    agent_id: string
+    agent_fee_rate_pair: string
+    agent_fixed_fee_pair: string
     primary: boolean
 }
 
@@ -57,19 +75,21 @@ const formatSlashPair = (
 const validationSchema = Yup.object().shape({
     channelName: Yup.string().required('通道名不能为空'),
     channels: Yup.string().required('通道ID不能为空'),
+    currency: Yup.string().required('币种不能为空'),
     timezone: Yup.string().required('时区不能为空'),
     fee_rate_pair: pairFieldSchema('费率'),
     fixed_fee_pair: pairFieldSchema('单笔费用'),
+    agent_id: Yup.string(),
+    agent_fee_rate_pair: pairFieldSchema('代理费率'),
+    agent_fixed_fee_pair: pairFieldSchema('代理单笔费用'),
 })
 
 const EditPaymentMethod = () => {
     const dispatch = useAppDispatch()
+    const [currencyOptions, setCurrencyOptions] = useState<CurrencyAssociationOption[]>([])
 
     const merApp = useAppSelector(
         (state) => state.crmCustomerDetails.data.selectedCard
-    )
-    const data = useAppSelector(
-        (state) => state.crmCustomerDetails.data.paymentMethodData
     )
     const dialogOpen = useAppSelector(
         (state) => state.crmCustomerDetails.data.editPaymentMethodDialog
@@ -80,12 +100,61 @@ const EditPaymentMethod = () => {
     const profileData = useAppSelector(
         (state) => state.crmCustomerDetails.data.profileData
     )
+    const isNewApp = !selectedCard.id
+
+    useEffect(() => {
+        const fetchAssociations = async () => {
+            try {
+                const response = await apiGetPlatformAssociations<
+                    { data?: Array<Record<string, unknown>> } | Array<Record<string, unknown>>,
+                    Record<string, unknown>
+                >()
+                const responseData = response.data as
+                    | { data?: Array<Record<string, unknown>> }
+                    | Array<Record<string, unknown>>
+                const associations = Array.isArray(responseData)
+                    ? responseData
+                    : responseData?.data || []
+                const options = associations
+                    .filter((assoc) => Boolean(assoc.id))
+                    .map((assoc) => {
+                        const currency = assoc.currency as
+                            | { code?: string; name?: string }
+                            | undefined
+                        const timezone = assoc.timezone as
+                            | { code?: string; name?: string; offset?: string }
+                            | undefined
+                        const timezoneValue = timezone?.code || ''
+                        return {
+                            value: currency?.code || '',
+                            label:
+                                [
+                                    currency?.code || currency?.name,
+                                    timezoneValue ||
+                                        timezone?.name ||
+                                        timezone?.offset,
+                                ]
+                                    .filter(Boolean)
+                                    .join(' - ') || String(assoc.id),
+                            timezone: timezoneValue,
+                        }
+                    })
+                    .filter((option) => option.value !== '')
+                setCurrencyOptions(options)
+            } catch (error) {
+                console.error('Failed to load currency associations:', error)
+                setCurrencyOptions([])
+            }
+        }
+
+        fetchAssociations()
+    }, [])
 
     const onUpdateCreditCard = async (values: FormModel) => {
-        let newData = cloneDeep(data) || []
         const {
             channelName,
             channels,
+            currency,
             timezone,
             fee_rate_pair,
             fixed_fee_pair,
@@ -93,7 +162,9 @@ const EditPaymentMethod = () => {
             single_txn_min,
             single_txn_max,
             daily_limit,
-            primary,
+            agent_id,
+            agent_fee_rate_pair,
+            agent_fixed_fee_pair,
         } = values
         const { left: inFeeRate, right: outFeeRate } = parseSlashPair(
             fee_rate_pair
@@ -101,9 +172,15 @@ const EditPaymentMethod = () => {
         const { left: inFixedFee, right: outFixedFee } = parseSlashPair(
             fixed_fee_pair
         )
+        const {
+            left: agentPayInPercentageProfitSharing,
+            right: agentPayOutPercentageProfitSharing,
+        } = parseSlashPair(agent_fee_rate_pair)
+        const {
+            left: agentPayInFixedProfitSharing,
+            right: agentPayOutFixedProfitSharing,
+        } = parseSlashPair(agent_fixed_fee_pair)
 
-        // 使用 id 判断是否为新应用（id 存在表示编辑现有应用）
-        const isNewApp = !selectedCard.id
         const paymentMethodList = payment_methods
             .split(',')
             .map((item) => item.trim())
@@ -112,26 +189,6 @@ const EditPaymentMethod = () => {
         const singleTxnMin = Number(single_txn_min) || 0
         const singleTxnMax = Number(single_txn_max) || 0
         const dailyLimit = Number(daily_limit) || 0
-
-        const updatedApp = {
-            id: selectedCard.id || '',
-            channelName,
-            channel_id: channels,
-            in_fee_rate: inFeeRate || '',
-            out_fee_rate: outFeeRate || '',
-            in_fixed_fee: inFixedFee || '',
-            out_fixed_fee: outFixedFee || '',
-            currency: selectedCard.currency || merApp.currency || 'USD',
-            timezone: timezone || '',
-            payment_methods: paymentMethodList,
-            single_txn_min: singleTxnMin,
-            single_txn_max: singleTxnMax,
-            daily_limit: dailyLimit,
-            primary: primary || false,
-            balance: selectedCard.balance || 0,
-            frozen_amount: selectedCard.frozen_amount || 0,
-            available_amount: selectedCard.available_amount || 0,
-        }
 
         const applicationConfig = {
             in_fee_rate: parseFloat(inFeeRate) || 0,
@@ -146,53 +203,85 @@ const EditPaymentMethod = () => {
             daily_limit: dailyLimit,
         }
 
-        if (isNewApp && profileData.id) {
-            // 调用后端 API 创建新应用
-            try {
-                await dispatch(createApplication({
-                    merchantId: profileData.id,
-                    name: channelName,
-                    config: applicationConfig,
-                }))
-            } catch (error) {
-                console.error('创建应用失败:', error)
-            }
-            
-            // 更新本地状态
-            if (primary) {
-                newData = newData.map((payment) => ({
-                    ...payment,
-                    primary: false,
-                }))
-            }
-            newData.push(updatedApp)
-        } else if (selectedCard.id) {
-            // 编辑现有应用 - 调用后端 API 更新配置
-            try {
-                await apiUpdateApplicationConfig(selectedCard.id, applicationConfig)
-            } catch (error) {
-                console.error('更新应用配置失败:', error)
-            }
-
-            // 更新本地状态
-            if (primary) {
-                newData = newData.map((payment) => ({
-                    ...payment,
-                    primary: false,
-                }))
-            }
-
-            // 使用 id 匹配更新
-            newData = newData.map((payment) => {
-                if (payment.id === selectedCard.id) {
-                    return { ...payment, ...updatedApp }
+        try {
+            let appID = String(selectedCard.id || '').trim()
+            if (isNewApp) {
+                if (!profileData.id) {
+                    throw new Error('缺少商户ID，无法创建应用')
                 }
-                return payment
-            })
-        }
+                const createdApp = await dispatch(
+                    createApplication({
+                        merchantId: profileData.id,
+                        name: channelName,
+                        currency,
+                        config: applicationConfig,
+                    })
+                ).unwrap()
+                appID = String(createdApp?.id || '').trim()
+            } else if (selectedCard.id) {
+                await apiUpdateApplicationConfig(selectedCard.id, {
+                    name: channelName,
+                    currency,
+                    config: applicationConfig,
+                })
+            } else {
+                throw new Error('缺少应用ID，无法更新配置')
+            }
 
-        onDialogClose()
-        dispatch(updatePaymentMethodData(newData))
+            const nextAgentID = agent_id.trim()
+            const currentRelationId = String(selectedCard.relationId || '').trim()
+            const currentAgentID = String(selectedCard.agentId || '').trim()
+            const hasCurrentRelation = Boolean(currentRelationId)
+
+            if (!appID) {
+                throw new Error('缺少应用ID，无法处理代理绑定')
+            }
+
+            if (!nextAgentID && hasCurrentRelation) {
+                await apiDeleteAppAgentRelation(currentRelationId)
+            } else if (nextAgentID) {
+                const relationPayload = {
+                    app_id: appID,
+                    agent_id: nextAgentID,
+                    pay_in_percentage_profit_sharing:
+                        Number(agentPayInPercentageProfitSharing) || 0,
+                    pay_out_percentage_profit_sharing:
+                        Number(agentPayOutPercentageProfitSharing) || 0,
+                    pay_in_fixed_profit_sharing:
+                        Number(agentPayInFixedProfitSharing) || 0,
+                    pay_out_fixed_profit_sharing:
+                        Number(agentPayOutFixedProfitSharing) || 0,
+                }
+
+                if (!hasCurrentRelation) {
+                    await apiCreateAppAgentRelation(relationPayload)
+                } else if (currentAgentID && currentAgentID !== nextAgentID) {
+                    await apiDeleteAppAgentRelation(currentRelationId)
+                    await apiCreateAppAgentRelation(relationPayload)
+                } else {
+                    await apiUpdateAppAgentRelation(currentRelationId, {
+                        pay_in_percentage_profit_sharing:
+                            relationPayload.pay_in_percentage_profit_sharing,
+                        pay_out_percentage_profit_sharing:
+                            relationPayload.pay_out_percentage_profit_sharing,
+                        pay_in_fixed_profit_sharing:
+                            relationPayload.pay_in_fixed_profit_sharing,
+                        pay_out_fixed_profit_sharing:
+                            relationPayload.pay_out_fixed_profit_sharing,
+                    })
+                }
+            }
+
+            if (profileData.id) {
+                await dispatch(getCustomer({ id: profileData.id })).unwrap()
+            }
+            onDialogClose()
+        } catch (error) {
+            console.error(
+                isNewApp ? '创建应用失败:' : '更新应用配置失败:',
+                error
+            )
+        }
     }
     const onDialogClose = () => {
         dispatch(closeEditPaymentMethodDialog())
@@ -211,7 +300,11 @@ const EditPaymentMethod = () => {
                     initialValues={{
                         channelName: merApp.channelName || '',
                         channels: merApp.channel_id || '',
-                        timezone: merApp.timezone || '',
+                        currency: merApp.currency || '',
+                        timezone:
+                            merApp.timezone ||
+                            profileData.personalInfo?.location ||
+                            '',
                         fee_rate_pair: formatSlashPair(
                             merApp.in_fee_rate,
                             merApp.out_fee_rate
@@ -224,6 +317,15 @@ const EditPaymentMethod = () => {
                         single_txn_min: String(merApp.single_txn_min || 0),
                         single_txn_max: String(merApp.single_txn_max || 0),
                         daily_limit: String(merApp.daily_limit || 0),
+                        agent_id: String(merApp.agentId || ''),
+                        agent_fee_rate_pair: formatSlashPair(
+                            merApp.payInPercentageProfitSharing || 0,
+                            merApp.payOutPercentageProfitSharing || 0
+                        ),
+                        agent_fixed_fee_pair: formatSlashPair(
+                            merApp.payInFixedProfitSharing || 0,
+                            merApp.payOutFixedProfitSharing || 0
+                        ),
                         primary: merApp.primary || false,
                     }}
                     validationSchema={validationSchema}
@@ -232,7 +334,7 @@ const EditPaymentMethod = () => {
                         setSubmitting(false)
                     }}
                 >
-                    {({ touched, errors }) => (
+                    {({ touched, errors, values, setFieldValue }) => (
                         <Form>
                             <FormContainer>
                                 <FormItem
@@ -300,20 +402,116 @@ const EditPaymentMethod = () => {
                                     </FormItem>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
-                                    <FormItem label="timezone">
-                                        <Input
-                                            value={merApp.timezone || ''}
-                                            readOnly
-                                            disabled
-                                        />
+                                    <FormItem
+                                        label="Currency Association"
+                                        invalid={
+                                            (errors.currency && touched.currency) ||
+                                            (errors.timezone && touched.timezone)
+                                        }
+                                        errorMessage={errors.currency || errors.timezone}
+                                    >
+                                        <Field name="currency">
+                                            {() => (
+                                                <div>
+                                                    <Select<CurrencyAssociationOption>
+                                                        options={currencyOptions}
+                                                        placeholder="Select Currency Association"
+                                                        value={
+                                                            currencyOptions.find(
+                                                                (option) =>
+                                                                    option.value ===
+                                                                    values.currency
+                                                            ) || null
+                                                        }
+                                                        onChange={(
+                                                            option: SingleValue<CurrencyAssociationOption>
+                                                        ) => {
+                                                            setFieldValue(
+                                                                'currency',
+                                                                option?.value || ''
+                                                            )
+                                                            setFieldValue(
+                                                                'timezone',
+                                                                option?.timezone || ''
+                                                            )
+                                                        }}
+                                                        className="w-full"
+                                                    />
+                                                    <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                                                        Auto-filled timezone:{' '}
+                                                        {values.timezone || '-'}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </Field>
                                     </FormItem>
-                                    <FormItem label="payment_methods (comma-separated)">
+                                    <FormItem label="payment methods">
                                         <Field
                                             type="text"
                                             autoComplete="off"
                                             name="payment_methods"
                                             component={Input}
                                             placeholder="PIX,QR"
+                                        />
+                                    </FormItem>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <FormItem
+                                        label="agent_id"
+                                        invalid={
+                                            errors.agent_id && touched.agent_id
+                                        }
+                                        errorMessage={errors.agent_id}
+                                    >
+                                        <Field
+                                            type="text"
+                                            autoComplete="off"
+                                            name="agent_id"
+                                            component={Input}
+                                            placeholder="留空表示解绑代理"
+                                        />
+                                    </FormItem>
+                                    <FormItem label="relation_status">
+                                        <Input
+                                            value={
+                                                selectedCard.relationStatus ||
+                                                'unbound'
+                                            }
+                                            disabled
+                                        />
+                                    </FormItem>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <FormItem
+                                        label="代理费率 (in/out)"
+                                        invalid={
+                                            errors.agent_fee_rate_pair &&
+                                            touched.agent_fee_rate_pair
+                                        }
+                                        errorMessage={errors.agent_fee_rate_pair}
+                                    >
+                                        <Field
+                                            type="text"
+                                            autoComplete="off"
+                                            name="agent_fee_rate_pair"
+                                            component={Input}
+                                            placeholder="2/1"
+                                        />
+                                    </FormItem>
+                                    <FormItem
+                                        label="代理单笔费用 (in/out)"
+                                        invalid={
+                                            errors.agent_fixed_fee_pair &&
+                                            touched.agent_fixed_fee_pair
+                                        }
+                                        errorMessage={errors.agent_fixed_fee_pair}
+                                    >
+                                        <Field
+                                            type="text"
+                                            autoComplete="off"
+                                            name="agent_fixed_fee_pair"
+                                            component={Input}
+                                            placeholder="5/3"
                                         />
                                     </FormItem>
                                 </div>

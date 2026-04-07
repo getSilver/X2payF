@@ -11,8 +11,6 @@ import {
     getCustomers,
 } from '../store'
 import {
-    bindMerchantAgent,
-    unbindMerchantAgent,
     putCustomer,
     Customer,
 } from '@/views/merchants/CustomerDetail/store'
@@ -81,12 +79,8 @@ const CustomerEditDialog = () => {
             withdrawal_fee_percent,
             ip_whitelist,
             cashier_return_url_whitelist,
-            agent,
         } = values
 
-        // 处理代理商绑定/解绑逻辑
-        const oldAgentId = (selectedCustomer as Customer).personalInfo?.agent || (selectedCustomer as Customer).agent_id || ''
-        const newAgentId = agent || ''
         const oldLocation = ((selectedCustomer as Customer).personalInfo?.location || '').trim()
         const nextLocation = (location || '').trim()
 
@@ -101,28 +95,6 @@ const CustomerEditDialog = () => {
         }
         
         try {
-            let agentChanged = false
-            
-            // 如果代理商ID发生变化，先处理绑定/解绑
-            if (oldAgentId !== newAgentId) {
-                if (newAgentId) {
-                    // 绑定或更换代理商
-                    await dispatch(bindMerchantAgent({
-                        merchantId: selectedCustomer.id || '',
-                        agentId: newAgentId,
-                    })).unwrap()
-                    
-                    agentChanged = true
-                } else {
-                    // 解绑代理商
-                    await dispatch(unbindMerchantAgent({
-                        merchantId: selectedCustomer.id || '',
-                    })).unwrap()
-                    
-                    agentChanged = true
-                }
-            }
-            
             // 更新本地状态（使用合并而不是覆盖）
             const updatedData = {
                 ...clonedData,
@@ -138,7 +110,6 @@ const CustomerEditDialog = () => {
                     withdrawal_fee_percent,
                     ip_whitelist,
                     cashier_return_url_whitelist,
-                    agent: newAgentId,
                 },
             }
             
@@ -158,7 +129,9 @@ const CustomerEditDialog = () => {
                 const appId = applications[0]?.id
                 if (appId) {
                     await apiUpdateApplicationConfig(appId, {
-                        timezone: nextLocation,
+                        config: {
+                            timezone: nextLocation,
+                        },
                     })
                 }
             }
@@ -172,23 +145,11 @@ const CustomerEditDialog = () => {
                 filterData: { status: '' } 
             }))
             
-            // 显示成功提示
-            if (agentChanged) {
-                toast.push(
-                    <Notification title="保存成功" type="success">
-                        {newAgentId 
-                            ? (oldAgentId ? '代理商更换成功' : '代理商绑定成功')
-                            : '代理商解绑成功'
-                        }
-                    </Notification>
-                )
-            } else {
-                toast.push(
-                    <Notification title="保存成功" type="success">
-                        信息已更新
-                    </Notification>
-                )
-            }
+            toast.push(
+                <Notification title="保存成功" type="success">
+                    信息已更新
+                </Notification>
+            )
             
             onDrawerClose()
         } catch (error) {

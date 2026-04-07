@@ -5,11 +5,9 @@ import Notification from '@/components/ui/Notification'
 import toast from '@/components/ui/toast'
 import {
     closeEditCustomerDetailDialog,
-    updateProfileData,
     updatePaymentMethodData,
     putCustomer,
-    bindMerchantAgent,
-    unbindMerchantAgent,
+    getCustomer,
     useAppDispatch,
     useAppSelector,
     Customer,
@@ -17,7 +15,10 @@ import {
 import CustomerForm, { FormikRef, FormModel } from '@/views/merchants/CustomerForm'
 import cloneDeep from 'lodash/cloneDeep'
 import dayjs from 'dayjs'
-import { apiUpdateApplicationConfig } from '@/services/api/AccountApi'
+import {
+    apiUpdateApplicationConfig,
+    apiUpdateMerchantOwnerUser,
+} from '@/services/api/AccountApi'
 
 type DrawerFooterProps = {
     onSaveClick?: () => void
@@ -76,12 +77,8 @@ const EditCustomerProfile = () => {
             withdrawal_fee_percent,
             ip_whitelist,
             cashier_return_url_whitelist,
-            agent,
         } = values
 
-        // 处理代理商绑定/解绑逻辑
-        const oldAgentId = customer.personalInfo?.agent || customer.agent_id || ''
-        const newAgentId = agent || ''
         const oldLocation = customer.personalInfo?.location || ''
         const targetAppId =
             selectedCard?.configType === 'application' && selectedCard?.id
@@ -91,29 +88,6 @@ const EditCustomerProfile = () => {
                   )?.id || ''
         
         try {
-            let agentChanged = false
-            
-            // 如果代理商ID发生变化，先处理绑定/解绑
-            if (oldAgentId !== newAgentId) {
-                if (newAgentId) {
-                    // 绑定或更换代理商
-                    await dispatch(bindMerchantAgent({
-                        merchantId: customer.id || '',
-                        agentId: newAgentId,
-                    })).unwrap()
-                    
-                    agentChanged = true
-                } else {
-                    // 解绑代理商
-                    await dispatch(unbindMerchantAgent({
-                        merchantId: customer.id || '',
-                    })).unwrap()
-                    
-                    agentChanged = true
-                }
-            }
-            
-            // 更新本地状态（使用合并而不是覆盖）
             const updatedData = {
                 ...clonedData,
                 name,
@@ -128,17 +102,37 @@ const EditCustomerProfile = () => {
                     withdrawal_fee_percent,
                     ip_whitelist,
                     cashier_return_url_whitelist,
-                    agent: newAgentId,
                 },
             }
-            
-            // 更新本地状态
-            dispatch(updateProfileData(updatedData))
-            await dispatch(putCustomer(updatedData as Customer)).unwrap()
+
+            const merchantUpdateRequired =
+                withdrawal_address !==
+                    (customer.personalInfo?.withdrawal_address || '') ||
+                String(withdrawal_fee_percent) !==
+                    String(customer.personalInfo?.withdrawal_fee_percent || '0') ||
+                ip_whitelist !== (customer.personalInfo?.ip_whitelist || '') ||
+                cashier_return_url_whitelist !==
+                    (customer.personalInfo?.cashier_return_url_whitelist || '')
+
+            const ownerUserUpdateRequired =
+                name !== (customer.name || '') || email !== (customer.email || '')
+
+            if (ownerUserUpdateRequired) {
+                await apiUpdateMerchantOwnerUser(customer.id || '', {
+                    username: name,
+                    email,
+                })
+            }
+
+            if (merchantUpdateRequired) {
+                await dispatch(putCustomer(updatedData as Customer)).unwrap()
+            }
 
             if (location && location !== oldLocation && targetAppId) {
                 await apiUpdateApplicationConfig(targetAppId, {
-                    timezone: location,
+                    config: {
+                        timezone: location,
+                    },
                 })
                 dispatch(
                     updatePaymentMethodData(
@@ -150,24 +144,14 @@ const EditCustomerProfile = () => {
                     )
                 )
             }
+
+            await dispatch(getCustomer({ id: customer.id || '' })).unwrap()
             
-            // 显示成功提示
-            if (agentChanged) {
-                toast.push(
-                    <Notification title="保存成功" type="success">
-                        {newAgentId 
-                            ? (oldAgentId ? '代理商更换成功' : '代理商绑定成功')
-                            : '代理商解绑成功'
-                        }
-                    </Notification>
-                )
-            } else {
-                toast.push(
-                    <Notification title="保存成功" type="success">
-                        信息已更新（注意：部分字段仅本地更新，后端暂无更新接口）
-                    </Notification>
-                )
-            }
+            toast.push(
+                <Notification title="保存成功" type="success">
+                    信息已更新
+                </Notification>
+            )
             
             onDrawerClose()
         } catch (error) {

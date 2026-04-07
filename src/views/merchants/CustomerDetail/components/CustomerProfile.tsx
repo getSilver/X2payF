@@ -176,10 +176,6 @@ const CustomerProfile = ({ data = {} }: CustomerProfileProps) => {
                         value={data.personalInfo?.location}
                     />
                     <CustomerInfoField
-                        title="Agent代理"
-                        value={data.personalInfo?.agent}
-                    />
-                    <CustomerInfoField
                         title="birthday注册时间"
                         value={data.personalInfo?.birthday}
                     />

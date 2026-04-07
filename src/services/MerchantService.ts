@@ -185,10 +185,14 @@ export type MerchantTransactionByTypeParams = {
 
 // 应用配置类型
 export type MerchantAppConfig = {
-    pay_in_percentage_fee?: number   // 代收百分比费率
-    pay_in_fixed_fee?: number        // 代收固定费用（分）
-    pay_out_percentage_fee?: number  // 代付百分比费率
-    pay_out_fixed_fee?: number       // 代付固定费用（分）
+    in_fee_rate?: number             // 代收百分比费率
+    in_fixed_fee?: number            // 代收固定费用（分）
+    out_fee_rate?: number            // 代付百分比费率
+    out_fixed_fee?: number           // 代付固定费用（分）
+    pay_in_percentage_fee?: number   // 兼容旧字段
+    pay_in_fixed_fee?: number        // 兼容旧字段
+    pay_out_percentage_fee?: number  // 兼容旧字段
+    pay_out_fixed_fee?: number       // 兼容旧字段
     currency?: string
     timezone?: string
     channels?: string[]

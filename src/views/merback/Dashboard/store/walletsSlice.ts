@@ -101,6 +101,11 @@ export type Wallet = {
     metaType?: 'percent' | 'amount' | 'none'
     metaLabel?: string
     metaValue?: number
+    extraBalances?: Array<{
+        symbol: string
+        value: number
+        currency?: string
+    }>
 }
 
 export type Transaction = Trade[] | TransactionDetails[] | Withdraw[]
@@ -110,9 +115,45 @@ type GetTransctionHistoryDataResponse = {
     data: Transaction
 }
 
-type GetWalletDataResponse = {
-    wallets: Wallet[]
-    appId: string
+type DashboardSelection = Record<string, unknown>
+
+type MerchantApplicationsApiPayload = {
+    data?: Array<{
+        id?: string
+        balance?: number
+        available_amount?: number
+        frozen_amount?: number
+        currency?: string
+        config?: unknown
+    }>
+}
+
+type TransactionByTypeApiPayload = {
+    amount?: Record<string, unknown>
+    count?: number | string
+}
+
+type ListResponsePayload<T> = {
+    total?: number
+    list?: T[]
+}
+
+type DailyReportPayload = {
+    total?: number
+    data?: TransactionDetails[]
+}
+
+const unwrapDataEnvelope = <T>(payload: { data?: T } | T): T => {
+    if (
+        typeof payload === 'object' &&
+        payload !== null &&
+        'data' in payload &&
+        (payload as { data?: T }).data !== undefined
+    ) {
+        return (payload as { data: T }).data
+    }
+
+    return payload as T
 }
 
 export type CryptoWalletsState = {
@@ -126,7 +167,7 @@ export type CryptoWalletsState = {
     tableData: TableQueries
     selectedTab: string
     tradeDialogOpen: boolean
-    selectedRow: any
+    selectedRow: DashboardSelection
     // 分页数据缓存
     transactionHistoryCache: Record<string, { data: GetTransctionHistoryDataResponse; timestamp: number }>
 }
@@ -137,6 +178,13 @@ const DEBUG_TRADE = import.meta.env.VITE_API_DEBUG === 'true'
 type WalletDataQuery = {
     startDateOverride?: number
     endDateOverride?: number
+}
+
+type CurrencyBalanceSummary = {
+    currency: string
+    totalBalance: number
+    totalAvailable: number
+    totalFrozen: number
 }
 
 type TransactionHistoryQuery = ({ tab: string } & TableQueries) & {
@@ -168,6 +216,7 @@ export const getWalletData = createAsyncThunk(
         let payInCount = 0
         let payOutAmount = 0
         let payOutCount = 0
+        let extraBalances: Wallet['extraBalances'] = []
 
         const parseAmountMap = (amountMap: unknown, targetCurrency: string): number => {
             if (!amountMap || typeof amountMap !== 'object') {
@@ -195,19 +244,19 @@ export const getWalletData = createAsyncThunk(
         
         if (applicationsRes?.data) {
             // 提取应用列表: applicationsRes.data.data
-            const responseData = applicationsRes.data as any
-            const applications = Array.isArray(responseData.data) ? responseData.data : []
+            const responseData = applicationsRes.data as MerchantApplicationsApiPayload
+            const applications = Array.isArray(responseData.data)
+                ? responseData.data
+                : []
+            const balanceByCurrency = new Map<string, CurrencyBalanceSummary>()
             
-            applications.forEach((app: any) => {
+            applications.forEach((app) => {
                 if (!appId && typeof app.id === 'string' && app.id.trim()) {
                     appId = app.id
                 }
-                // 将分转换为元（除以100）
-                totalBalance += (app.balance ?? 0) / 100
-                totalAvailable += (app.available_amount ?? 0) / 100
-                totalFrozen += (app.frozen_amount ?? 0) / 100
-                
+
                 // 提取货币信息（优先从 config 中获取）
+                let appCurrency = ''
                 if (!currency) {
                     // config 可能是对象或 JSON 字符串
                     let appConfig: Record<string, unknown> = {}
@@ -221,9 +270,62 @@ export const getWalletData = createAsyncThunk(
                         appConfig = app.config as Record<string, unknown>
                     }
                     const configCurrency = typeof appConfig.currency === 'string' ? appConfig.currency : ''
-                    currency = configCurrency || app.currency || ''
+                    appCurrency = (configCurrency || app.currency || '').toUpperCase()
+                    currency = appCurrency
+                } else {
+                    let appConfig: Record<string, unknown> = {}
+                    if (typeof app.config === 'string') {
+                        try {
+                            appConfig = JSON.parse(app.config)
+                        } catch {
+                            appConfig = {}
+                        }
+                    } else if (app.config && typeof app.config === 'object') {
+                        appConfig = app.config as Record<string, unknown>
+                    }
+                    const configCurrency = typeof appConfig.currency === 'string' ? appConfig.currency : ''
+                    appCurrency = (configCurrency || app.currency || '').toUpperCase()
+                }
+
+                if (!appCurrency) {
+                    appCurrency = 'USD'
+                }
+
+                const balance = Number(app.balance ?? 0) / 100
+                const available = Number(app.available_amount ?? 0) / 100
+                const frozen = Number(app.frozen_amount ?? 0) / 100
+                const existing = balanceByCurrency.get(appCurrency)
+
+                if (existing) {
+                    existing.totalBalance += balance
+                    existing.totalAvailable += available
+                    existing.totalFrozen += frozen
+                } else {
+                    balanceByCurrency.set(appCurrency, {
+                        currency: appCurrency,
+                        totalBalance: balance,
+                        totalAvailable: available,
+                        totalFrozen: frozen,
+                    })
                 }
             })
+
+            const groupedBalances = Array.from(balanceByCurrency.values())
+            const primaryBalance = groupedBalances[0]
+
+            if (primaryBalance) {
+                currency = primaryBalance.currency
+                totalBalance = primaryBalance.totalBalance
+                totalAvailable = primaryBalance.totalAvailable
+                totalFrozen = primaryBalance.totalFrozen
+                extraBalances = groupedBalances
+                    .slice(1)
+                    .map((item) => ({
+                        currency: item.currency,
+                        symbol: getCurrencySymbol(item.currency, item.currency),
+                        value: item.totalAvailable,
+                    }))
+            }
         }
         
         // 如果没有获取到币种，使用默认值 USD
@@ -253,8 +355,20 @@ export const getWalletData = createAsyncThunk(
                 }).catch(() => null),
             ])
 
-            const payInData = (payInRes?.data as any)?.data || payInRes?.data
-            const payOutData = (payOutRes?.data as any)?.data || payOutRes?.data
+            const payInData = payInRes?.data
+                ? unwrapDataEnvelope<TransactionByTypeApiPayload>(
+                      payInRes.data as
+                          | { data?: TransactionByTypeApiPayload }
+                          | TransactionByTypeApiPayload
+                  )
+                : undefined
+            const payOutData = payOutRes?.data
+                ? unwrapDataEnvelope<TransactionByTypeApiPayload>(
+                      payOutRes.data as
+                          | { data?: TransactionByTypeApiPayload }
+                          | TransactionByTypeApiPayload
+                  )
+                : undefined
 
             payInAmount = parseAmountMap(payInData?.amount, currency)
             payInCount = Number(payInData?.count || 0)
@@ -299,6 +413,7 @@ export const getWalletData = createAsyncThunk(
                 metaType: 'amount',
                 metaLabel: 'Frozen',
                 metaValue: totalFrozen,
+                extraBalances,
             },
         ]
         
@@ -373,10 +488,12 @@ export const getTransctionHistoryData = createAsyncThunk(
                     app_id: appId,
                 })
                 // 后端响应结构: { code, message, data: { data: [...], total } }
-                const outerData = (response.data as any).data || response.data
+                const outerData = unwrapDataEnvelope<DailyReportPayload>(
+                    response.data as { data?: DailyReportPayload } | DailyReportPayload
+                )
                 return {
                     total: outerData.total || 0,
-                    data: outerData.data || outerData || [],
+                    data: outerData.data || [],
                 }
             } else if (tab === 'trade') {
                 const tradeParams = {
@@ -409,7 +526,11 @@ export const getTransctionHistoryData = createAsyncThunk(
                         : 'payment_id'
 
                     response = await apiGetMerchantOrders(buildTradeSearchParams(primarySearchField))
-                    const primaryData = (response.data as any).data || response.data
+                    const primaryData = unwrapDataEnvelope<ListResponsePayload<Trade>>(
+                        response.data as
+                            | { data?: ListResponsePayload<Trade> }
+                            | ListResponsePayload<Trade>
+                    )
                     const primaryList = primaryData.list || []
                     const primaryTotal = Number(primaryData.total || 0)
 
@@ -419,7 +540,11 @@ export const getTransctionHistoryData = createAsyncThunk(
                     }
                 }
                 // 后端响应结构: { code, message, data: { list: [...], total } }
-                const responseData = (response.data as any).data || response.data
+                const responseData = unwrapDataEnvelope<ListResponsePayload<Trade>>(
+                    response.data as
+                        | { data?: ListResponsePayload<Trade> }
+                        | ListResponsePayload<Trade>
+                )
                 if (DEBUG_TRADE) {
                     console.debug('[MerchantDashboard][TradeResponse]', {
                         total: responseData.total || 0,
@@ -444,7 +569,11 @@ export const getTransctionHistoryData = createAsyncThunk(
                 })
 
                 // 后端响应结构: { code, message, data: { list: [...], total } }
-                const responseData = (response.data as any).data || response.data
+                const responseData = unwrapDataEnvelope<ListResponsePayload<Withdraw>>(
+                    response.data as
+                        | { data?: ListResponsePayload<Withdraw> }
+                        | ListResponsePayload<Withdraw>
+                )
                 return {
                     total: responseData.total || 0,
                     data: responseData.list || [],
@@ -524,7 +653,7 @@ const walletsSlice = createSlice({
         toggleTradeDialog: (state, action: PayloadAction<boolean>) => {
             state.tradeDialogOpen = action.payload
         },
-        setSelectedRow: (state, action: PayloadAction<any>) => {
+        setSelectedRow: (state, action: PayloadAction<DashboardSelection>) => {
             state.selectedRow = action.payload
         },
         clearTransactionHistoryCache: (state) => {
@@ -553,7 +682,7 @@ const walletsSlice = createSlice({
                 state.transactionHistoryData = payload.data
 
                 // 更新缓存：与读取缓存使用完全一致的 key（包含时间窗口）
-                const arg = (action as any).meta?.arg as TransactionHistoryQuery | undefined
+                const arg = action.meta.arg as TransactionHistoryQuery | undefined
                 const tab = arg?.tab || state.selectedTab
                 const pageIndex = arg?.pageIndex ?? state.tableData.pageIndex ?? 1
                 const pageSize = arg?.pageSize ?? state.tableData.pageSize ?? 10

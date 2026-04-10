@@ -87,7 +87,7 @@ export type MerchantWithdrawalResponse = {
 // 创建提款请求参数
 export type CreateWithdrawalRequest = {
     request_id: string       // 请求ID（用于幂等性检查）
-    app_id: string           // 应用ID
+    app_id?: string          // 应用ID（代理提现场景可为空）
     amount: number           // 提款金额，单位：分
     currency: string         // 币种代码
     note?: string            // 提款备注
@@ -204,8 +204,6 @@ export type MerchantAppConfig = {
     monthly_limit?: number
     settlement_limit?: number
     withdrawal_fee_percent?: number  // 提款手续费百分比
-    exchange_rate_sell?: number      // 汇率卖出加点
-    exchange_rate_buy?: number       // 汇率买入加点
 }
 
 export type MerchantProfile = {
@@ -222,6 +220,8 @@ export type MerchantApplication = {
     merchant_id?: string
     status: string
     currency: string
+    exchange_rate_sell?: number
+    exchange_rate_buy?: number
     timezone?: string
     balance?: number
     frozen_amount?: number

@@ -11,6 +11,12 @@ import type { Merchant, MerchantApplication } from '@/@types/account'
 import { getCurrencySymbol } from '@/utils/currencySymbols'
 import dayjs from 'dayjs'
 
+type WalletExtraBalance = {
+    symbol: string
+    value: number
+    currency?: string
+}
+
 export type TransactionDetails = {
     id: string
     actionType?: number
@@ -67,6 +73,7 @@ export type Wallet = {
     fiatValue: number
     coinValue: number
     growshrink: number
+    extraBalances?: WalletExtraBalance[]
 }
 
 export type AgentMerchantAppRow = {
@@ -208,22 +215,71 @@ export const getAgentAppsList = createAsyncThunk(
 export const getWalletData = createAsyncThunk(
     SLICE_NAME + '/getWalletData',
     async () => {
-        // 获取代理商自己的分润余额
+        let mainCurrency = 'USD'
         let profitBalance = 0
-        const currency = 'USD'
+        let extraBalances: WalletExtraBalance[] = []
 
         try {
             const profitRes = await apiGetAgentProfit()
             const profitData = (profitRes.data as any)?.data || profitRes.data
             if (profitData) {
-                // profit_balance 单位是分，转换为元
-                profitBalance = (profitData.profit_balance ?? 0) / 100
+                const balances = Array.isArray(profitData.balances)
+                    ? profitData.balances
+                          .filter(
+                              (
+                                  item: {
+                                      currency?: string
+                                      available_balance?: number
+                                  }
+                              ) => item?.currency
+                          )
+                          .map(
+                              (item: {
+                                  currency?: string
+                                  available_balance?: number
+                              }) => ({
+                                  currency: String(item.currency || '').toUpperCase(),
+                                  available_balance:
+                                      Number(item.available_balance ?? 0) / 100,
+                              })
+                          )
+                    : []
+
+                if (balances.length > 0) {
+                    const preferredIndex = balances.findIndex(
+                        (item: { currency: string }) => item.currency === 'USD'
+                    )
+                    const mainIndex = preferredIndex >= 0 ? preferredIndex : 0
+                    const primaryBalance = balances[mainIndex]
+
+                    mainCurrency = primaryBalance.currency || 'USD'
+                    profitBalance = primaryBalance.available_balance
+                    extraBalances = balances
+                        .filter(
+                            (_: unknown, index: number) => index !== mainIndex
+                        )
+                        .map(
+                            (item: {
+                                currency: string
+                                available_balance: number
+                            }) => ({
+                                currency: item.currency,
+                                symbol: getCurrencySymbol(
+                                    item.currency,
+                                    item.currency
+                                ),
+                                value: item.available_balance,
+                            })
+                        )
+                } else {
+                    profitBalance = (profitData.profit_balance ?? 0) / 100
+                }
             }
         } catch (error) {
             console.error('获取代理商分润信息失败:', error)
         }
 
-        const currencySymbol = getCurrencySymbol(currency, currency)
+        const currencySymbol = getCurrencySymbol(mainCurrency, mainCurrency)
         const wallets: Wallet[] = [
             {
                 icon: '/img/others/pay-in.png',
@@ -245,9 +301,10 @@ export const getWalletData = createAsyncThunk(
                 icon: '/img/others/wallet-icon.png',
                 symbol: currencySymbol,
                 name: 'Balance',
-                fiatValue: profitBalance,  // 代理商分润余额
-                coinValue: profitBalance,  // 总余额也是分润余额
-                growshrink: 0,             // 代理商没有冻结金额概念
+                fiatValue: profitBalance,
+                coinValue: profitBalance,
+                growshrink: 0,
+                extraBalances,
             },
         ]
 

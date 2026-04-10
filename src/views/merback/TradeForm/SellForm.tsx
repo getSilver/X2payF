@@ -9,12 +9,15 @@ import { Field, Form, Formik, FieldProps } from 'formik'
 import { components, ControlProps, OptionProps, GroupBase } from 'react-select'
 import { HiCheck } from 'react-icons/hi'
 import { currencyList, Currency, getCurrencyIcon } from './options.data'
-import { MerchantApplication, MerchantAppConfig } from '@/services/MerchantService'
+import { MerchantApplication } from '@/services/MerchantService'
 import {
     getTradeWithdrawProvider,
     resolveProviderTypeByPath,
 } from '@/services/tradeWithdrawProvider'
-import { apiGetAgentProfit } from '@/services/AgentMerchantService'
+import {
+    apiGetAgentProfit,
+    type AgentProfitBalanceItem,
+} from '@/services/AgentMerchantService'
 import { apiGetExchangeRateByQuoteCurrency } from '@/services/PlatformSettingsService'
 import { useLocation } from 'react-router-dom'
 import * as Yup from 'yup'
@@ -35,7 +38,6 @@ export type FormModel = {
 
 export type SellFormProps = {
     amount: number
-    symbol: string
     onSell: (
         values: FormModel,
         setSubmitting: (isSubmitting: boolean) => void
@@ -49,7 +51,7 @@ const createValidationSchema = (availableBalance: number, isAppCurrency: boolean
     return Yup.object().shape({
         cryptoSymbol: Yup.string()
             .required('Please select a currency')
-            .test('is-app-currency', 'Please select an app currency', function(value) {
+            .test('is-app-currency', 'Please select an app currency', function() {
                 // 必须选择应用币种
                 return isAppCurrency
             }),
@@ -123,8 +125,83 @@ const defaultValidationSchema = Yup.object().shape({
         .required('Amount is required'),
 })
 
+const normalizeApplicationsResponse = (response: unknown): MerchantApplication[] => {
+    const responseData = (response as { data?: unknown })?.data
+
+    if (Array.isArray((responseData as { data?: { list?: MerchantApplication[] } })?.data?.list)) {
+        return (responseData as { data: { list: MerchantApplication[] } }).data.list
+    }
+    if (Array.isArray((responseData as { data?: MerchantApplication[] })?.data)) {
+        return (responseData as { data: MerchantApplication[] }).data
+    }
+    if (Array.isArray((responseData as { list?: MerchantApplication[] })?.list)) {
+        return (responseData as { list: MerchantApplication[] }).list
+    }
+    if (Array.isArray(responseData)) {
+        return responseData as MerchantApplication[]
+    }
+
+    return []
+}
+
+const normalizeAgentProfitResponse = (
+    response: unknown
+): { balances: AgentProfitBalanceItem[]; profit_balance: number } => {
+    type AgentProfitPayload = {
+        balances?: AgentProfitBalanceItem[]
+        profit_balance?: number
+    }
+
+    const payload = response as { data?: AgentProfitPayload } | AgentProfitPayload
+
+    let data: AgentProfitPayload
+    if (
+        typeof payload === 'object' &&
+        payload !== null &&
+        'data' in payload &&
+        payload.data
+    ) {
+        data = payload.data
+    } else {
+        data = payload as AgentProfitPayload
+    }
+
+    return {
+        balances: Array.isArray(data?.balances) ? data.balances : [],
+        profit_balance: Number(data?.profit_balance ?? 0),
+    }
+}
+
+const getEffectiveRate = async (
+    currency: string,
+    markupPercent: number,
+    providerType: 'merchant' | 'agent'
+) => {
+    let baseRate = 1
+
+    if (currency !== 'USD') {
+        try {
+            const rateResponse = await apiGetExchangeRateByQuoteCurrency(
+                currency,
+                providerType
+            )
+            if (rateResponse.data?.rate) {
+                baseRate = rateResponse.data.rate
+            }
+            console.log(`获取 ${currency} 基础汇率:`, baseRate)
+        } catch (error) {
+            console.error(`获取 ${currency} 汇率失败:`, error)
+        }
+    }
+
+    return {
+        baseRate,
+        effectiveRate: baseRate * (1 + markupPercent / 100),
+    }
+}
+
 const SellForm = (props: SellFormProps) => {
-    const { onSell, amount, symbol } = props
+    const { onSell, amount } = props
     const location = useLocation()
     const provider = getTradeWithdrawProvider(
         resolveProviderTypeByPath(location.pathname)
@@ -140,128 +217,123 @@ const SellForm = (props: SellFormProps) => {
             setLoading(true)
             try {
                 const isAgentProvider = provider.type === 'agent'
-                let agentProfitBalance = 0
+                let appCurrencyOptions: Currency[] = []
 
                 if (isAgentProvider) {
                     try {
                         const profitResponse = await apiGetAgentProfit()
-                        const profitData =
-                            (profitResponse.data as any)?.data || profitResponse.data
-                        const parsedProfitBalance = Number(profitData?.profit_balance)
-                        agentProfitBalance = Number.isFinite(parsedProfitBalance)
-                            ? parsedProfitBalance
-                            : 0
+                        const profitData = normalizeAgentProfitResponse(
+                            profitResponse.data
+                        )
+                        const rawBalances = profitData.balances
+
+                        const balances = rawBalances.filter(
+                            (item) => String(item?.currency || '').trim() !== ''
+                        )
+
+                        appCurrencyOptions = await Promise.all(
+                            balances.map(async (item) => {
+                                const currency = String(item.currency || '').toUpperCase()
+                                const availableBalance = Number(item.available_balance ?? 0)
+                                const markupPercent = 0
+                                const { baseRate, effectiveRate } =
+                                    await getEffectiveRate(
+                                        currency,
+                                        markupPercent,
+                                        provider.type
+                                    )
+                                    
+
+                                return {
+                                    label: currency,
+                                    img: getCurrencyIcon(currency),
+                                    value: `${currency}_AGENT`,
+                                    rate: effectiveRate,
+                                    isAppCurrency: true,
+                                    appId: '',
+                                    availableBalance: Number.isFinite(availableBalance)
+                                        ? availableBalance
+                                        : 0,
+                                    baseRate,
+                                    markupPercent,
+                                }
+                            })
+                        )
+
+                        if (appCurrencyOptions.length === 0) {
+                            const fallbackBalance = profitData.profit_balance
+                            appCurrencyOptions = [
+                                {
+                                    label: 'USD',
+                                    img: getCurrencyIcon('USD'),
+                                    value: 'USD_AGENT',
+                                    rate: 1,
+                                    isAppCurrency: true,
+                                    appId: '',
+                                    availableBalance: Number.isFinite(fallbackBalance)
+                                        ? fallbackBalance
+                                        : 0,
+                                    baseRate: 1,
+                                    markupPercent: 0,
+                                },
+                            ]
+                        }
                     } catch (error) {
                         console.error('加载代理分润余额失败:', error)
                     }
-                }
+                } else {
+                    const response = await provider.listApplications()
+                    console.log('API 响应:', response)
 
-                const response = await provider.listApplications()
-                const responseData = (response as any)?.data
-                console.log('API 响应:', response)
-                
-                // 尝试多种数据结构
-                let apps: MerchantApplication[] = []
-                if (Array.isArray(responseData?.data?.list)) {
-                    apps = responseData.data.list as MerchantApplication[]
-                } else if (Array.isArray(responseData?.data)) {
-                    apps = responseData.data as MerchantApplication[]
-                } else if (Array.isArray(responseData?.list)) {
-                    apps = responseData.list as MerchantApplication[]
-                } else if (Array.isArray(responseData)) {
-                    apps = responseData as MerchantApplication[]
-                }
-                
-                console.log('解析后的应用列表:', apps)
-                
-                // 将应用转换为币种选项（需要异步获取汇率）
-                const appCurrencyPromises = apps
-                    .filter((app: MerchantApplication) => {
-                        // 币种唯一来源：商户 app 顶层字段 app.currency
-                        const currency = app.currency
-                        const isActive = app.status === 'active'
-                        console.log(`应用 ${app.name}: currency=${currency}, status=${app.status}, isActive=${isActive}`)
-                        return currency && isActive
-                    })
-                    .map(async (app: MerchantApplication) => {
-                        // 解析配置（可能是字符串或对象）
-                        let config: MerchantAppConfig = {}
-                        if (typeof app.config === 'string') {
-                            try {
-                                config = JSON.parse(app.config)
-                            } catch (e) {
-                                console.error('解析应用配置失败:', e)
-                            }
-                        } else if (app.config) {
-                            config = app.config as MerchantAppConfig
-                        }
-                        
-                        // 币种唯一来源：商户 app 顶层字段 app.currency
-                        const currency = app.currency || 'USD'
-                        
-                        // 获取卖出汇率加点百分比（默认 0.5%）
-                        const markupPercent = config.exchange_rate_sell || 0.5
-                        
-                        // 获取平台基础汇率
-                        let baseRate = 1
-                        if (currency !== 'USD') {
-                            try {
-                                const rateResponse = await apiGetExchangeRateByQuoteCurrency(currency)
-                                if (rateResponse.data?.rate) {
-                                    baseRate = rateResponse.data.rate
+                    const apps = normalizeApplicationsResponse(response)
+                    console.log('解析后的应用列表:', apps)
+
+                    appCurrencyOptions = await Promise.all(
+                        apps
+                            .filter((app: MerchantApplication) => {
+                                const currency = app.currency
+                                const isActive = app.status === 'active'
+                                console.log(
+                                    `应用 ${app.name}: currency=${currency}, status=${app.status}, isActive=${isActive}`
+                                )
+                                return currency && isActive
+                            })
+                            .map(async (app: MerchantApplication) => {
+                                const currency = app.currency || 'USD'
+                                const markupPercent = Number(
+                                    app.exchange_rate_sell ?? 0
+                                )
+                                const { baseRate, effectiveRate } =
+                                    await getEffectiveRate(
+                                        currency,
+                                        markupPercent,
+                                        provider.type
+                                    )
+
+                                const parsedAvailableAmount = Number(app.available_amount)
+                                const availableAmount = Number.isFinite(parsedAvailableAmount)
+                                    ? parsedAvailableAmount
+                                    : 0
+
+                                console.log(
+                                    `创建币种选项: ${currency} (${app.name}), baseRate=${baseRate}, markup=${markupPercent}%, effectiveRate=${effectiveRate}, balance=${app.available_amount}`
+                                )
+
+                                return {
+                                    label: currency,
+                                    img: getCurrencyIcon(currency),
+                                    value: `${currency}_${app.id}`,
+                                    rate: effectiveRate,
+                                    isAppCurrency: true,
+                                    appId: app.id,
+                                    availableBalance: availableAmount,
+                                    baseRate,
+                                    markupPercent,
                                 }
-                                console.log(`获取 ${currency} 基础汇率:`, baseRate)
-                            } catch (e) {
-                                console.error(`获取 ${currency} 汇率失败:`, e)
-                            }
-                        }
-                        
-                        // 计算实际汇率：基础汇率 × (1 + 加点百分比/100)
-                        const effectiveRate = baseRate * (1 + markupPercent / 100)
-                        
-                        const parsedAvailableAmount = Number(app.available_amount)
-                        const appAvailableAmount = Number.isFinite(parsedAvailableAmount)
-                            ? parsedAvailableAmount
-                            : 0
-                        const availableAmount = isAgentProvider
-                            ? agentProfitBalance
-                            : appAvailableAmount
-
-                        console.log(`创建币种选项: ${currency} (${app.name}), baseRate=${baseRate}, markup=${markupPercent}%, effectiveRate=${effectiveRate}, balance=${app.available_amount}`)
-                        
-                        return {
-                            label: currency,  // 只显示币种代码
-                            img: getCurrencyIcon(currency),
-                            value: `${currency}_${app.id}`,
-                            // 使用计算后的实际汇率
-                            rate: effectiveRate,
-                            isAppCurrency: true,
-                            appId: app.id,
-                            // 唯一来源：应用可用余额 available_amount（分）
-                            availableBalance: availableAmount,
-                            // 保存基础汇率和加点百分比，用于显示
-                            baseRate: baseRate,
-                            markupPercent: markupPercent,
-                        }
-                    })
-                
-                let appCurrencyOptions = await Promise.all(appCurrencyPromises)
-
-                if (isAgentProvider && appCurrencyOptions.length === 0) {
-                    appCurrencyOptions = [
-                        {
-                            label: 'USD',
-                            img: getCurrencyIcon('USD'),
-                            value: 'USD_AGENT',
-                            rate: 1,
-                            isAppCurrency: true,
-                            appId: '',
-                            availableBalance: agentProfitBalance,
-                            baseRate: 1,
-                            markupPercent: 0,
-                        },
-                    ]
+                            })
+                    )
                 }
+
                 console.log('最终币种选项:', appCurrencyOptions)
                 setAppCurrencies(appCurrencyOptions)
             } catch (error) {
@@ -320,7 +392,7 @@ const SellForm = (props: SellFormProps) => {
                     onSell(values, setSubmitting)
                 }}
             >
-                {({ values, touched, errors, isSubmitting, setFieldValue }) => (
+                {({ values, touched, errors, isSubmitting }) => (
                     <Form>
                         <FormContainer>
                             <FormItem

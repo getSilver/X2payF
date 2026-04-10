@@ -9,9 +9,16 @@ import type { CreateWithdrawalRequest, CreateWithdrawalResponse, MerchantWithdra
 const AGENT_PREFIX = '/api/v1/merchant/agent'
 
 // 代理商分润信息响应
+export interface AgentProfitBalanceItem {
+    currency: string
+    available_balance: number
+    frozen_balance?: number
+}
+
 export interface AgentProfitResponse {
     agent_id: string
-    profit_balance: number        // 分润余额（分）
+    profit_balance?: number        // 旧字段：分润余额（分）
+    balances?: AgentProfitBalanceItem[]
     pay_in_fixed_profit_sharing?: number
     pay_out_fixed_profit_sharing?: number
     pay_in_percentage_profit_sharing?: number

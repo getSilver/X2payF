@@ -1,24 +1,88 @@
 import Button from '@/components/ui/Button'
 import Tag from '@/components/ui/Tag'
+import Dialog from '@/components/ui/Dialog'
+import Input from '@/components/ui/Input'
+import Notification from '@/components/ui/Notification'
+import toast from '@/components/ui/toast'
 import EditPaymentMethod from './EditPaymentMethod'
 import EditAgentRateConfig from './EditAgentRateConfig'
 import DeletePaymentMethod from './DeletePaymentMethod'
 import {
     openDeletePaymentMethodDialog,
     openEditPaymentMethodDialog,
+    getCustomer,
     updateSelectedCard,
     useAppDispatch,
     useAppSelector,
     PaymentMethod,
 } from '../store'
+import {
+    apiManualApplicationBalanceOperation,
+    type ManualApplicationBalanceOperation,
+} from '@/services/api/AccountApi'
 import isLastChild from '@/utils/isLastChild'
 import classNames from 'classnames'
+import { useMemo, useState } from 'react'
 import { HiPencilSquare } from 'react-icons/hi2'
 import { HiPlus } from 'react-icons/hi'
 import { NumericFormat } from 'react-number-format'
 
+type ParsedManualBalanceOperation = {
+    operation: ManualApplicationBalanceOperation
+    amount: number
+}
+
+const parseManualBalanceInput = (
+    rawValue: string
+): ParsedManualBalanceOperation => {
+    const value = rawValue.trim()
+    if (!value) {
+        throw new Error('请输入金额')
+    }
+
+    if (value.startsWith('@@')) {
+        const amountText = value.slice(2).trim()
+        const amount = Number(amountText)
+        if (!Number.isFinite(amount) || amount <= 0) {
+            throw new Error('解冻金额格式无效，请使用 @@6 这样的格式')
+        }
+        return {
+            operation: 'UNFREEZE',
+            amount: Math.round(amount * 100),
+        }
+    }
+
+    if (value.startsWith('@')) {
+        const amountText = value.slice(1).trim()
+        const amount = Number(amountText)
+        if (!Number.isFinite(amount) || amount <= 0) {
+            throw new Error('冻结金额格式无效，请使用 @6 这样的格式')
+        }
+        return {
+            operation: 'FREEZE',
+            amount: Math.round(amount * 100),
+        }
+    }
+
+    const amount = Number(value)
+    if (!Number.isFinite(amount) || amount === 0) {
+        throw new Error('金额格式无效，请输入 6 或 -6')
+    }
+
+    return {
+        operation: 'ADJUST',
+        amount: Math.round(amount * 100),
+    }
+}
+
 const PaymentMethods = () => {
     const dispatch = useAppDispatch()
+    const [balanceDialogOpen, setBalanceDialogOpen] = useState(false)
+    const [balanceInput, setBalanceInput] = useState('')
+    const [balanceRemark, setBalanceRemark] = useState('')
+    const [balanceSaving, setBalanceSaving] = useState(false)
+    const [activeBalanceCard, setActiveBalanceCard] =
+        useState<PaymentMethod | null>(null)
 
     const data = useAppSelector(
         (state) => state.crmCustomerDetails.data.paymentMethodData
@@ -27,6 +91,14 @@ const PaymentMethods = () => {
         (state) => state.crmCustomerDetails.data.profileData
     )
     const isAgentAccount = String(profileData.id || '').startsWith('agent_')
+    const customerId = String(profileData.id || '').trim()
+
+    const amountDialogTitle = useMemo(() => {
+        if (!activeBalanceCard?.channelName) {
+            return 'Manual Balance Operation'
+        }
+        return `Manual Balance Operation · ${activeBalanceCard.channelName}`
+    }, [activeBalanceCard])
 
     const onEditPaymentMethodDialogOpen = (card: PaymentMethod) => {
         dispatch(updateSelectedCard(card))
@@ -45,6 +117,99 @@ const PaymentMethods = () => {
             dispatch(updateSelectedCard({}))
         }
         dispatch(openEditPaymentMethodDialog())
+    }
+
+    const onOpenBalanceDialog = (card: PaymentMethod) => {
+        setActiveBalanceCard(card)
+        setBalanceInput('')
+        setBalanceRemark('')
+        setBalanceDialogOpen(true)
+    }
+
+    const onCloseBalanceDialog = () => {
+        if (balanceSaving) {
+            return
+        }
+        setBalanceDialogOpen(false)
+        setActiveBalanceCard(null)
+        setBalanceInput('')
+        setBalanceRemark('')
+    }
+
+    const onSubmitBalanceOperation = async () => {
+        const appId =
+            String(activeBalanceCard?.appId || activeBalanceCard?.id || '').trim()
+        const currency = String(activeBalanceCard?.currency || '').trim()
+
+        if (!appId) {
+            toast.push(
+                <Notification type="danger" title="Operation failed">
+                    Missing application id
+                </Notification>
+            )
+            return
+        }
+
+        if (!currency) {
+            toast.push(
+                <Notification type="danger" title="Operation failed">
+                    Missing currency
+                </Notification>
+            )
+            return
+        }
+
+        if (!balanceRemark.trim()) {
+            toast.push(
+                <Notification type="danger" title="Operation failed">
+                    请输入备注
+                </Notification>
+            )
+            return
+        }
+
+        let parsed: ParsedManualBalanceOperation
+        try {
+            parsed = parseManualBalanceInput(balanceInput)
+        } catch (error) {
+            toast.push(
+                <Notification type="danger" title="Operation failed">
+                    {error instanceof Error ? error.message : '金额格式无效'}
+                </Notification>
+            )
+            return
+        }
+
+        setBalanceSaving(true)
+        try {
+            await apiManualApplicationBalanceOperation(appId, {
+                operation: parsed.operation,
+                amount: parsed.amount,
+                currency,
+                remark: balanceRemark.trim(),
+            })
+
+            if (customerId) {
+                await dispatch(getCustomer({ id: customerId })).unwrap()
+            }
+
+            toast.push(
+                <Notification type="success" title="Operation completed">
+                    应用余额已更新
+                </Notification>
+            )
+            onCloseBalanceDialog()
+        } catch (error) {
+            const message =
+                error instanceof Error ? error.message : '余额操作失败'
+            toast.push(
+                <Notification type="danger" title="Operation failed">
+                    {message}
+                </Notification>
+            )
+        } finally {
+            setBalanceSaving(false)
+        }
     }
 
     return (
@@ -90,63 +255,71 @@ const PaymentMethods = () => {
                                                         ? card.number
                                                         : card.channel_id}
                                                     {!isAgentAccount && (
-                                                        <div>
-                                                            <span>
-                                                                <span className="mx-1">
-                                                                    金额
-                                                                </span>
-                                                                <NumericFormat
-                                                                    className="font-semibold text-gray-900 dark:text-gray-100"
-                                                                    displayType="text"
-                                                                    value={(
-                                                                        Math.round(
+                                                        <>
+                                                            <button
+                                                                type="button"
+                                                                className="mt-1 text-left hover:opacity-80 transition-opacity"
+                                                                onClick={() =>
+                                                                    onOpenBalanceDialog(
+                                                                        card
+                                                                    )
+                                                                }
+                                                            >
+                                                                <span>
+                                                                    <span className="mx-1">
+                                                                        金额
+                                                                    </span>
+                                                                    <NumericFormat
+                                                                        className="font-semibold text-gray-900 dark:text-gray-100"
+                                                                        displayType="text"
+                                                                        value={(
                                                                             (card.balance ||
-                                                                                0) *
-                                                                                100
-                                                                        ) / 100
-                                                                    ).toFixed(3)}
-                                                                    prefix={'$'}
-                                                                    thousandSeparator={true}
-                                                                />
-                                                            </span>
-                                                            <span> | </span>
-                                                            <span>
-                                                                <span className="mx-1">
-                                                                    冻结
+                                                                                0) /
+                                                                            100
+                                                                        ).toFixed(2)}
+                                                                        prefix={'$'}
+                                                                        thousandSeparator={true}
+                                                                    />
                                                                 </span>
-                                                                <NumericFormat
-                                                                    className="font-semibold text-gray-900 dark:text-gray-100"
-                                                                    displayType="text"
-                                                                    value={(
-                                                                        Math.round(
+                                                                <span> | </span>
+                                                                <span>
+                                                                    <span className="mx-1">
+                                                                        冻结
+                                                                    </span>
+                                                                    <NumericFormat
+                                                                        className="font-semibold text-gray-900 dark:text-gray-100"
+                                                                        displayType="text"
+                                                                        value={(
                                                                             (card.frozen_amount ||
-                                                                                0) *
-                                                                                100
-                                                                        ) / 100
-                                                                    ).toFixed(3)}
-                                                                    prefix={'$'}
-                                                                    thousandSeparator={true}
-                                                                />
-                                                            </span>
-                                                            <span>
-                                                                <span className="mx-1">
-                                                                    余额
+                                                                                0) /
+                                                                            100
+                                                                        ).toFixed(2)}
+                                                                        prefix={'$'}
+                                                                        thousandSeparator={true}
+                                                                    />
                                                                 </span>
-                                                                <NumericFormat
-                                                                    className="font-semibold text-gray-900 dark:text-gray-100"
-                                                                    displayType="text"
-                                                                    value={(
-                                                                        Math.round(
+                                                                <span> | </span>
+                                                                <span>
+                                                                    <span className="mx-1">
+                                                                        余额
+                                                                    </span>
+                                                                    <NumericFormat
+                                                                        className="font-semibold text-gray-900 dark:text-gray-100"
+                                                                        displayType="text"
+                                                                        value={(
                                                                             (card.available_amount ||
-                                                                                0) *
-                                                                                100
-                                                                        ) / 100
-                                                                    ).toFixed(3)}
-                                                                    prefix={'$'}
-                                                                    thousandSeparator={true}
-                                                                />
-                                                            </span>
-                                                        </div>
+                                                                                0) /
+                                                                            100
+                                                                        ).toFixed(2)}
+                                                                        prefix={'$'}
+                                                                        thousandSeparator={true}
+                                                                    />
+                                                                </span>
+                                                            </button>
+                                                            <div className="mt-1 text-xs text-gray-500 dark:text-gray-300">
+                                                                点击金额区域可手动加减、冻结或解冻
+                                                            </div>
+                                                        </>
                                                     )}
                                                 </div>
                                                 {!isAgentAccount &&
@@ -191,6 +364,10 @@ const PaymentMethods = () => {
                                                               ','
                                                           )
                                                         : '-'}
+                                                    <span> | </span>
+                                                    汇率加点:{' '}
+                                                    {card.exchange_rate_sell || 0}/
+                                                    {card.exchange_rate_buy || 0}
                                                     <span> | </span>
                                                     限额:{' '}
                                                     {card.single_txn_min || 0}/
@@ -260,6 +437,39 @@ const PaymentMethods = () => {
             </div>
             {isAgentAccount ? <EditAgentRateConfig /> : <EditPaymentMethod />}
             <DeletePaymentMethod />
+            <Dialog
+                isOpen={balanceDialogOpen}
+                onClose={onCloseBalanceDialog}
+                onRequestClose={onCloseBalanceDialog}
+            >
+                <h5 className="mb-4">{amountDialogTitle}</h5>
+                <div className="space-y-4">
+                    <div className="text-sm text-gray-500">
+                        输入规则：`6` 表示加 6 元，`-6` 表示减 6 元，`@6`
+                        表示冻结 6 元，`@@6` 表示解冻 6 元。
+                    </div>
+                    <Input
+                        placeholder="6 / -6 / @6 / @@6"
+                        value={balanceInput}
+                        onChange={(event) => setBalanceInput(event.target.value)}
+                    />
+                    <Input
+                        placeholder="Remark"
+                        value={balanceRemark}
+                        onChange={(event) => setBalanceRemark(event.target.value)}
+                    />
+                    <div className="flex justify-end gap-2">
+                        <Button onClick={onCloseBalanceDialog}>Cancel</Button>
+                        <Button
+                            variant="solid"
+                            loading={balanceSaving}
+                            onClick={onSubmitBalanceOperation}
+                        >
+                            Confirm
+                        </Button>
+                    </div>
+                </div>
+            </Dialog>
         </>
     )
 }

@@ -51,17 +51,37 @@ const WalletCard = ({ data = {}, title }: WalletCardProps) => {
                 </div>
             </div>
             <div className="my-5">
-                    <h5 className="font-bold">
-                        <NumericFormat
-                            displayType="text"
-                            value={data.coinValue}
-                            prefix={data.secondaryType === 'count' ? undefined : data.symbol}
-                            suffix={data.secondaryType === 'count' ? (data.secondarySuffix || '') : undefined}
-                            thousandSeparator={true}
-                            decimalScale={data.secondaryType === 'count' ? 0 : 2}
-                            fixedDecimalScale={data.secondaryType !== 'count'}
-                        />
-                    </h5>
+                <h5 className="font-bold">
+                    <NumericFormat
+                        displayType="text"
+                        value={data.coinValue}
+                        prefix={data.secondaryType === 'count' ? undefined : data.symbol}
+                        suffix={data.secondaryType === 'count' ? (data.secondarySuffix || '') : undefined}
+                        thousandSeparator={true}
+                        decimalScale={data.secondaryType === 'count' ? 0 : 2}
+                        fixedDecimalScale={data.secondaryType !== 'count'}
+                    />
+                </h5>
+                {Array.isArray(data.extraBalances) && data.extraBalances.length > 0 && (
+                    <div className="mt-3 space-y-1">
+                        {data.extraBalances.map((item, index) => (
+                            <div
+                                key={`${item.currency || item.symbol || 'balance'}-${index}`}
+                                className="text-sm font-semibold text-gray-500 dark:text-gray-300"
+                            >
+                                <NumericFormat
+                                    displayType="text"
+                                    value={item.value}
+                                    prefix={item.symbol}
+                                    thousandSeparator={true}
+                                    decimalScale={2}
+                                    fixedDecimalScale
+                                />
+                                {item.currency ? ` ${item.currency}` : ''}
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
         </Card>
     )

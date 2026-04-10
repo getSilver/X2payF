@@ -45,6 +45,8 @@ export type PaymentMethod = {
     id: string
     channelName: string
     currency: string
+    exchange_rate_sell?: number
+    exchange_rate_buy?: number
     in_fee_rate: string
     out_fee_rate: string
     in_fixed_fee: string
@@ -354,6 +356,8 @@ export const getCustomer = createAsyncThunk(
                       id: app.id,
                       channelName: app.name,
                       currency: app.currency || 'CNY',
+                      exchange_rate_sell: app.exchange_rate_sell ?? 0,
+                      exchange_rate_buy: app.exchange_rate_buy ?? 0,
                       in_fee_rate: String((config.in_fee_rate as number) || 0),
                       out_fee_rate: String((config.out_fee_rate as number) || 0),
                       in_fixed_fee: String((config.in_fixed_fee as number) || 0),
@@ -515,6 +519,8 @@ export const createApplication = createAsyncThunk(
         merchantId: string
         name: string
         currency: string
+        exchange_rate_sell?: number
+        exchange_rate_buy?: number
         config: CreateApplicationRequest['config']
     }) => {
         const requestId = `app_${Date.now()}_${createUID(10)}`
@@ -523,6 +529,8 @@ export const createApplication = createAsyncThunk(
             merchant_id: data.merchantId,
             name: data.name,
             currency: data.currency,
+            exchange_rate_sell: data.exchange_rate_sell,
+            exchange_rate_buy: data.exchange_rate_buy,
             config: data.config,
         })
         const backendData = response.data as unknown as BackendResponse<MerchantApplication>

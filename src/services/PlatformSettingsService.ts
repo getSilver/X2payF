@@ -144,9 +144,16 @@ export type ExchangeRateResponse = {
 
 // 商户端获取汇率（根据报价币种获取对 USD 的汇率）
 // 使用商户端接口，不需要平台管理员权限
-export async function apiGetExchangeRateByQuoteCurrency(quoteCurrency: string) {
+export async function apiGetExchangeRateByQuoteCurrency(
+    quoteCurrency: string,
+    providerType: 'merchant' | 'agent' = 'merchant'
+) {
+    const path =
+        providerType === 'agent'
+            ? '/api/v1/merchant/agent/exchange-rates/by-pair'
+            : '/api/v1/merchant/exchange-rates/by-pair'
     return ApiService.fetchData<ExchangeRateResponse>({
-        url: '/api/v1/merchant/exchange-rates/by-pair',
+        url: path,
         method: 'get',
         params: {
             base_currency: 'USD',

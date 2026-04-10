@@ -34,6 +34,8 @@ type FormModel = {
     channels: string
     currency: string
     timezone: string
+    exchange_rate_sell: string
+    exchange_rate_buy: string
     fee_rate_pair: string
     fixed_fee_pair: string
     payment_methods: string
@@ -77,6 +79,14 @@ const validationSchema = Yup.object().shape({
     channels: Yup.string().required('通道ID不能为空'),
     currency: Yup.string().required('币种不能为空'),
     timezone: Yup.string().required('时区不能为空'),
+    exchange_rate_sell: Yup.number()
+        .typeError('Sell Markup 必须是数字')
+        .min(0, 'Sell Markup 不能小于 0')
+        .required('Sell Markup 不能为空'),
+    exchange_rate_buy: Yup.number()
+        .typeError('Buy Markup 必须是数字')
+        .min(0, 'Buy Markup 不能小于 0')
+        .required('Buy Markup 不能为空'),
     fee_rate_pair: pairFieldSchema('费率'),
     fixed_fee_pair: pairFieldSchema('单笔费用'),
     agent_id: Yup.string(),
@@ -156,6 +166,8 @@ const EditPaymentMethod = () => {
             channels,
             currency,
             timezone,
+            exchange_rate_sell,
+            exchange_rate_buy,
             fee_rate_pair,
             fixed_fee_pair,
             payment_methods,
@@ -189,6 +201,8 @@ const EditPaymentMethod = () => {
         const singleTxnMin = Number(single_txn_min) || 0
         const singleTxnMax = Number(single_txn_max) || 0
         const dailyLimit = Number(daily_limit) || 0
+        const exchangeRateSell = Number(exchange_rate_sell) || 0
+        const exchangeRateBuy = Number(exchange_rate_buy) || 0
 
         const applicationConfig = {
             in_fee_rate: parseFloat(inFeeRate) || 0,
@@ -214,6 +228,8 @@ const EditPaymentMethod = () => {
                         merchantId: profileData.id,
                         name: channelName,
                         currency,
+                        exchange_rate_sell: exchangeRateSell,
+                        exchange_rate_buy: exchangeRateBuy,
                         config: applicationConfig,
                     })
                 ).unwrap()
@@ -222,6 +238,8 @@ const EditPaymentMethod = () => {
                 await apiUpdateApplicationConfig(selectedCard.id, {
                     name: channelName,
                     currency,
+                    exchange_rate_sell: exchangeRateSell,
+                    exchange_rate_buy: exchangeRateBuy,
                     config: applicationConfig,
                 })
             } else {
@@ -305,6 +323,12 @@ const EditPaymentMethod = () => {
                             merApp.timezone ||
                             profileData.personalInfo?.location ||
                             '',
+                        exchange_rate_sell: String(
+                            merApp.exchange_rate_sell ?? 0
+                        ),
+                        exchange_rate_buy: String(
+                            merApp.exchange_rate_buy ?? 0
+                        ),
                         fee_rate_pair: formatSlashPair(
                             merApp.in_fee_rate,
                             merApp.out_fee_rate
@@ -369,6 +393,40 @@ const EditPaymentMethod = () => {
                                 </FormItem>
                                 <div className="grid grid-cols-2 gap-4">
                                     <FormItem
+                                        label="Sell Markup %"
+                                        invalid={
+                                            errors.exchange_rate_sell &&
+                                            touched.exchange_rate_sell
+                                        }
+                                        errorMessage={errors.exchange_rate_sell}
+                                    >
+                                        <Field
+                                            type="text"
+                                            autoComplete="off"
+                                            name="exchange_rate_sell"
+                                            component={Input}
+                                            placeholder="0.5"
+                                        />
+                                    </FormItem>
+                                    <FormItem
+                                        label="Buy Markup %"
+                                        invalid={
+                                            errors.exchange_rate_buy &&
+                                            touched.exchange_rate_buy
+                                        }
+                                        errorMessage={errors.exchange_rate_buy}
+                                    >
+                                        <Field
+                                            type="text"
+                                            autoComplete="off"
+                                            name="exchange_rate_buy"
+                                            component={Input}
+                                            placeholder="0.3"
+                                        />
+                                    </FormItem>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <FormItem
                                         label="费率 (in/out)"
                                         invalid={
                                             errors.fee_rate_pair &&
@@ -423,6 +481,7 @@ const EditPaymentMethod = () => {
                                                                     values.currency
                                                             ) || null
                                                         }
+                                                        className="w-full"
                                                         onChange={(
                                                             option: SingleValue<CurrencyAssociationOption>
                                                         ) => {
@@ -435,7 +494,6 @@ const EditPaymentMethod = () => {
                                                                 option?.timezone || ''
                                                             )
                                                         }}
-                                                        className="w-full"
                                                     />
                                                     <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
                                                         Auto-filled timezone:{' '}
@@ -473,11 +531,11 @@ const EditPaymentMethod = () => {
                                     </FormItem>
                                     <FormItem label="relation_status">
                                         <Input
+                                            disabled
                                             value={
                                                 selectedCard.relationStatus ||
                                                 'unbound'
                                             }
-                                            disabled
                                         />
                                     </FormItem>
                                 </div>

@@ -189,6 +189,8 @@ export interface MerchantApplication {
     frozen_amount: number // 冻结金额（分）
     available_amount: number // 可用余额（分）
     currency: string // 币种
+    exchange_rate_sell?: number
+    exchange_rate_buy?: number
     created_at: string // 创建时间
     updated_at: string // 更新时间
     version: number // 乐观锁版本号

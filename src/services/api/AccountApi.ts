@@ -40,6 +40,8 @@ const ACCOUNT_API = {
     APPLICATION_DETAIL: (id: string) => `/api/v1/admin/applications/${id}`,
     APPLICATION_CONFIG: (id: string) => `/api/v1/admin/applications/${id}/config`,
     APPLICATION_STATUS: (id: string) => `/api/v1/admin/applications/${id}/status`,
+    APPLICATION_MANUAL_BALANCE_OPERATION: (id: string) =>
+        `/api/v1/admin/applications/${id}/balance/manual-operation`,
     
     // 浠ｇ悊鍟嗙鐞?
     CREATE_AGENT: '/api/v1/admin/accounts/agents',
@@ -190,6 +192,8 @@ export interface CreateApplicationRequest {
     merchant_id: string
     name: string
     currency: string
+    exchange_rate_sell?: number
+    exchange_rate_buy?: number
     config: {
         // 应用配置（严格后端字段）
         in_fee_rate?: number
@@ -224,6 +228,8 @@ export async function apiUpdateApplicationConfig(
     payload: {
         name?: string
         currency?: string
+        exchange_rate_sell?: number
+        exchange_rate_buy?: number
         config: CreateApplicationRequest['config']
     }
 ) {
@@ -241,6 +247,39 @@ export async function apiDeleteApplication(appId: string) {
     return ApiService.fetchData<{ app_id: string; message: string }>({
         url: ACCOUNT_API.APPLICATION_DETAIL(appId),
         method: 'delete',
+    })
+}
+
+export type ManualApplicationBalanceOperation =
+    | 'ADJUST'
+    | 'FREEZE'
+    | 'UNFREEZE'
+
+export interface ManualApplicationBalanceOperationRequest {
+    operation: ManualApplicationBalanceOperation
+    amount: number
+    currency: string
+    remark: string
+}
+
+export async function apiManualApplicationBalanceOperation(
+    appId: string,
+    data: ManualApplicationBalanceOperationRequest
+) {
+    return ApiService.fetchData<
+        {
+            app_id: string
+            operation: ManualApplicationBalanceOperation
+            amount: number
+            currency: string
+            transaction_id: string
+            message: string
+        },
+        ManualApplicationBalanceOperationRequest
+    >({
+        url: ACCOUNT_API.APPLICATION_MANUAL_BALANCE_OPERATION(appId),
+        method: 'post',
+        data,
     })
 }
 

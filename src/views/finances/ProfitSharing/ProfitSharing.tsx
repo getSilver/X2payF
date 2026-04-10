@@ -11,6 +11,7 @@ import Badge from '@/components/ui/Badge'
 import Select from '@/components/ui/Select'
 import Notification from '@/components/ui/Notification'
 import toast from '@/components/ui/toast'
+import { formatCurrencyAmount } from '@/utils/currencySymbols'
 import {
     apiGetSettlementProfitSharingRecords,
     apiGetSettlementProfitSharingStatistics,
@@ -94,10 +95,41 @@ const toRFC3339 = (value: string) => {
 const formatDateTime = (value?: string) =>
     value ? dayjs(value).format('YYYY-MM-DD HH:mm:ss') : '-'
 
-const formatAmount = (amount?: number) =>
+const formatStatAmount = (amount?: number) =>
     new Intl.NumberFormat('en-US', {
-        maximumFractionDigits: 0,
-    }).format(Number(amount || 0))
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    }).format(Number(amount || 0) / 100)
+
+const formatMinorAmount = (amount?: number, currency?: string) => {
+    if (amount === undefined || amount === null) {
+        return '-'
+    }
+
+    return formatCurrencyAmount(Number(amount) / 100, currency)
+}
+
+const getParticipationAmount = (record: SettlementProfitSharingRecord) =>
+    record.platform_fee_base ?? record.total_amount ?? record.amount_base
+
+const getRateDisplay = (record: SettlementProfitSharingRecord) => {
+    if (record.rate_summary) {
+        return record.rate_summary
+    }
+
+    const parts: string[] = []
+    const fixedAmount = record.total_fixed ?? record.fixed_amount
+
+    if (fixedAmount !== undefined && fixedAmount !== null) {
+        parts.push(formatMinorAmount(fixedAmount, record.currency))
+    }
+
+    if (record.percentage !== undefined && record.percentage !== null) {
+        parts.push(`${record.percentage}%`)
+    }
+
+    return parts.length > 0 ? parts.join(' + ') : '-'
+}
 
 const defaultStartTime = dayjs().startOf('day').format('YYYY-MM-DDTHH:mm:ss')
 const defaultEndTime = dayjs().endOf('day').format('YYYY-MM-DDTHH:mm:ss')
@@ -313,12 +345,25 @@ const ProfitSharing = () => {
             {
                 header: 'Amount',
                 accessorKey: 'amount',
-                cell: (props) => formatAmount(props.row.original.amount),
+                cell: (props) =>
+                    formatMinorAmount(
+                        props.row.original.amount,
+                        props.row.original.currency
+                    ),
+            },
+            {
+                header: 'Base Amount',
+                accessorKey: 'total_amount',
+                cell: (props) =>
+                    formatMinorAmount(
+                        getParticipationAmount(props.row.original),
+                        props.row.original.currency
+                    ),
             },
             {
                 header: 'Rate %',
                 accessorKey: 'percentage',
-                cell: (props) => `${props.row.original.percentage ?? 0}`,
+                cell: (props) => getRateDisplay(props.row.original),
             },
             {
                 header: 'Status',
@@ -372,25 +417,25 @@ const ProfitSharing = () => {
                         icon={<HiOutlineCurrencyDollar />}
                         avatarClass="!bg-blue-500"
                         label="Total Amount"
-                        value={formatAmount(stats.total_amount)}
+                        value={formatStatAmount(stats.total_amount)}
                     />
                     <StatisticCard
                         icon={<HiOutlineCheckCircle />}
                         avatarClass="!bg-emerald-500"
                         label="Completed Amount"
-                        value={formatAmount(stats.completed_amount)}
+                        value={formatStatAmount(stats.completed_amount)}
                     />
                     <StatisticCard
                         icon={<HiOutlineClock />}
                         avatarClass="!bg-amber-500"
                         label="Pending Amount"
-                        value={formatAmount(stats.pending_amount)}
+                        value={formatStatAmount(stats.pending_amount)}
                     />
                     <StatisticCard
                         icon={<HiOutlineExclamationCircle />}
                         avatarClass="!bg-red-500"
                         label="Failed Amount"
-                        value={formatAmount(stats.failed_amount)}
+                        value={formatStatAmount(stats.failed_amount)}
                     />
                 </div>
 

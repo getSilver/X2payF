@@ -221,8 +221,16 @@ export interface SettlementProfitSharingRecord {
     transaction_id: string
     recipient_id: string
     recipient_type: string
+    currency?: string
     amount: number
+    total_amount?: number
+    platform_fee_base?: number
+    amount_base?: number
     percentage: number
+    fixed_amount?: number
+    total_fixed?: number
+    success_count?: number
+    rate_summary?: string
     status: ProfitSharingRecordStatus
     created_at: string
     completed_at?: string

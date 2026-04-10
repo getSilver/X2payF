@@ -117,22 +117,34 @@ const TradeDialog = () => {
                 
                 const request: CreateWithdrawalRequest = {
                     request_id: createUID(16),
-                    app_id: appId,
                     amount: amountInCents,
                     currency: currency,
                     note: `SELL ${price.toFixed(2)} ${currency} -> ${usdAmount.toFixed(2)} USD @ ${rate.toFixed(4)} ${currency}/USD`,
+                }
+
+                if (appId) {
+                    request.app_id = appId
                 }
                 
                 console.log('提款请求:', request)
                 
                 await provider.createWithdrawal(request)
                 setStatus('SUCCESS')
-            } catch (error: any) {
+            } catch (error: unknown) {
                 console.error('提款申请失败:', error)
                 // 打印详细错误信息
-                if (error.response) {
-                    console.error('错误响应:', error.response.data)
-                    console.error('错误状态:', error.response.status)
+                if (
+                    typeof error === 'object' &&
+                    error !== null &&
+                    'response' in error
+                ) {
+                    const response = (
+                        error as {
+                            response?: { data?: unknown; status?: unknown }
+                        }
+                    ).response
+                    console.error('错误响应:', response?.data)
+                    console.error('错误状态:', response?.status)
                 }
                 setStatus('FAILED')
             }

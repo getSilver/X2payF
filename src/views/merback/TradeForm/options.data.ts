@@ -27,13 +27,12 @@ export const fiatCurrencyIcons: Record<string, string> = {
     EUR: '/img/thumbs/eur.png',
     GBP: '/img/thumbs/gbp.png',
     JPY: '/img/thumbs/jpy.png',
-    // 默认图标
-    DEFAULT: '/img/thumbs/currency-default.png',
+    INR: '/img/thumbs/inr.png',
 }
 
 // 获取币种图标
 export const getCurrencyIcon = (currency: string): string => {
-    return fiatCurrencyIcons[currency] || fiatCurrencyIcons.DEFAULT
+    return fiatCurrencyIcons[currency]
 }
 
 export const currencyList: Currency[] = [

@@ -30,6 +30,7 @@ type CertificateUploadProps = {
     values: FormModel
     touched?: { certificate?: boolean }
     errors?: { certificate?: string }
+    hasCertificate?: boolean
 }
 
 const CertificateDisplay = (props: CertificateDisplayProps) => {
@@ -57,13 +58,6 @@ const CertificateDisplay = (props: CertificateDisplayProps) => {
     const onDelete = () => {
         onCertificateDelete?.()
         setDeleteConfirmationOpen(false)
-    }
-
-    // 提取证书信息（简单解析）
-    const getCertificatePreview = () => {
-        const lines = cert.content.split('\n')
-        const previewLines = lines.slice(0, 5).join('\n')
-        return previewLines + (lines.length > 5 ? '\n...' : '')
     }
 
     return (
@@ -124,17 +118,11 @@ const CertificateDisplay = (props: CertificateDisplayProps) => {
 }
 
 const CertificateUpload = (props: CertificateUploadProps) => {
-    const { values, touched, errors } = props
+    const { values, touched, errors, hasCertificate } = props
 
     const beforeUpload = (file: FileList | null) => {
         let valid: boolean | string = true
 
-        const allowedFileType = [
-            'application/x-pem-file',
-            'application/x-x509-ca-cert',
-            'application/pkix-cert',
-            'text/plain', // .pem 文件通常被识别为 text/plain
-        ]
         const allowedExtensions = ['.pem', '.crt', '.cer', '.cert']
         const maxFileSize = 100000 // 100KB，证书文件通常很小
 
@@ -206,8 +194,7 @@ const CertificateUpload = (props: CertificateUploadProps) => {
     }
 
     const handleCertificateDelete = (
-        form: FormikProps<FormModel>,
-        field: FieldInputProps<FormModel>
+        form: FormikProps<FormModel>
     ) => {
         form.setFieldValue('certificate', '')
         form.setFieldValue('certificateInfo', undefined)
@@ -228,9 +215,7 @@ const CertificateUpload = (props: CertificateUploadProps) => {
                                 <div className="grid grid-cols-1 gap-4">
                                     <CertificateDisplay
                                         cert={values.certificateInfo}
-                                        onCertificateDelete={() =>
-                                            handleCertificateDelete(form, field)
-                                        }
+                                        onCertificateDelete={() => handleCertificateDelete(form)}
                                     />
                                     <Upload
                                         draggable
@@ -256,33 +241,40 @@ const CertificateUpload = (props: CertificateUploadProps) => {
                         }
 
                         return (
-                            <Upload
-                                draggable
-                                beforeUpload={beforeUpload}
-                                showList={false}
-                                onChange={(files) =>
-                                    onUpload(form, field, files)
-                                }
-                            >
-                                <div className="my-16 text-center">
-                                    <DoubleSidedImage
-                                        className="mx-auto"
-                                        src="/img/others/upload.png"
-                                        darkModeSrc="/img/others/upload-dark.png"
-                                    />
-                                    <p className="font-semibold">
-                                        <span className="text-gray-800 dark:text-white">
-                                            拖拽证书文件到此处，或{' '}
-                                        </span>
-                                        <span className="text-blue-500">
-                                            点击浏览
-                                        </span>
+                            <div className="space-y-3">
+                                <Upload
+                                    draggable
+                                    beforeUpload={beforeUpload}
+                                    showList={false}
+                                    onChange={(files) =>
+                                        onUpload(form, field, files)
+                                    }
+                                >
+                                    <div className="my-16 text-center">
+                                        <DoubleSidedImage
+                                            className="mx-auto"
+                                            src="/img/others/upload.png"
+                                            darkModeSrc="/img/others/upload-dark.png"
+                                        />
+                                        <p className="font-semibold">
+                                            <span className="text-gray-800 dark:text-white">
+                                                拖拽证书文件到此处，或{' '}
+                                            </span>
+                                            <span className="text-blue-500">
+                                                点击浏览
+                                            </span>
+                                        </p>
+                                        <p className="mt-1 opacity-60 dark:text-white">
+                                            支持格式: .pem, .crt, .cer
+                                        </p>
+                                    </div>
+                                </Upload>
+                                {hasCertificate ? (
+                                    <p className="text-xs text-emerald-600">
+                                        当前已配置证书，重新上传将覆盖现有证书。
                                     </p>
-                                    <p className="mt-1 opacity-60 dark:text-white">
-                                        支持格式: .pem, .crt, .cer
-                                    </p>
-                                </div>
-                            </Upload>
+                                ) : null}
+                            </div>
                         )
                     }}
                 </Field>

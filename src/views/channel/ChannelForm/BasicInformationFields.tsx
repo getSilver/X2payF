@@ -43,11 +43,10 @@ const paymentMethodOptions = [
     { value: 'qr_code', label: '二维码支付' },
     { value: 'h5', label: 'H5支付' },
     { value: 'pix', label: 'PIX' },
-    { value: 'CREDIT_CARD', label: '信用卡' },
-    { value: 'DEBIT_CARD', label: '借记卡' },
-    { value: 'BANK_TRANSFER', label: '银行转账' },
-    { value: 'E_WALLET', label: '电子钱包' },
-    { value: 'CRYPTO', label: '加密货币' },
+    { value: 'bank_transfer', label: '银行转账' },
+    { value: 'credit_card', label: '信用卡' },
+    { value: 'e_wallet', label: '电子钱包' },
+    { value: 'crypto', label: '加密货币' },
 ]
 
 /**

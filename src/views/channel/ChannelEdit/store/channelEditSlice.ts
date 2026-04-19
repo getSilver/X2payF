@@ -1,18 +1,20 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import {
-    apiGetChannel,
+    apiGetChannelEditDetail,
+    apiGetChannelAdapters,
     apiUpdateChannel,
     apiDeleteChannel,
-    apiGetChannelConfig,
+    apiUpdateChannelAdapterBinding,
     apiSetAPIConfig,
     apiSetFeeConfig,
     apiSetLimitConfig,
     apiHotUpdateCredentials,
 } from '@/services/api/ChannelApi'
 import type {
-    Channel,
+    ChannelEditDetailResponse,
+    ChannelAdapterInfo,
     UpdateChannelRequest,
-    ChannelConfigResponse,
+    UpdateChannelAdapterBindingRequest,
     SetAPIConfigRequest,
     SetFeeConfigRequest,
     SetLimitConfigRequest,
@@ -24,9 +26,8 @@ import type {
  */
 export type ChannelEditState = {
     loading: boolean
-    configLoading: boolean
-    channelData: Channel | null
-    channelConfig: ChannelConfigResponse | null
+    channelDetail: ChannelEditDetailResponse | null
+    adapterOptions: ChannelAdapterInfo[]
 }
 
 export const SLICE_NAME = 'channelEdit'
@@ -34,10 +35,10 @@ export const SLICE_NAME = 'channelEdit'
 /**
  * 获取渠道详情
  */
-export const getChannel = createAsyncThunk(
-    SLICE_NAME + '/getChannel',
+export const getChannelEditDetail = createAsyncThunk(
+    SLICE_NAME + '/getChannelEditDetail',
     async (channelId: string) => {
-        const response = await apiGetChannel(channelId)
+        const response = await apiGetChannelEditDetail(channelId)
         // 后端返回格式: { code, message, request_id, data: {...} }
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const responseData = response.data as any
@@ -67,18 +68,22 @@ export const deleteChannel = createAsyncThunk(
     }
 )
 
-/**
- * 获取渠道配置
- */
-export const getChannelConfig = createAsyncThunk(
-    SLICE_NAME + '/getChannelConfig',
-    async (channelId: string) => {
-        const response = await apiGetChannelConfig(channelId)
-        // 后端返回格式: { code, message, request_id, data: {...} }
+export const getChannelAdapters = createAsyncThunk(
+    SLICE_NAME + '/getChannelAdapters',
+    async () => {
+        const response = await apiGetChannelAdapters()
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const responseData = response.data as any
         return responseData.data || responseData
-    }
+    },
+)
+
+export const updateChannelAdapterBinding = createAsyncThunk(
+    SLICE_NAME + '/updateChannelAdapterBinding',
+    async (data: { channelId: string; binding: UpdateChannelAdapterBindingRequest }) => {
+        const response = await apiUpdateChannelAdapterBinding(data.channelId, data.binding)
+        return response.data
+    },
 )
 
 /**
@@ -127,9 +132,8 @@ export const hotUpdateCredentials = createAsyncThunk(
 
 const initialState: ChannelEditState = {
     loading: true,
-    configLoading: false,
-    channelData: null,
-    channelConfig: null,
+    channelDetail: null,
+    adapterOptions: [],
 }
 
 const channelEditSlice = createSlice({
@@ -137,51 +141,27 @@ const channelEditSlice = createSlice({
     initialState,
     reducers: {
         resetChannelData: (state) => {
-            state.channelData = null
-            state.channelConfig = null
+            state.channelDetail = null
+            state.adapterOptions = []
             state.loading = true
-            state.configLoading = false
         },
     },
     extraReducers: (builder) => {
         builder
             // 获取渠道详情
-            .addCase(getChannel.fulfilled, (state, action) => {
-                state.channelData = action.payload
+            .addCase(getChannelEditDetail.fulfilled, (state, action) => {
+                state.channelDetail = action.payload
                 state.loading = false
             })
-            .addCase(getChannel.pending, (state) => {
+            .addCase(getChannelEditDetail.pending, (state) => {
                 state.loading = true
             })
-            .addCase(getChannel.rejected, (state) => {
+            .addCase(getChannelEditDetail.rejected, (state) => {
                 state.loading = false
-                state.channelData = null
+                state.channelDetail = null
             })
-            // 获取渠道配置
-            .addCase(getChannelConfig.fulfilled, (state, action) => {
-                state.channelConfig = action.payload
-                state.configLoading = false
-            })
-            .addCase(getChannelConfig.pending, (state) => {
-                state.configLoading = true
-            })
-            .addCase(getChannelConfig.rejected, (state) => {
-                state.configLoading = false
-                state.channelConfig = null
-            })
-            // 更新渠道
-            .addCase(updateChannel.fulfilled, (state) => {
-                // 更新成功后可以重新获取数据或直接更新 state
-            })
-            // 设置配置成功后重新获取配置
-            .addCase(setAPIConfig.fulfilled, (state) => {
-                state.configLoading = false
-            })
-            .addCase(setFeeConfig.fulfilled, (state) => {
-                state.configLoading = false
-            })
-            .addCase(setLimitConfig.fulfilled, (state) => {
-                state.configLoading = false
+            .addCase(getChannelAdapters.fulfilled, (state, action) => {
+                state.adapterOptions = action.payload
             })
     },
 })

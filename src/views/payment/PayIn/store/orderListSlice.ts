@@ -6,23 +6,16 @@ import {
 } from '@reduxjs/toolkit'
 import { apiGetPayments } from '@/services/PaymentService'
 import type { TableQueries } from '@/@types/common'
-import type { PaymentStatus, PaymentOrder } from '@/@types/payment'
+import type { PaymentOrder } from '@/@types/payment'
+import type { RootState } from '@/store'
+import {
+    buildOrderListParams,
+    type OrderFilterState,
+} from './orderListParams'
 
 export type Order = PaymentOrder
 
 type Orders = Order[]
-
-type GetOrdersResult = {
-    data: Orders
-    total: number
-}
-
-type FilterQueries = {
-    name: string
-    category: string[]
-    status: PaymentStatus[]
-    productStatus: number
-}
 
 export type SalesOrderListState = {
     loading: boolean
@@ -31,28 +24,30 @@ export type SalesOrderListState = {
     deleteMode: 'single' | 'batch' | ''
     selectedRows: string[]
     selectedRow: string
-    filterData: FilterQueries
+    filterData: OrderFilterState
 }
 
 export const SLICE_NAME = 'salesOrderList'
 
 export const getOrders = createAsyncThunk(
     SLICE_NAME + '/getOrders',
-    async (data: TableQueries) => {
-        // 对接后端 API: GET /api/v1/payments
-        const response = await apiGetPayments({
-            page: data.pageIndex,
-            page_size: data.pageSize,
-            // 可以根据需要添加其他筛选参数
-            // status: ...,
-            // transaction_type: ...,
-        })
+    async (data: TableQueries, thunkApi) => {
+        const state = thunkApi.getState() as RootState & {
+            [SLICE_NAME]: {
+                data: {
+                    filterData: OrderFilterState
+                }
+            }
+        }
+
+        const response = await apiGetPayments(
+            buildOrderListParams(data, state[SLICE_NAME].data.filterData),
+        )
         return {
             data: response.data.data.list,
             total: response.data.data.total,
-        } as GetOrdersResult
-        
-    }
+        }
+    },
 )
 
 export const initialTableData: TableQueries = {
@@ -66,16 +61,17 @@ export const initialTableData: TableQueries = {
     },
 }
 
+export const initialFilterData: OrderFilterState = {
+    direction: '',
+    statuses: [],
+    notifyFailed: false,
+}
+
 const initialState: SalesOrderListState = {
     loading: false,
     orderList: [],
     tableData: initialTableData,
-    filterData: {
-        name: '',
-        category: ['bags', 'cloths', 'devices', 'shoes', 'watches'],
-        status: ['SUCCESS', 'PENDING', 'FAILED'],
-        productStatus: 0,
-    },
+    filterData: initialFilterData,
     selectedRows: [],
     selectedRow: '',
     deleteMode: '',

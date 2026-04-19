@@ -5,9 +5,13 @@
 import ApiService from '../ApiService'
 import type {
     Channel,
+    ChannelAdapterBindingResponse,
+    ChannelAdapterInfo,
     ChannelListParams,
     CreateChannelRequest,
+    ChannelEditDetailResponse,
     UpdateChannelRequest,
+    UpdateChannelAdapterBindingRequest,
     UpdateChannelStatusRequest,
     SetAPIConfigRequest,
     SetFeeConfigRequest,
@@ -20,12 +24,15 @@ import type {
 const CHANNEL_API = {
     CHANNELS: '/api/v1/admin/channels',
     CHANNEL_DETAIL: (id: string) => `/api/v1/admin/channels/${id}`,
+    CHANNEL_EDIT_DETAIL: (id: string) => `/api/v1/admin/channels/${id}/edit-detail`,
     CHANNEL_STATUS: (id: string) => `/api/v1/admin/channels/${id}/status`,
     CHANNEL_CONFIG: (id: string) => `/api/v1/admin/channels/${id}/config`,
     CHANNEL_API_CONFIG: (id: string) => `/api/v1/admin/channels/${id}/api-config`,
     CHANNEL_FEE_CONFIG: (id: string) => `/api/v1/admin/channels/${id}/fee-config`,
     CHANNEL_LIMIT_CONFIG: (id: string) => `/api/v1/admin/channels/${id}/limit-config`,
     CHANNEL_CREDENTIALS: (id: string) => `/api/v1/admin/channels/${id}/credentials`,
+    CHANNEL_ADAPTER_BINDING: (id: string) => `/api/v1/admin/channels/${id}/adapter-binding`,
+    CHANNEL_ADAPTERS: '/api/v1/admin/channel-adapters',
     CHANNEL_METRICS: (id: string) => `/api/v1/admin/channels/${id}/metrics`,
 }
 
@@ -44,6 +51,13 @@ export async function apiCreateChannel(data: CreateChannelRequest) {
 export async function apiGetChannel(channelId: string) {
     return ApiService.fetchData<Channel>({
         url: CHANNEL_API.CHANNEL_DETAIL(channelId),
+        method: 'get',
+    })
+}
+
+export async function apiGetChannelEditDetail(channelId: string) {
+    return ApiService.fetchData<ChannelEditDetailResponse>({
+        url: CHANNEL_API.CHANNEL_EDIT_DETAIL(channelId),
         method: 'get',
     })
 }
@@ -118,6 +132,31 @@ export async function apiHotUpdateCredentials(channelId: string, data: HotUpdate
         method: 'put',
         data,
         headers: SENSITIVE_OPERATION_HEADERS,
+    })
+}
+
+export async function apiGetChannelAdapterBinding(channelId: string) {
+    return ApiService.fetchData<ChannelAdapterBindingResponse>({
+        url: CHANNEL_API.CHANNEL_ADAPTER_BINDING(channelId),
+        method: 'get',
+    })
+}
+
+export async function apiUpdateChannelAdapterBinding(
+    channelId: string,
+    data: UpdateChannelAdapterBindingRequest,
+) {
+    return ApiService.fetchData<{ channel_id: string; message: string }, UpdateChannelAdapterBindingRequest>({
+        url: CHANNEL_API.CHANNEL_ADAPTER_BINDING(channelId),
+        method: 'put',
+        data,
+    })
+}
+
+export async function apiGetChannelAdapters() {
+    return ApiService.fetchData<ChannelAdapterInfo[]>({
+        url: CHANNEL_API.CHANNEL_ADAPTERS,
+        method: 'get',
     })
 }
 

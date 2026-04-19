@@ -11,9 +11,14 @@ import CertificateUpload from './CertificateUpload'
 import cloneDeep from 'lodash/cloneDeep'
 import { HiOutlineTrash } from 'react-icons/hi2'
 import { AiOutlineSave } from 'react-icons/ai'
-import * as Yup from 'yup'
-import type { ChannelStatus, PaymentMethod } from '@/@types/channel'
+import type {
+    ChannelStatus,
+    PaymentMethod,
+    ChannelAdapterBindingStatus,
+    ChannelAdapterInfo,
+} from '@/@types/channel'
 import type { TransactionType } from '@/@types/payment'
+import { getChannelValidationSchema } from './channelValidationSchema'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type FormikRef = FormikProps<any>
@@ -64,8 +69,17 @@ export type InitialData = {
     test_endpoint?: string
     merchant_id?: string
     app_id?: string
+    sign_type?: string
+    adapter_config?: string
     secret_key?: string
+    has_secret_key?: boolean
     certificate?: string
+    has_certificate?: boolean
+    adapter_key?: string
+    protocol_version?: string
+    adapter_binding_status?: ChannelAdapterBindingStatus | ''
+    has_existing_adapter_binding?: boolean
+    adapter_options?: ChannelAdapterInfo[]
     certificateInfo?: CertificateInfo
     timeout?: string
     retry_count?: string
@@ -98,8 +112,16 @@ export type FormModel = {
     test_endpoint: string
     merchant_id: string
     app_id: string
+    sign_type: string
+    adapter_config: string
     secret_key: string
+    has_secret_key: boolean
     certificate: string
+    has_certificate: boolean
+    adapter_key: string
+    protocol_version: string
+    adapter_binding_status: ChannelAdapterBindingStatus | ''
+    has_existing_adapter_binding: boolean
     certificateInfo?: CertificateInfo
     timeout: string
     retry_count: string
@@ -112,73 +134,12 @@ type OnDelete = (callback: OnDeleteCallback) => void
 
 type ChannelFormProps = {
     initialData?: InitialData
+    adapterOptions?: ChannelAdapterInfo[]
     type: 'edit' | 'new'
     onDiscard?: () => void
     onDelete?: OnDelete
     onFormSubmit: (formData: FormModel, setSubmitting: SetSubmitting) => void
 }
-
-const requiredByMode = (mode: FeeMode | FeeMode[]) =>
-    Yup.string().when('fee_mode', {
-        is: (currentMode: FeeMode) =>
-            Array.isArray(mode) ? mode.includes(currentMode) : currentMode === mode,
-        then: (schema) => schema.required('必填'),
-        otherwise: (schema) => schema.notRequired(),
-    })
-
-/**
- * 表单验证规则（根据类型动态调整）
- */
-const getValidationSchema = (type: 'edit' | 'new') =>
-    Yup.object().shape({
-        code: Yup.string()
-            .required('渠道代码必填')
-            .min(2, '渠道代码至少2个字符')
-            .max(32, '渠道代码最多32个字符'),
-        name: Yup.string().required('渠道名称必填').max(100, '渠道名称最多100个字符'),
-        display_name: Yup.string()
-            .required('显示名称必填')
-            .max(100, '显示名称最多100个字符'),
-        supported_currencies: Yup.array().min(1, '至少选择一种币种').required('支持币种必填'),
-        supported_payment_methods: Yup.array().min(1, '至少选择一种支付方式').required('支付方式必填'),
-        supported_transaction_types: Yup.array().min(1, '至少选择一种交易类型').required('交易类型必填'),
-        fee_mode: Yup.mixed<FeeMode>()
-            .oneOf(['UNIFIED', 'BY_TXN_TYPE', 'TIERED'])
-            .required('费率模式必填'),
-        unified_percentage_fee: requiredByMode('UNIFIED'),
-        unified_fixed_fee: requiredByMode('UNIFIED'),
-        pay_in_percentage_fee: requiredByMode('BY_TXN_TYPE'),
-        pay_in_fixed_fee: requiredByMode('BY_TXN_TYPE'),
-        pay_out_percentage_fee: requiredByMode('BY_TXN_TYPE'),
-        pay_out_fixed_fee: requiredByMode('BY_TXN_TYPE'),
-        tiered_rules: Yup.array()
-            .of(
-                Yup.object({
-                    min_amount: Yup.string().required('最小金额必填'),
-                    max_amount: Yup.string().required('最大金额必填'),
-                    percentage_fee: Yup.string().required('百分比费率必填'),
-                    fixed_fee: Yup.string().required('固定费用必填'),
-                }),
-            )
-            .when('fee_mode', {
-                is: 'TIERED',
-                then: (schema) => schema.min(1, '至少配置一条阶梯规则').required('阶梯规则必填'),
-                otherwise: (schema) => schema.notRequired(),
-            }),
-        min_amount: Yup.string().required('最小金额必填'),
-        max_amount: Yup.string().required('最大金额必填'),
-        daily_limit: Yup.string().required('日限额必填'),
-        production_endpoint: Yup.string().url('请输入有效的URL').required('生产环境端点必填'),
-        test_endpoint: Yup.string().url('请输入有效的URL').notRequired(),
-        merchant_id: Yup.string().required('商户ID必填'),
-        app_id: Yup.string().notRequired(),
-        secret_key:
-            type === 'edit' ? Yup.string().notRequired() : Yup.string().required('密钥必填'),
-        certificate: Yup.string().notRequired(),
-        timeout: Yup.string().required('超时时间必填'),
-        retry_count: Yup.string().required('重试次数必填'),
-        retry_interval: Yup.string().required('重试间隔必填'),
-    })
 
 /**
  * 删除按钮组件
@@ -232,6 +193,7 @@ const DeleteChannelButton = ({ onDelete }: { onDelete: OnDelete }) => {
 const ChannelForm = forwardRef<FormikRef, ChannelFormProps>((props, ref) => {
     const {
         type,
+        adapterOptions = [],
         initialData = {
             id: '',
             code: '',
@@ -255,8 +217,16 @@ const ChannelForm = forwardRef<FormikRef, ChannelFormProps>((props, ref) => {
             test_endpoint: '',
             merchant_id: '',
             app_id: '',
+            sign_type: '',
+            adapter_config: '',
             secret_key: '',
+            has_secret_key: false,
             certificate: '',
+            has_certificate: false,
+            adapter_key: '',
+            protocol_version: '',
+            adapter_binding_status: '',
+            has_existing_adapter_binding: false,
             certificateInfo: undefined,
             timeout: '30',
             retry_count: '3',
@@ -270,6 +240,7 @@ const ChannelForm = forwardRef<FormikRef, ChannelFormProps>((props, ref) => {
     return (
         <Formik
             innerRef={ref}
+            enableReinitialize
             initialValues={{
                 id: initialData.id || '',
                 code: initialData.code || '',
@@ -293,14 +264,22 @@ const ChannelForm = forwardRef<FormikRef, ChannelFormProps>((props, ref) => {
                 test_endpoint: initialData.test_endpoint || '',
                 merchant_id: initialData.merchant_id || '',
                 app_id: initialData.app_id || '',
+                sign_type: initialData.sign_type || '',
+                adapter_config: initialData.adapter_config || '',
                 secret_key: initialData.secret_key || '',
+                has_secret_key: initialData.has_secret_key ?? false,
                 certificate: initialData.certificate || '',
+                has_certificate: initialData.has_certificate ?? false,
+                adapter_key: initialData.adapter_key || '',
+                protocol_version: initialData.protocol_version || '',
+                adapter_binding_status: initialData.adapter_binding_status || '',
+                has_existing_adapter_binding: initialData.has_existing_adapter_binding ?? false,
                 certificateInfo: initialData.certificateInfo,
                 timeout: initialData.timeout || '30',
                 retry_count: initialData.retry_count || '3',
                 retry_interval: initialData.retry_interval || '1000',
             }}
-            validationSchema={getValidationSchema(type)}
+            validationSchema={getChannelValidationSchema(type)}
             onSubmit={(values: FormModel, { setSubmitting }) => {
                 const formData = cloneDeep(values)
                 onFormSubmit?.(formData, setSubmitting)
@@ -317,11 +296,22 @@ const ChannelForm = forwardRef<FormikRef, ChannelFormProps>((props, ref) => {
                                     values={values}
                                     type={type}
                                 />
-                                <APIConfigFields touched={touched} errors={errors} />
+                                <APIConfigFields
+                                    touched={touched}
+                                    errors={errors}
+                                    values={values}
+                                    adapterOptions={adapterOptions}
+                                    hasSecretKey={values.has_secret_key}
+                                />
                                 <PricingFields touched={touched} errors={errors} values={values} />
                             </div>
                             <div className="lg:col-span-1">
-                                <CertificateUpload values={values} touched={touched} errors={errors} />
+                                <CertificateUpload
+                                    values={values}
+                                    touched={touched}
+                                    errors={errors}
+                                    hasCertificate={values.has_certificate}
+                                />
                             </div>
                         </div>
                         <StickyFooter

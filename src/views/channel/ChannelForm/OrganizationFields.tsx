@@ -1,26 +1,48 @@
 import AdaptableCard from '@/components/shared/AdaptableCard'
 import { FormItem } from '@/components/ui/Form'
 import Input from '@/components/ui/Input'
+import Select from '@/components/ui/Select'
 import { NumericFormat, NumericFormatProps } from 'react-number-format'
 import { Field, FormikErrors, FormikTouched, FieldProps, FieldInputProps } from 'formik'
 import type { ComponentType } from 'react'
 import type { InputProps } from '@/components/ui/Input'
+import type { ChannelAdapterBindingStatus, ChannelAdapterInfo } from '@/@types/channel'
 
 type FormFieldsName = {
     production_endpoint: string
     test_endpoint: string
     merchant_id: string
     app_id: string
+    sign_type: string
+    adapter_config: string
     secret_key: string
     timeout: string
     retry_count: string
     retry_interval: string
+    adapter_key: string
+    protocol_version: string
+    adapter_binding_status: ChannelAdapterBindingStatus | ''
 }
+
+const signTypeOptions: Array<{ value: string; label: string }> = [
+    { value: 'HMAC', label: 'HMAC' },
+    { value: 'RSA', label: 'RSA' },
+    { value: 'MD5', label: 'MD5' },
+]
 
 type APIConfigFieldsProps = {
     touched: FormikTouched<FormFieldsName>
     errors: FormikErrors<FormFieldsName>
+    values: FormFieldsName
+    adapterOptions: ChannelAdapterInfo[]
+    hasSecretKey?: boolean
 }
+
+const adapterBindingStatusOptions: Array<{ value: ChannelAdapterBindingStatus; label: string }> = [
+    { value: 'enabled', label: '启用' },
+    { value: 'test', label: '测试' },
+    { value: 'disabled', label: '禁用' },
+]
 
 const NumericFormatInput = ({
     onValueChange,
@@ -41,10 +63,6 @@ const NumericFormatInput = ({
     )
 }
 
-const SuffixInput = (props: InputProps & { suffix: string }) => {
-    return <Input {...props} value={props.field.value} suffix={props.suffix} />
-}
-
 const TimeoutInput = (props: InputProps) => {
     return <Input {...props} value={props.field.value} suffix="秒" />
 }
@@ -58,7 +76,7 @@ const RetryIntervalInput = (props: InputProps) => {
 }
 
 const APIConfigFields = (props: APIConfigFieldsProps) => {
-    const { touched, errors } = props
+    const { touched, errors, values, adapterOptions, hasSecretKey } = props
 
     return (
         <AdaptableCard divider isLastChild className="mb-4">
@@ -128,6 +146,40 @@ const APIConfigFields = (props: APIConfigFieldsProps) => {
             </div>
 
             <FormItem
+                label="签名类型"
+                invalid={(errors.sign_type && touched.sign_type) as boolean}
+                errorMessage={errors.sign_type}
+            >
+                <Field name="sign_type">
+                    {({ field, form }: FieldProps) => (
+                        <Select
+                            placeholder="选择签名类型"
+                            options={signTypeOptions}
+                            value={signTypeOptions.find((opt) => opt.value === field.value)}
+                            onChange={(selected) => {
+                                form.setFieldValue(field.name, selected?.value || '')
+                            }}
+                        />
+                    )}
+                </Field>
+            </FormItem>
+
+            <FormItem
+                label="适配器配置"
+                invalid={(errors.adapter_config && touched.adapter_config) as boolean}
+                errorMessage={errors.adapter_config}
+            >
+                <Field
+                    as="textarea"
+                    autoComplete="off"
+                    name="adapter_config"
+                    placeholder='例如: {"amount_unit":"minor"}'
+                    component={Input}
+                    textArea
+                />
+            </FormItem>
+
+            <FormItem
                 label="密钥"
                 invalid={(errors.secret_key && touched.secret_key) as boolean}
                 errorMessage={errors.secret_key}
@@ -139,7 +191,89 @@ const APIConfigFields = (props: APIConfigFieldsProps) => {
                     placeholder="渠道分配的密钥"
                     component={Input}
                 />
+                {hasSecretKey ? (
+                    <p className="mt-1 text-xs text-emerald-600">
+                        当前已配置密钥，留空可保持不变。
+                    </p>
+                ) : null}
             </FormItem>
+
+            <div className="mt-8">
+                <h6 className="mb-4 text-gray-700 dark:text-gray-200">适配器绑定</h6>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <FormItem
+                        label="适配器"
+                        invalid={(errors.adapter_key && touched.adapter_key) as boolean}
+                        errorMessage={errors.adapter_key}
+                    >
+                        <Field name="adapter_key">
+                            {({ field, form }: FieldProps) => (
+                                <Select
+                                    placeholder="选择适配器"
+                                    options={adapterOptions.map((adapter) => ({
+                                        value: adapter.adapter_key,
+                                        label: `${adapter.adapter_key} (${adapter.status})`,
+                                    }))}
+                                    value={adapterOptions
+                                        .map((adapter) => ({
+                                            value: adapter.adapter_key,
+                                            label: `${adapter.adapter_key} (${adapter.status})`,
+                                        }))
+                                        .find((option) => option.value === field.value) || null}
+                                    onChange={(selected) => {
+                                        form.setFieldValue(field.name, selected?.value || '')
+                                    }}
+                                />
+                            )}
+                        </Field>
+                    </FormItem>
+
+                    <FormItem
+                        label="协议版本"
+                        invalid={(errors.protocol_version && touched.protocol_version) as boolean}
+                        errorMessage={errors.protocol_version}
+                    >
+                        <Field
+                            type="text"
+                            autoComplete="off"
+                            name="protocol_version"
+                            placeholder="例如: v1"
+                            component={Input}
+                        />
+                    </FormItem>
+
+                    <FormItem
+                        label="绑定状态"
+                        invalid={
+                            (errors.adapter_binding_status &&
+                                touched.adapter_binding_status) as boolean
+                        }
+                        errorMessage={errors.adapter_binding_status}
+                    >
+                        <Field name="adapter_binding_status">
+                            {({ field, form }: FieldProps) => (
+                                <Select
+                                    placeholder="选择绑定状态"
+                                    options={adapterBindingStatusOptions}
+                                    value={
+                                        adapterBindingStatusOptions.find(
+                                            (option) => option.value === field.value,
+                                        ) || null
+                                    }
+                                    onChange={(selected) => {
+                                        form.setFieldValue(field.name, selected?.value || '')
+                                    }}
+                                />
+                            )}
+                        </Field>
+                    </FormItem>
+                </div>
+                {(values.adapter_key || values.protocol_version || values.adapter_binding_status) ? (
+                    <p className="mt-2 text-xs text-gray-500">
+                        保存时会同步更新渠道与 adapter worker 的绑定关系。
+                    </p>
+                ) : null}
+            </div>
 
             {/* 请求配置 */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

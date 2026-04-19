@@ -142,10 +142,15 @@ export interface PaymentListParams {
     app_id?: string
     status?: PaymentStatus
     transaction_type?: TransactionType
+    statuses?: string
+    notify_failed?: boolean
     start_date?: string
     end_date?: string
+    start_time?: string
+    end_time?: string
     page?: number
     page_size?: number
+    keyword?: string           // 通用搜索（支付ID、商户订单号或End2End ID）
     payment_id?: string      // 按支付ID搜索
     merchant_tx_id?: string  // 按商户交易ID搜索
     query?: string           // 通用搜索（交易ID或渠道ID）

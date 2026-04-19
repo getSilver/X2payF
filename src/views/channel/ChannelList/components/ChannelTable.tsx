@@ -24,13 +24,13 @@ import type {
     OnSortParam,
     ColumnDef,
 } from '@/components/shared/DataTable'
-import type { Channel, ChannelStatus } from '@/@types/channel'
+import type { Channel, ChannelStatus, PaymentMethod } from '@/@types/channel'
 
 /**
  * 渠道状态配置
  */
 const channelStatusConfig: Record<
-    ChannelStatus | 'test',
+    ChannelStatus,
     {
         label: string
         dotClass: string
@@ -69,7 +69,7 @@ const ActionColumn = ({ row, onStatusChange }: { row: Channel; onStatusChange: (
     const [statusLoading, setStatusLoading] = useState(false)
 
     // 状态切换顺序: enabled -> maintenance -> disabled -> enabled
-    const getNextStatus = (currentStatus: ChannelStatus | 'test'): ChannelStatus => {
+    const getNextStatus = (currentStatus: ChannelStatus): ChannelStatus => {
         switch (currentStatus) {
             case 'enabled':
                 return 'maintenance'
@@ -83,7 +83,7 @@ const ActionColumn = ({ row, onStatusChange }: { row: Channel; onStatusChange: (
     }
 
     // 获取状态对应的图标
-    const getStatusIcon = (status: ChannelStatus | 'test') => {
+    const getStatusIcon = (status: ChannelStatus) => {
         switch (status) {
             case 'enabled':
                 return <HiSun className="text-emerald-500" />
@@ -154,15 +154,15 @@ const ActionColumn = ({ row, onStatusChange }: { row: Channel; onStatusChange: (
             </Tooltip>
             <span
                 className={`cursor-pointer p-2 hover:${textTheme}`}
-                onClick={onEdit}
                 title="编辑"
+                onClick={onEdit}
             >
                 <HiOutlinePencil />
             </span>
             <span
                 className="cursor-pointer p-2 hover:text-red-500"
-                onClick={onDelete}
                 title="删除"
+                onClick={onDelete}
             >
                 <HiOutlineTrash />
             </span>
@@ -221,21 +221,19 @@ const TransactionTypesColumn = ({ types }: { types: string[] }) => {
 /**
  * 支付方式列
  */
-const PaymentMethodsColumn = ({ methods }: { methods: string[] }) => {
+const PaymentMethodsColumn = ({ methods }: { methods: PaymentMethod[] }) => {
     if (!methods || methods.length === 0) {
         return <span className="text-gray-400">-</span>
     }
     
-    const methodLabels: Record<string, string> = {
+    const methodLabels: Record<PaymentMethod, string> = {
         qr_code: '二维码',
         h5: 'H5',
         pix: 'PIX',
-        CREDIT_CARD: '信用卡',
-        DEBIT_CARD: '借记卡',
-        BANK_TRANSFER: '银行转账',
-        E_WALLET: '电子钱包',
-        QR_CODE: '二维码',
-        CRYPTO: '加密货币',
+        bank_transfer: '银行转账',
+        credit_card: '信用卡',
+        e_wallet: '电子钱包',
+        crypto: '加密货币',
     }
     
     return (

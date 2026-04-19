@@ -151,6 +151,7 @@ export type MerchantQueryParams = {
     page_size?: number
     app_id?: string
     query?: string
+    keyword?: string
     payment_id?: string
     merchant_tx_id?: string
     start_date?: string

@@ -505,39 +505,13 @@ export const getTransctionHistoryData = createAsyncThunk(
                 if (DEBUG_TRADE) {
                     console.debug('[MerchantDashboard][TradeParams]', tradeParams)
                 }
-                // 订单列表
-                const isPaymentID = /^pay_/i.test(keyword)
-
-                const buildTradeSearchParams = (searchAs: 'payment_id' | 'merchant_tx_id') => ({
-                    ...tradeParams,
-                    ...(searchAs === 'payment_id'
-                        ? { payment_id: keyword || undefined }
-                        : { merchant_tx_id: keyword || undefined }),
-                })
-
                 if (!keyword) {
                     response = await apiGetMerchantOrders(tradeParams)
                 } else {
-                    const primarySearchField: 'payment_id' | 'merchant_tx_id' = isPaymentID
-                        ? 'payment_id'
-                        : 'merchant_tx_id'
-                    const fallbackSearchField: 'payment_id' | 'merchant_tx_id' = isPaymentID
-                        ? 'merchant_tx_id'
-                        : 'payment_id'
-
-                    response = await apiGetMerchantOrders(buildTradeSearchParams(primarySearchField))
-                    const primaryData = unwrapDataEnvelope<ListResponsePayload<Trade>>(
-                        response.data as
-                            | { data?: ListResponsePayload<Trade> }
-                            | ListResponsePayload<Trade>
-                    )
-                    const primaryList = primaryData.list || []
-                    const primaryTotal = Number(primaryData.total || 0)
-
-                    // 主搜索无结果时，用另一个字段再查一次
-                    if (!primaryList.length && primaryTotal === 0) {
-                        response = await apiGetMerchantOrders(buildTradeSearchParams(fallbackSearchField))
-                    }
+                    response = await apiGetMerchantOrders({
+                        ...tradeParams,
+                        keyword,
+                    })
                 }
                 // 后端响应结构: { code, message, data: { list: [...], total } }
                 const responseData = unwrapDataEnvelope<ListResponsePayload<Trade>>(

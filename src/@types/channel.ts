@@ -6,19 +6,22 @@ import type { TransactionType } from './payment'
  * 支付方式
  */
 export type PaymentMethod =
-    | 'CREDIT_CARD'
-    | 'DEBIT_CARD'
-    | 'BANK_TRANSFER'
-    | 'E_WALLET'
-    | 'QR_CODE'
-    | 'CRYPTO'
+    | 'qr_code'
+    | 'h5'
+    | 'pix'
+    | 'bank_transfer'
+    | 'credit_card'
+    | 'e_wallet'
+    | 'crypto'
 
 /**
  * 渠道状态
  */
-export type ChannelStatus = 'enabled' | 'disabled' | 'maintenance'
+export type ChannelStatus = 'enabled' | 'disabled' | 'maintenance' | 'test'
 
 export type FeeMode = 'UNIFIED' | 'BY_TXN_TYPE' | 'TIERED'
+
+export type ChannelAdapterBindingStatus = 'enabled' | 'disabled' | 'test'
 
 /**
  * 创建渠道请求
@@ -106,6 +109,7 @@ export interface ChannelListParams {
 export interface SetAuthConfigRequest {
     merchant_id: string
     app_id: string
+    sign_type?: string
 }
 
 /**
@@ -117,6 +121,7 @@ export interface SetAPIConfigRequest {
     timeout: number
     retry_count: number
     retry_interval: number
+    adapter_config?: string
     auth_config: SetAuthConfigRequest
 }
 
@@ -175,8 +180,17 @@ export interface HotUpdateCredentialsRequest {
 export interface AuthConfigResponse {
     merchant_id: string
     app_id: string
+    sign_type?: string
     key_version: number
     updated_at: string
+}
+
+/**
+ * 认证配置响应（编辑详情，含凭据状态）
+ */
+export interface EditDetailAuthConfigResponse extends AuthConfigResponse {
+    has_secret_key: boolean
+    has_certificate: boolean
 }
 
 /**
@@ -188,7 +202,15 @@ export interface APIConfigResponse {
     timeout: number
     retry_count: number
     retry_interval: number
+    adapter_config?: string
     auth_config: AuthConfigResponse
+}
+
+/**
+ * 编辑详情 API 配置响应
+ */
+export interface EditDetailAPIConfigResponse extends Omit<APIConfigResponse, 'auth_config'> {
+    auth_config: EditDetailAuthConfigResponse
 }
 
 /**
@@ -223,6 +245,66 @@ export interface ChannelConfigResponse {
     api_config: APIConfigResponse
     fee_config: FeeConfigResponse
     limit_config: LimitConfigResponse
+    created_at: string
+    updated_at: string
+}
+
+/**
+ * 渠道适配器绑定
+ */
+export interface ChannelAdapterBinding {
+    channel_code: string
+    adapter_key: string
+    protocol_version: string
+    status: ChannelAdapterBindingStatus
+}
+
+/**
+ * 渠道编辑详情响应
+ */
+export interface ChannelEditDetailResponse {
+    id: string
+    code: string
+    name: string
+    display_name: string
+    status: ChannelStatus
+    supported_currencies: string[]
+    supported_payment_methods: PaymentMethod[]
+    supported_transaction_types: TransactionType[]
+    api_config: EditDetailAPIConfigResponse | null
+    fee_config: FeeConfigResponse | null
+    limit_config: LimitConfigResponse | null
+    adapter_binding: ChannelAdapterBinding | null
+}
+
+/**
+ * 渠道适配器绑定请求
+ */
+export interface UpdateChannelAdapterBindingRequest {
+    adapter_key: string
+    protocol_version: string
+    status: ChannelAdapterBindingStatus
+}
+
+/**
+ * 渠道适配器绑定响应
+ */
+export type ChannelAdapterBindingResponse = ChannelAdapterBinding
+
+/**
+ * 渠道适配器信息
+ */
+export interface ChannelAdapterInfo {
+    id: string
+    adapter_key: string
+    adapter_kind: string
+    endpoint: string
+    version: string
+    status: ChannelAdapterBindingStatus
+    timeout_ms: number
+    health_check_path?: string
+    capabilities?: string
+    checksum?: string
     created_at: string
     updated_at: string
 }

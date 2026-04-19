@@ -2,12 +2,14 @@ import { useState } from 'react'
 import Avatar from '@/components/ui/Avatar'
 import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
+import { isAxiosError } from 'axios'
 import { NumericFormat } from 'react-number-format'
 import Notification from '@/components/ui/Notification'
 import toast from '@/components/ui/toast'
 import RefundDialog from './RefundDialog'
 import { apiResendPaymentNotification } from '@/services/PaymentService'
 import { getCurrencySymbol } from '@/utils/currencySymbols'
+import { isRefundAllowed } from './refundEligibility'
 
 type PaymentInfoProps = {
     data?: {
@@ -16,6 +18,7 @@ type PaymentInfoProps = {
         amount?: number | null
         currency?: string
         status?: string
+        transaction_type?: string
         orderLogo?: string
     }
     onRefresh?: () => void
@@ -25,8 +28,10 @@ const PaymentInfo = ({ data, onRefresh }: PaymentInfoProps) => {
     const [isNotifying, setIsNotifying] = useState(false)
     const [refundDialogOpen, setRefundDialogOpen] = useState(false)
 
-    // 只有支付成功的订单才能退款
-    const canRefund = data?.status === 'SUCCESS'
+    const canRefund = isRefundAllowed({
+        transaction_type: data?.transaction_type,
+        status: data?.status,
+    })
 
     const handleRefundClick = () => {
         if (canRefund && data?.payment_id) {
@@ -59,9 +64,13 @@ const PaymentInfo = ({ data, onRefresh }: PaymentInfoProps) => {
             if (onRefresh) {
                 onRefresh()
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             // 显示错误通知
-            const errorMessage = error?.response?.data?.message || error?.message || '回调失败'
+            const errorMessage = isAxiosError(error)
+                ? error.response?.data?.message || error.message || '回调失败'
+                : error instanceof Error
+                  ? error.message
+                  : '回调失败'
             toast.push(
                 <Notification
                     title="回调失败"
@@ -111,20 +120,20 @@ const PaymentInfo = ({ data, onRefresh }: PaymentInfoProps) => {
                 <div className="grid grid-cols-2 gap-2">
                     <Button 
                         className="w-full" 
-                        variant="twoTone" 
                         color="yellow-500"
-                        onClick={handleNotifyClick}
-                        loading={isNotifying}
                         disabled={isNotifying}
+                        loading={isNotifying}
+                        variant="twoTone" 
+                        onClick={handleNotifyClick}
                     >
                         回调
                     </Button>
                     <Button 
                         className="w-full" 
-                        variant="twoTone" 
                         color="blue-600"
-                        onClick={handleRefundClick}
                         disabled={!canRefund}
+                        variant="twoTone" 
+                        onClick={handleRefundClick}
                     >
                         退款
                     </Button>
@@ -133,11 +142,11 @@ const PaymentInfo = ({ data, onRefresh }: PaymentInfoProps) => {
 
             {data?.payment_id && data?.amount && (
                 <RefundDialog
+                    currency={data.currency || 'USD'}
                     isOpen={refundDialogOpen}
-                    onClose={() => setRefundDialogOpen(false)}
                     paymentId={data.payment_id}
                     paymentAmount={data.amount}
-                    currency={data.currency || 'USD'}
+                    onClose={() => setRefundDialogOpen(false)}
                     onSuccess={onRefresh}
                 />
             )}

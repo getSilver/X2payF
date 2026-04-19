@@ -5,7 +5,6 @@ import Avatar from '@/components/ui/Avatar'
 import {
     HiOutlineArrowUp,
     HiOutlineArrowDown,
-    HiOutlineNoSymbol
 } from 'react-icons/hi2'
 import { NumericFormat } from 'react-number-format'
 import {
@@ -22,6 +21,7 @@ import { useNavigate } from 'react-router-dom'
 import cloneDeep from 'lodash/cloneDeep'
 import dayjs from 'dayjs'
 import { PAYMENT_STATUS_META, type PaymentStatus } from '@/@types/payment'
+import { getOrderAmountDisplay } from './orderAmountDisplay'
 import type {
     DataTableResetHandle,
     OnSortParam,
@@ -146,12 +146,14 @@ const OrdersTable = () => {
                 accessorKey: 'amount',
                 cell: (props) => {
                     const { amount, currency, transaction_type } = props.row.original
-                    const isIncome = transaction_type === 'PAY_IN'
-                    const amountInYuan = amount / 100
-                    const value = (Math.trunc(amountInYuan * 100) / 100).toFixed(2)
-                    const prefix = `${isIncome ? '+' : '-'}${getCurrencySymbol(currency, '$')}`
+                    const { className, prefix, sign, value } = getOrderAmountDisplay({
+                        amount,
+                        currency,
+                        transaction_type,
+                    })
                     return (
-                        <span className={isIncome ? 'text-emerald-600 font-semibold' : 'text-red-600 font-semibold'}>
+                        <span className={className}>
+                            <span>{sign}</span>
                             <NumericFormat
                                 displayType="text"
                                 value={value}

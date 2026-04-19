@@ -362,7 +362,7 @@ const EditPaymentMethod = () => {
                         <Form>
                             <FormContainer>
                                 <FormItem
-                                    label="通道名"
+                                    label="商户App"
                                     invalid={
                                         errors.channelName &&
                                         touched.channelName

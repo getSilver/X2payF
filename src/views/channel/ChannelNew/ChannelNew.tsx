@@ -4,12 +4,15 @@ import Notification from '@/components/ui/Notification'
 import { useNavigate } from 'react-router-dom'
 import {
     apiCreateChannel,
+    apiGetChannelAdapters,
     apiHotUpdateCredentials,
     apiSetAPIConfig,
+    apiUpdateChannelAdapterBinding,
     apiSetFeeConfig,
     apiSetLimitConfig,
 } from '@/services/api/ChannelApi'
-import type { SetFeeConfigRequest } from '@/@types/channel'
+import type { ChannelAdapterInfo, SetFeeConfigRequest } from '@/@types/channel'
+import { useEffect, useState } from 'react'
 
 const majorToMinor = (value?: string) => {
     const numericValue = Number(value || '0')
@@ -54,6 +57,22 @@ const buildFeeConfigPayload = (values: FormModel): SetFeeConfigRequest => {
 
 const ChannelNew = () => {
     const navigate = useNavigate()
+    const [adapterOptions, setAdapterOptions] = useState<ChannelAdapterInfo[]>([])
+
+    useEffect(() => {
+        const loadAdapters = async () => {
+            try {
+                const response = await apiGetChannelAdapters()
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const responseData = response.data as any
+                setAdapterOptions(responseData.data || responseData || [])
+            } catch (error) {
+                setAdapterOptions([])
+            }
+        }
+
+        loadAdapters()
+    }, [])
 
     const handleFormSubmit = async (values: FormModel, setSubmitting: SetSubmitting) => {
         setSubmitting(true)
@@ -81,9 +100,11 @@ const ChannelNew = () => {
                 timeout: parseInt(values.timeout) || 30,
                 retry_count: parseInt(values.retry_count) || 3,
                 retry_interval: parseInt(values.retry_interval) || 1000,
+                adapter_config: values.adapter_config,
                 auth_config: {
                     merchant_id: values.merchant_id,
                     app_id: values.app_id,
+                    sign_type: values.sign_type || undefined,
                 },
             })
 
@@ -101,6 +122,18 @@ const ChannelNew = () => {
                 max_amount: values.max_amount,
                 daily_limit: values.daily_limit,
             })
+
+            if (
+                values.adapter_key.trim() &&
+                values.protocol_version.trim() &&
+                values.adapter_binding_status
+            ) {
+                await apiUpdateChannelAdapterBinding(channelId, {
+                    adapter_key: values.adapter_key,
+                    protocol_version: values.protocol_version,
+                    status: values.adapter_binding_status,
+                })
+            }
 
             toast.push(
                 <Notification title="创建成功" type="success" duration={2500}>
@@ -129,7 +162,14 @@ const ChannelNew = () => {
         navigate('/app/channel')
     }
 
-    return <ChannelForm type="new" onFormSubmit={handleFormSubmit} onDiscard={handleDiscard} />
+    return (
+        <ChannelForm
+            type="new"
+            adapterOptions={adapterOptions}
+            onFormSubmit={handleFormSubmit}
+            onDiscard={handleDiscard}
+        />
+    )
 }
 
 export default ChannelNew

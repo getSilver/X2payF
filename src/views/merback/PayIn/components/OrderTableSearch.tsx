@@ -59,7 +59,7 @@ const OrderTableSearch = () => {
             ref={searchInput}
             className="lg:w-60"
             size="sm"
-            placeholder="交易ID&渠道ID"
+            placeholder="PaymentID MerchanttxID E2EID"
             prefix={<HiOutlineSearch className="text-lg" />}
             onChange={onEdit}
             onKeyDown={onKeyDown}

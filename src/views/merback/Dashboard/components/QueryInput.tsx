@@ -24,7 +24,7 @@ const QueryInput = forwardRef<HTMLInputElement, QueryInputProps>(
                 ref={ref}
                 className="lg:w-90"
                 size="sm"
-                placeholder="Search Eed2EndID TransactionID"
+                placeholder="PaymentID MerchanttxID E2EID"
                 prefix={<HiOutlineSearch className="text-lg" />}
                 onChange={onEdit}
             />
